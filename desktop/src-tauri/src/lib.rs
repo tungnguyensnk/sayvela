@@ -1,4 +1,5 @@
 mod audio;
+mod soniox;
 mod types;
 
 use std::sync::Mutex;
@@ -6,6 +7,7 @@ use std::sync::Mutex;
 use tauri::{AppHandle, State};
 
 use crate::types::AudioDevice;
+use crate::soniox::SonioxTempKey;
 
 pub struct AppState {
     capture: Mutex<Option<audio::CaptureHandle>>,
@@ -58,6 +60,11 @@ fn stop_loopback_capture(state: State<AppState>) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+async fn soniox_get_temp_key() -> Result<SonioxTempKey, String> {
+    soniox::get_temp_key().await.map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -66,7 +73,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             list_loopback_devices,
             start_loopback_capture,
-            stop_loopback_capture
+            stop_loopback_capture,
+            soniox_get_temp_key
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

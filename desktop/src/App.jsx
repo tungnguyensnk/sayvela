@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import "./App.css";
+import { useTranscript } from "./transcript/useTranscript";
 
 function App() {
   const [devices, setDevices] = useState([]);
@@ -10,6 +11,7 @@ function App() {
   const [running, setRunning] = useState(false);
   const [bytes, setBytes] = useState(0);
   const [captureState, setCaptureState] = useState(null);
+  const transcript = useTranscript();
 
   async function refreshDevices() {
     setDevicesError("");
@@ -33,7 +35,6 @@ function App() {
     (async () => {
       unlistenAudio = await listen("audio_chunk", (e) => {
         const chunk = e.payload;
-        console.log("audio_chunk", chunk?.length, chunk?.slice?.(0, 8));
         const n =
           typeof chunk?.length === "number"
             ? chunk.length
@@ -54,6 +55,7 @@ function App() {
 
   async function start() {
     setBytes(0);
+    await transcript.start();
     await invoke("start_loopback_capture", { deviceId: selectedDeviceId });
     setRunning(true);
   }
@@ -61,6 +63,7 @@ function App() {
   async function stop() {
     await invoke("stop_loopback_capture");
     setRunning(false);
+    await transcript.stop();
   }
 
   return (
@@ -125,6 +128,23 @@ function App() {
 
             <div className="small" style={{ marginTop: 8 }}>
               state: {captureState?.state || "-"} {captureState?.message ? `(${captureState.message})` : ""}
+            </div>
+          </div>
+        </section>
+
+        <section className="panel" style={{ marginTop: 16 }}>
+          <div className="panel-header">
+            <div>
+              <div className="panel-title">Transcript</div>
+              <div className="panel-sub">soniox websocket</div>
+            </div>
+          </div>
+          <div style={{ padding: 12 }}>
+            <div className="small">
+              status: {transcript.status || "-"} {transcript.error ? `(${transcript.error})` : ""}
+            </div>
+            <div className="card" style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>
+              {transcript.text || "-"}
             </div>
           </div>
         </section>

@@ -193,16 +193,18 @@ fn capture_thread(app: AppHandle, device_id: String, stop: Arc<AtomicBool>) -> R
         CaptureState {
             state: "running".to_string(),
             message: Some(format!(
-                "inRate={} inCh={} ratio={}",
+                "inRate={} inCh={} outRate={} ratio={}",
                 desired.get_samplespersec(),
                 desired.get_nchannels(),
-                (16000.0 / desired.get_samplespersec() as f32)
+                48000,
+                (48000.0 / desired.get_samplespersec() as f32)
             )),
         },
     );
 
     let in_rate = desired.get_samplespersec() as u32;
     let in_ch = desired.get_nchannels() as usize;
+    let out_rate: u32 = 48000;
 
     let mut raw_bytes: VecDeque<u8> = VecDeque::new();
     let mut in_f32: Vec<f32> = Vec::new();
@@ -213,7 +215,8 @@ fn capture_thread(app: AppHandle, device_id: String, stop: Arc<AtomicBool>) -> R
 
     let mut carry: Vec<f32> = Vec::new();
     let mut carry_idx_f: f32 = 0.0;
-    let ratio = 16000.0 / in_rate as f32;
+    let ratio = out_rate as f32 / in_rate as f32;
+    let chunk_bytes = (out_rate as usize * 2) / 50;
 
     while !stop.load(Ordering::SeqCst) {
         let frames = capture
@@ -268,9 +271,9 @@ fn capture_thread(app: AppHandle, device_id: String, stop: Arc<AtomicBool>) -> R
             }
 
             pcm_buf.extend(out_i16_bytes.drain(..));
-            while pcm_buf.len() >= 640 {
-                let mut chunk = Vec::with_capacity(640);
-                for _ in 0..640 {
+            while pcm_buf.len() >= chunk_bytes {
+                let mut chunk = Vec::with_capacity(chunk_bytes);
+                for _ in 0..chunk_bytes {
                     chunk.push(pcm_buf.pop_front().unwrap_or(0));
                 }
                 let _ = app.emit("audio_chunk", chunk);
