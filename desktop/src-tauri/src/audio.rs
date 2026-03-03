@@ -196,15 +196,15 @@ fn capture_thread(app: AppHandle, device_id: String, stop: Arc<AtomicBool>) -> R
                 "inRate={} inCh={} outRate={} ratio={}",
                 desired.get_samplespersec(),
                 desired.get_nchannels(),
-                48000,
-                (48000.0 / desired.get_samplespersec() as f32)
+                44100,
+                (44100.0 / desired.get_samplespersec() as f32)
             )),
         },
     );
 
     let in_rate = desired.get_samplespersec() as u32;
     let in_ch = desired.get_nchannels() as usize;
-    let out_rate: u32 = 48000;
+    let out_rate: u32 = 44100;
 
     let mut raw_bytes: VecDeque<u8> = VecDeque::new();
     let mut in_f32: Vec<f32> = Vec::new();

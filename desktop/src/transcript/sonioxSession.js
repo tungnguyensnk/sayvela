@@ -15,12 +15,75 @@ function tokensToText(tokens, wantFinal) {
     .join("");
 }
 
+function sortGroups(groups) {
+  const statusOrder = (s) => (s === "original" ? 0 : 1);
+  groups.sort((a, b) => {
+    const sa = Number(a.speaker);
+    const sb = Number(b.speaker);
+    if (Number.isFinite(sa) && Number.isFinite(sb) && sa !== sb) return sa - sb;
+    if (a.speaker !== b.speaker) return a.speaker.localeCompare(b.speaker);
+    const ao = statusOrder(a.translationStatus);
+    const bo = statusOrder(b.translationStatus);
+    if (ao !== bo) return ao - bo;
+    return a.language.localeCompare(b.language);
+  });
+  return groups;
+}
+
+function groupTokens(tokens) {
+  if (!Array.isArray(tokens)) return [];
+  const map = new Map();
+  for (const t of tokens) {
+    const speaker = String(t?.speaker ?? "0");
+    const language = typeof t?.language === "string" ? t.language : "";
+    const translationStatus =
+      typeof t?.translation_status === "string"
+        ? t.translation_status
+        : typeof t?.translationStatus === "string"
+          ? t.translationStatus
+          : "original";
+    const key = `${speaker}|${language}|${translationStatus}`;
+    let g = map.get(key);
+    if (!g) {
+      g = {
+        speaker,
+        language,
+        translationStatus,
+        finalTokens: [],
+        partialTokens: [],
+      };
+      map.set(key, g);
+    }
+    if (tokenIsFinal(t)) g.finalTokens.push(t);
+    else g.partialTokens.push(t);
+  }
+
+  const out = [];
+  for (const g of map.values()) {
+    const finalText = g.finalTokens.map((t) => (typeof t?.text === "string" ? t.text : "")).join("");
+    const partialText = g.partialTokens.map((t) => (typeof t?.text === "string" ? t.text : "")).join("");
+    out.push({
+      speaker: g.speaker,
+      language: g.language,
+      translationStatus: g.translationStatus,
+      finalText,
+      partialText,
+      text: `${finalText}${partialText}`,
+      isFinal: partialText.length === 0,
+    });
+  }
+
+  return sortGroups(out);
+}
+
 export async function startSonioxSession({
-  sampleRate = 48000,
+  sampleRate = 44100,
   model = "stt-rt-v4",
-  languageHints = ["vi", "en"],
+  languageHints = ["vi", "ja"],
   enableSpeakerDiarization = true,
   enableLanguageIdentification = true,
+  targetLanguage = "ja",
+  enableTranslation = true,
   onText,
   onResult,
   onState,
@@ -33,6 +96,10 @@ export async function startSonioxSession({
   onState?.("connecting");
   const ws = new WebSocket(WS_URL);
   ws.binaryType = "arraybuffer";
+
+  const finalByKey = new Map();
+  const partialByKey = new Map();
+  const metaByKey = new Map();
 
   await new Promise((resolve, reject) => {
     const onOpen = () => {
@@ -48,17 +115,25 @@ export async function startSonioxSession({
   });
 
   onState?.("configuring");
+  const config = {
+    api_key: apiKey,
+    audio_format: "s16le",
+    sample_rate: sampleRate,
+    num_channels: 1,
+    model,
+    language_hints: languageHints,
+    enable_speaker_diarization: enableSpeakerDiarization,
+    enable_language_identification: enableLanguageIdentification,
+  };
+  if (enableTranslation && targetLanguage) {
+    config.translation = {
+      type: "one_way",
+      target_language: targetLanguage,
+      source_languages: ["*"],
+    };
+  }
   ws.send(
-    JSON.stringify({
-      api_key: apiKey,
-      audio_format: "pcm_s16le",
-      sample_rate: sampleRate,
-      num_channels: 1,
-      model,
-      language_hints: languageHints,
-      enable_speaker_diarization: enableSpeakerDiarization,
-      enable_language_identification: enableLanguageIdentification,
-    }),
+    JSON.stringify(config),
   );
 
   ws.addEventListener("message", (ev) => {
@@ -72,12 +147,44 @@ export async function startSonioxSession({
 
     onResult?.(msg);
     const tokens = msg?.tokens;
-    const finalText = tokensToText(tokens, true);
-    const partialText = tokensToText(tokens, false);
+    const msgGroups = groupTokens(tokens);
+    for (const g of msgGroups) {
+      const key = `${g.speaker}|${g.language}|${g.translationStatus}`;
+      metaByKey.set(key, {
+        speaker: g.speaker,
+        language: g.language,
+        translationStatus: g.translationStatus,
+      });
+      if (g.finalText) {
+        finalByKey.set(key, `${finalByKey.get(key) || ""}${g.finalText}`);
+      }
+      partialByKey.set(key, g.partialText || "");
+    }
+
+    const mergedGroups = [];
+    for (const key of new Set([...metaByKey.keys(), ...finalByKey.keys(), ...partialByKey.keys()])) {
+      const meta = metaByKey.get(key) || {};
+      const finalText = finalByKey.get(key) || "";
+      const partialText = partialByKey.get(key) || "";
+      mergedGroups.push({
+        speaker: String(meta.speaker ?? "0"),
+        language: String(meta.language ?? ""),
+        translationStatus: String(meta.translationStatus ?? "original"),
+        finalText,
+        partialText,
+        text: `${finalText}${partialText}`,
+        isFinal: partialText.length === 0,
+      });
+    }
+    sortGroups(mergedGroups);
+
+    const finalText = mergedGroups.map((g) => g.finalText).join("");
+    const partialText = mergedGroups.map((g) => g.partialText).join("");
     onText?.({
       text: `${finalText}${partialText}`,
       finalText,
       partialText,
+      groups: mergedGroups,
       finished: Boolean(msg?.finished),
     });
   });

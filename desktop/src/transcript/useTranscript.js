@@ -7,23 +7,27 @@ export function useTranscript() {
   const [text, setText] = useState("");
   const [finalText, setFinalText] = useState("");
   const [partialText, setPartialText] = useState("");
+  const [groups, setGroups] = useState([]);
   const [error, setError] = useState("");
 
-  const start = useCallback(async () => {
+  const start = useCallback(async (opts = {}) => {
     if (sessionRef.current) return;
     setError("");
     setText("");
     setFinalText("");
     setPartialText("");
+    setGroups([]);
     setStatus("starting");
 
     try {
       const session = await startSonioxSession({
+        ...opts,
         onState: (s) => setStatus(s),
         onText: (t) => {
           setText(t.text || "");
           setFinalText(t.finalText || "");
           setPartialText(t.partialText || "");
+          setGroups(Array.isArray(t.groups) ? t.groups : []);
         },
       });
       sessionRef.current = session;
@@ -49,6 +53,7 @@ export function useTranscript() {
     text,
     finalText,
     partialText,
+    groups,
     error,
     start,
     stop,
