@@ -163,7 +163,7 @@ export function TranscriptPanel({
   useEffect(() => {
     if (!autoScroll) return;
     scrollToBottom();
-  }, [autoScroll, transcript?.groups?.length]);
+  }, [autoScroll, transcript]);
 
   return (
     <section className="panel transcript-panel" style={{ marginTop: 16 }}>
