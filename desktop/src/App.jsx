@@ -1,9 +1,9 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import "./App.css";
 import { useTranscript } from "./transcript/useTranscript";
-import { LoopbackPanel } from "./components/LoopbackPanel";
+import { AudioControlPanel } from "./components/AudioControlPanel";
 import { TranscriptPanel } from "./components/TranscriptPanel";
 
 function byteSize(chunk) {
@@ -15,22 +15,36 @@ function byteSize(chunk) {
 
 function App() {
   const [devices, setDevices] = useState([]);
-  const [selectedDeviceId, setSelectedDeviceId] = useState("");
   const [devicesError, setDevicesError] = useState("");
   const [running, setRunning] = useState(false);
-  const [bytes, setBytes] = useState(0);
-  const [captureState, setCaptureState] = useState(null);
-  const [inputLanguages, setInputLanguages] = useState(["en", "ja"]);
-  const [outputLanguage, setOutputLanguage] = useState("vi");
-  const transcript = useTranscript();
-  const transcriptStartedRef = useRef(false);
+  
+  // Loopback State
+  const [loopbackDeviceId, setLoopbackDeviceId] = useState("default-loopback");
+  const [loopbackBytes, setLoopbackBytes] = useState(0);
+  const [loopbackCaptureState, setLoopbackCaptureState] = useState(null);
+  const [loopbackInputLangs, setLoopbackInputLangs] = useState(["ja", "en"]);
+  const [loopbackOutputLang, setLoopbackOutputLang] = useState("vi");
+  
+  // Mic State
+  const [micDeviceId, setMicDeviceId] = useState("default-mic");
+  const [micBytes, setMicBytes] = useState(0);
+  const [micCaptureState, setMicCaptureState] = useState(null);
+  const [micInputLangs, setMicInputLangs] = useState(["vi"]);
+  const [micOutputLang, setMicOutputLang] = useState("ja");
+
+  // Transcripts
+  const loopbackTranscript = useTranscript();
+  const micTranscript = useTranscript();
+  
+  // Refs to track transcript start state to avoid double-start
+  const loopbackStartedRef = useRef(false);
+  const micStartedRef = useRef(false);
 
   async function refreshDevices() {
     setDevicesError("");
     try {
-      const list = await invoke("list_loopback_devices");
+      const list = await invoke("list_audio_devices");
       setDevices(list);
-      if (!selectedDeviceId && list[0]?.id) setSelectedDeviceId(list[0].id);
     } catch (e) {
       setDevices([]);
       setDevicesError(String(e));
@@ -41,81 +55,127 @@ function App() {
     refreshDevices();
   }, []);
 
+  // Listeners
   useEffect(() => {
-    let unlistenAudio = null;
-    let unlistenState = null;
+    let unlistenList = [];
+    
     (async () => {
-      unlistenAudio = await listen("audio_chunk", (e) => {
+      unlistenList.push(await listen("audio_chunk_loopback", (e) => {
         const n = byteSize(e.payload);
-        if (n > 0) setBytes((v) => v + n);
-      });
-      unlistenState = await listen("capture_state", (e) => {
-        setCaptureState(e.payload);
-      });
+        if (n > 0) setLoopbackBytes((v) => v + n);
+      }));
+      
+      unlistenList.push(await listen("audio_chunk_mic", (e) => {
+        const n = byteSize(e.payload);
+        if (n > 0) setMicBytes((v) => v + n);
+      }));
+
+      unlistenList.push(await listen("capture_state_loopback", (e) => {
+        setLoopbackCaptureState(e.payload);
+      }));
+      
+      unlistenList.push(await listen("capture_state_mic", (e) => {
+        setMicCaptureState(e.payload);
+      }));
     })();
+
     return () => {
-      if (unlistenAudio) unlistenAudio();
-      if (unlistenState) unlistenState();
+      unlistenList.forEach(u => u());
     };
   }, []);
 
+  // Manage Loopback Transcript Session
   useEffect(() => {
     if (!running) {
-      transcriptStartedRef.current = false;
+      loopbackStartedRef.current = false;
       return;
     }
     
-    if (captureState?.state === "running" && captureState?.sampleRate && !transcriptStartedRef.current) {
-      transcriptStartedRef.current = true;
-      const languageHints = inputLanguages.length ? inputLanguages : ["vi", "ja"];
+    if (loopbackCaptureState?.state === "running" && loopbackCaptureState?.sampleRate && !loopbackStartedRef.current && loopbackDeviceId) {
+      loopbackStartedRef.current = true;
+      const languageHints = loopbackInputLangs.length ? loopbackInputLangs : ["en", "ja"];
       
-      transcript.start({
-        sampleRate: captureState.sampleRate,
+      loopbackTranscript.start({
+        sampleRate: loopbackCaptureState.sampleRate,
         languageHints,
-        targetLanguage: outputLanguage,
-        enableTranslation: Boolean(outputLanguage),
+        targetLanguage: loopbackOutputLang,
+        enableTranslation: Boolean(loopbackOutputLang),
+        audioEventName: "audio_chunk_loopback"
       }).catch(err => {
-        console.error("Transcript start failed:", err);
-        stop();
+        console.error("Loopback Transcript start failed:", err);
       });
     }
-  }, [running, captureState, inputLanguages, outputLanguage]);
+  }, [running, loopbackCaptureState, loopbackInputLangs, loopbackOutputLang, loopbackDeviceId]);
+
+  // Manage Mic Transcript Session
+  useEffect(() => {
+    if (!running) {
+      micStartedRef.current = false;
+      return;
+    }
+    
+    if (micCaptureState?.state === "running" && micCaptureState?.sampleRate && !micStartedRef.current && micDeviceId) {
+      micStartedRef.current = true;
+      const languageHints = micInputLangs.length ? micInputLangs : ["vi"];
+      
+      micTranscript.start({
+        sampleRate: micCaptureState.sampleRate,
+        languageHints,
+        targetLanguage: micOutputLang,
+        enableTranslation: Boolean(micOutputLang),
+        audioEventName: "audio_chunk_mic",
+        speakerOverride: "me",
+        splitTurnsOnLanguage: false,
+        enableSpeakerDiarization: false
+      }).catch(err => {
+        console.error("Mic Transcript start failed:", err);
+      });
+    }
+  }, [running, micCaptureState, micInputLangs, micOutputLang, micDeviceId]);
 
   async function start() {
-    setBytes(0);
-    // Don't start transcript here. Start loopback first to detect sample rate.
+    setLoopbackBytes(0);
+    setMicBytes(0);
+    setRunning(true);
+    
     try {
-      await invoke("start_loopback_capture", { deviceId: selectedDeviceId });
-      setRunning(true);
+      if (loopbackDeviceId) {
+        await invoke("start_audio_capture", { deviceId: loopbackDeviceId, kind: "loopback" });
+      }
+      if (micDeviceId) {
+        await invoke("start_audio_capture", { deviceId: micDeviceId, kind: "microphone" });
+      }
     } catch (e) {
-      try {
-        await invoke("stop_loopback_capture");
-      } catch {}
-      try {
-        await transcript.stop();
-      } catch {}
-      throw e;
+      console.error("Start failed", e);
+      stop();
+      alert("Start failed: " + e);
     }
   }
 
   async function stop() {
     try {
-      await invoke("stop_loopback_capture");
-    } finally {
-      setRunning(false);
-      try {
-        await transcript.stop();
-      } catch {}
-    }
+      if (loopbackDeviceId) await invoke("stop_audio_capture", { kind: "loopback" });
+    } catch {}
+    try {
+      if (micDeviceId) await invoke("stop_audio_capture", { kind: "microphone" });
+    } catch {}
+    
+    setRunning(false);
+    try {
+      await loopbackTranscript.stop();
+    } catch {}
+    try {
+      await micTranscript.stop();
+    } catch {}
   }
 
-  function toggleInputLanguage(code) {
-    setInputLanguages((prev) => {
-      const has = prev.includes(code);
-      if (has) return prev.filter((c) => c !== code);
-      return [...prev, code];
-    });
-  }
+  // Merge Transcripts
+  const mergedGroups = useMemo(() => {
+    const sys = loopbackTranscript.groups.map(g => ({ ...g, sessionId: 'sys' }));
+    const mic = micTranscript.groups.map(g => ({ ...g, sessionId: 'mic' }));
+    // Sort by createdAt
+    return [...sys, ...mic].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  }, [loopbackTranscript.groups, micTranscript.groups]);
 
   return (
     <div className="app">
@@ -125,26 +185,42 @@ function App() {
         </div>
       </header>
       <main className="main">
-        <LoopbackPanel
+        <AudioControlPanel
           devices={devices}
-          selectedDeviceId={selectedDeviceId}
-          onChangeDeviceId={setSelectedDeviceId}
+          
+          loopbackDeviceId={loopbackDeviceId}
+          onChangeLoopbackDeviceId={setLoopbackDeviceId}
+          loopbackBytes={loopbackBytes}
+          loopbackCaptureState={loopbackCaptureState}
+          loopbackInputLangs={loopbackInputLangs}
+          onChangeLoopbackInputLangs={setLoopbackInputLangs}
+          loopbackOutputLang={loopbackOutputLang}
+          onChangeLoopbackOutputLang={setLoopbackOutputLang}
+
+          micDeviceId={micDeviceId}
+          onChangeMicDeviceId={setMicDeviceId}
+          micBytes={micBytes}
+          micCaptureState={micCaptureState}
+          micInputLangs={micInputLangs}
+          onChangeMicInputLangs={setMicInputLangs}
+          micOutputLang={micOutputLang}
+          onChangeMicOutputLang={setMicOutputLang}
+
+          loopbackStatus={loopbackTranscript.status}
+          loopbackError={loopbackTranscript.error}
+          micStatus={micTranscript.status}
+          micError={micTranscript.error}
+
           running={running}
           onRefreshDevices={refreshDevices}
           devicesError={devicesError}
-          bytes={bytes}
-          captureState={captureState}
           onStart={start}
           onStop={stop}
         />
 
         <TranscriptPanel
-          transcript={transcript}
+          transcriptGroups={mergedGroups}
           running={running}
-          inputLanguages={inputLanguages}
-          onToggleInputLanguage={toggleInputLanguage}
-          outputLanguage={outputLanguage}
-          onOutputLanguageChange={setOutputLanguage}
         />
       </main>
     </div>

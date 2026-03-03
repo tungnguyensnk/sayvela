@@ -65,19 +65,13 @@ export async function startSonioxSession({
   enableLanguageIdentification = true,
   targetLanguage = "ja",
   enableTranslation = true,
+  audioEventName = "audio_chunk",
+  speakerOverride = "",
+  splitTurnsOnLanguage = true,
   onText,
   onResult,
   onState,
 } = {}) {
-  onState?.("fetch_key");
-  const key = await invoke("soniox_get_temp_key");
-  const apiKey = key?.apiKey;
-  if (!apiKey) throw new Error("missing apiKey");
-
-  onState?.("connecting");
-  const ws = new WebSocket(WS_URL);
-  ws.binaryType = "arraybuffer";
-
   let nextSeq = 1;
   const lastTurnSeqBySpeaker = new Map();
   let lastOriginalRunKey = "";
@@ -93,22 +87,21 @@ export async function startSonioxSession({
     return s;
   };
 
-  await new Promise((resolve, reject) => {
-    const onOpen = () => {
-      ws.removeEventListener("error", onError);
-      resolve();
-    };
-    const onError = () => {
-      ws.removeEventListener("open", onOpen);
-      reject(new Error("websocket connect failed"));
-    };
-    ws.addEventListener("open", onOpen, { once: true });
-    ws.addEventListener("error", onError, { once: true });
-  });
+  let stopped = false;
+  let ws = null;
+  let reconnectTimer = null;
+  let reconnectAttempt = 0;
+  let connectingPromise = null;
 
-  onState?.("configuring");
-  const config = {
-    api_key: apiKey,
+  const fetchApiKey = async () => {
+    onState?.("fetch_key");
+    const key = await invoke("soniox_get_temp_key");
+    const apiKey = key?.apiKey;
+    if (!apiKey) throw new Error("missing apiKey");
+    return apiKey;
+  };
+
+  const configBase = {
     audio_format: "s16le",
     sample_rate: sampleRate,
     num_channels: 1,
@@ -117,18 +110,20 @@ export async function startSonioxSession({
     enable_speaker_diarization: enableSpeakerDiarization,
     enable_language_identification: enableLanguageIdentification,
   };
-  if (enableTranslation && targetLanguage) {
-    config.translation = {
-      type: "one_way",
-      target_language: targetLanguage,
-      source_languages: ["*"],
-    };
-  }
-  ws.send(
-    JSON.stringify(config),
-  );
 
-  ws.addEventListener("message", (ev) => {
+  const buildConfig = (apiKey) => {
+    const config = { ...configBase, api_key: apiKey };
+    if (enableTranslation && targetLanguage) {
+      config.translation = {
+        type: "one_way",
+        target_language: targetLanguage,
+        source_languages: ["*"],
+      };
+    }
+    return config;
+  };
+
+  const handleMessage = (ev) => {
     if (typeof ev.data !== "string") return;
     const msg = safeJsonParse(ev.data);
     if (!msg) return;
@@ -139,9 +134,10 @@ export async function startSonioxSession({
 
     for (const t of tokens) {
       const m = tokenMeta(t);
+      if (speakerOverride) m.speaker = String(speakerOverride);
       let turnSeq = lastTurnSeqBySpeaker.get(m.speaker) || 0;
       if (m.translationStatus === "original") {
-        const originalRunKey = `${m.speaker}|${m.language}`;
+        const originalRunKey = splitTurnsOnLanguage ? `${m.speaker}|${m.language}` : `${m.speaker}`;
         if (originalRunKey !== lastOriginalRunKey) {
           lastOriginalRunKey = originalRunKey;
           turnSeq = nextSeq++;
@@ -171,6 +167,7 @@ export async function startSonioxSession({
           translationStatus: m.translationStatus,
           finalText: "",
           partialText: "",
+          createdAt: Date.now(),
         };
       }
       if (m.isFinal) stream.current.finalText += m.text;
@@ -205,31 +202,104 @@ export async function startSonioxSession({
       groups: mergedGroups,
       finished: Boolean(msg?.finished),
     });
-  });
+  };
 
-  ws.addEventListener("close", () => onState?.("closed"));
-  ws.addEventListener("error", () => onState?.("error"));
+  const scheduleReconnect = () => {
+    if (stopped) return;
+    if (reconnectTimer) return;
+    const cappedAttempt = Math.min(reconnectAttempt, 6);
+    const delayMs = Math.min(10000, 500 * 2 ** cappedAttempt);
+    reconnectAttempt += 1;
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
+      ensureConnected(true).catch(() => scheduleReconnect());
+    }, delayMs);
+  };
 
-  onState?.("streaming");
-  const unlistenAudio = await listen("audio_chunk", (e) => {
-    if (ws.readyState !== WebSocket.OPEN) return;
+  const handleDisconnect = () => {
+    if (stopped) return;
+    onState?.("reconnecting");
+    scheduleReconnect();
+  };
+
+  const openWs = async () => {
+    const sock = new WebSocket(WS_URL);
+    sock.binaryType = "arraybuffer";
+    await new Promise((resolve, reject) => {
+      const onOpen = () => {
+        sock.removeEventListener("error", onError);
+        resolve();
+      };
+      const onError = () => {
+        sock.removeEventListener("open", onOpen);
+        reject(new Error("websocket connect failed"));
+      };
+      sock.addEventListener("open", onOpen, { once: true });
+      sock.addEventListener("error", onError, { once: true });
+    });
+    return sock;
+  };
+
+  const attachHandlers = (sock) => {
+    sock.addEventListener("message", handleMessage);
+    sock.addEventListener("close", handleDisconnect);
+    sock.addEventListener("error", handleDisconnect);
+  };
+
+  const ensureConnected = async (isReconnect) => {
+    if (stopped) return;
+    if (connectingPromise) return connectingPromise;
+    connectingPromise = (async () => {
+      onState?.(isReconnect ? "reconnecting" : "connecting");
+
+      const apiKey = await fetchApiKey();
+      if (stopped) return;
+
+      const sock = await openWs();
+      if (stopped) {
+        try {
+          sock.close();
+        } catch {}
+        return;
+      }
+
+      ws = sock;
+      attachHandlers(sock);
+
+      onState?.("configuring");
+      sock.send(JSON.stringify(buildConfig(apiKey)));
+      reconnectAttempt = 0;
+      onState?.("streaming");
+    })().finally(() => {
+      connectingPromise = null;
+    });
+    return connectingPromise;
+  };
+
+  await ensureConnected(false);
+
+  const unlistenAudio = await listen(audioEventName, (e) => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
     const payload = e.payload;
     ws.send(toUint8Array(payload));
   });
 
-  let stopped = false;
   return {
     stop: async () => {
       if (stopped) return;
       stopped = true;
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+      }
       try {
         unlistenAudio?.();
       } catch {}
       try {
-        if (ws.readyState === WebSocket.OPEN) ws.send(new Uint8Array());
+        if (ws && ws.readyState === WebSocket.OPEN) ws.send(new Uint8Array());
       } catch {}
       try {
-        ws.close();
+        ws?.close?.();
       } catch {}
     },
   };

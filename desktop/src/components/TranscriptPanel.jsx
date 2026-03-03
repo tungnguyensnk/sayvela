@@ -1,60 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-
-const LANGUAGES = [
-  { code: "vi", label: "Vietnamese" },
-  { code: "en", label: "English" },
-  { code: "ja", label: "Japanese" },
-];
-
-const LANGUAGE_LABEL_BY_CODE = new Map(LANGUAGES.map((l) => [l.code, l.label]));
-
-function TranscriptControls({
-  languages,
-  inputLanguages,
-  onToggleInputLanguage,
-  outputLanguage,
-  onOutputLanguageChange,
-  running,
-}) {
-  return (
-    <div className="transcript-controls">
-      <div className="field" style={{ marginBottom: 0 }}>
-        <div className="label">Ngôn ngữ vào</div>
-        <div className="chips">
-          {languages.map((l) => (
-            <button
-              key={l.code}
-              type="button"
-              className={`chip ${inputLanguages.includes(l.code) ? "chip-active" : ""}`}
-              disabled={running}
-              onClick={() => onToggleInputLanguage?.(l.code)}
-            >
-              {l.label}
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="field" style={{ marginBottom: 0 }}>
-        <div className="label">Ngôn ngữ ra</div>
-        <div className="row">
-          <select
-            className="select"
-            value={outputLanguage}
-            disabled={running}
-            onChange={(e) => onOutputLanguageChange?.(e.target.value)}
-          >
-            <option value="">(tắt dịch)</option>
-            {languages.map((l) => (
-              <option key={l.code} value={l.code}>
-                {l.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-    </div>
-  );
-}
+import { LANGUAGE_LABEL_BY_CODE } from "../languages";
 
 function TranscriptBubble({ langLabel, segments, isFinal, isTranslation }) {
   const content =
@@ -93,22 +38,38 @@ function TranscriptBubble({ langLabel, segments, isFinal, isTranslation }) {
 
 function TranscriptGrid({ transcriptGroups, langLabelFn }) {
   const groups = Array.isArray(transcriptGroups) ? transcriptGroups : [];
-  const ordered = [...groups].sort((a, b) => (Number(a?.seq) || 0) - (Number(b?.seq) || 0));
-  if (ordered.length === 0) {
+  
+  // 1. Group by Session+Seq to form "Turns"
+  const turnsMap = new Map();
+  for (const g of groups) {
+    const key = `${g.sessionId || 'unknown'}-${g.seq}`;
+    if (!turnsMap.has(key)) {
+      turnsMap.set(key, {
+        key,
+        sessionId: g.sessionId,
+        seq: g.seq,
+        createdAt: g.createdAt || 0,
+        segments: []
+      });
+    }
+    const turn = turnsMap.get(key);
+    turn.segments.push(g);
+    // Keep earliest timestamp for sorting
+    if (g.createdAt && g.createdAt < turn.createdAt) {
+      turn.createdAt = g.createdAt;
+    }
+  }
+
+  // 2. Sort turns by time
+  const turns = Array.from(turnsMap.values()).sort((a, b) => a.createdAt - b.createdAt);
+
+  if (turns.length === 0) {
     return (
       <div className="empty" style={{ gridColumn: "1 / -1" }}>
         -
       </div>
     );
   }
-
-  const bySeq = new Map();
-  for (const g of ordered) {
-    const seq = Number(g?.seq) || 0;
-    if (!bySeq.has(seq)) bySeq.set(seq, []);
-    bySeq.get(seq).push(g);
-  }
-  const seqs = Array.from(bySeq.keys()).sort((a, b) => a - b);
 
   const bubbleMeta = (list) => {
     if (!Array.isArray(list) || list.length === 0) return { langLabel: "-", isFinal: true };
@@ -119,19 +80,28 @@ function TranscriptGrid({ transcriptGroups, langLabelFn }) {
     };
   };
 
-  return seqs.map((seq) => {
-    const row = bySeq.get(seq) || [];
+  return turns.map((turn) => {
+    const row = turn.segments;
     const original = row.filter((g) => g.translationStatus === "original");
     const translated = row.filter((g) => g.translationStatus !== "original");
-    const speaker = String(original[0]?.speaker ?? row[0]?.speaker ?? "0");
+    
+    // Determine speaker label
+    let speakerLabel = "SPEAKER ?";
+    const rawSpeaker = String(original[0]?.speaker ?? row[0]?.speaker ?? "0");
+    
+    if (turn.sessionId === 'mic') {
+      speakerLabel = "ME";
+    } else {
+      speakerLabel = `SPEAKER ${rawSpeaker}`;
+    }
 
     const oMeta = bubbleMeta(original);
     const tMeta = bubbleMeta(translated);
 
     return (
-      <div key={seq} className="tr-row">
+      <div key={turn.key} className="tr-row">
         <div className="tr-col">
-          <div className="speaker-label">SPEAKER {speaker}</div>
+          <div className="speaker-label">{speakerLabel}</div>
           <TranscriptBubble
             langLabel={oMeta.langLabel}
             segments={original}
@@ -140,7 +110,7 @@ function TranscriptGrid({ transcriptGroups, langLabelFn }) {
           />
         </div>
         <div className="tr-col">
-          <div className="speaker-label">SPEAKER {speaker}</div>
+          <div className="speaker-label">{speakerLabel}</div>
           <TranscriptBubble
             langLabel={tMeta.langLabel}
             segments={translated}
@@ -154,14 +124,9 @@ function TranscriptGrid({ transcriptGroups, langLabelFn }) {
 }
 
 export function TranscriptPanel({
-  transcript,
+  transcriptGroups,
   running,
-  inputLanguages,
-  onToggleInputLanguage,
-  outputLanguage,
-  onOutputLanguageChange,
 }) {
-  const languages = LANGUAGES;
   const langLabel = (code) => LANGUAGE_LABEL_BY_CODE.get(code) || code;
   const [autoScroll, setAutoScroll] = useState(true);
   const scrollRef = useRef(null);
@@ -184,46 +149,31 @@ export function TranscriptPanel({
   useEffect(() => {
     if (!autoScroll) return;
     scrollToBottom();
-  }, [autoScroll, transcript]);
+  }, [autoScroll, transcriptGroups]);
 
   return (
     <section className="panel transcript-panel" style={{ marginTop: 16 }}>
-      <div className="panel-header">
+      <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <div className="panel-title">Transcript</div>
-          <div className="panel-sub">soniox websocket</div>
+          <div className="panel-sub">Real-time conversation</div>
         </div>
+        <button
+          type="button"
+          className={`btn btn-secondary ${autoScroll ? "chip-active" : ""}`}
+          onClick={() => {
+            setAutoScroll((v) => !v);
+            if (!autoScroll) requestAnimationFrame(scrollToBottom);
+          }}
+          style={{ fontSize: 11, padding: "4px 8px" }}
+        >
+          auto scroll: {autoScroll ? "on" : "off"}
+        </button>
       </div>
       <div className="transcript-panel-body" style={{ padding: 12 }}>
-        <div className="row" style={{ justifyContent: "space-between" }}>
-          <div className="small">
-            status: {transcript?.status || "-"} {transcript?.error ? `(${transcript.error})` : ""}
-          </div>
-          <button
-            type="button"
-            className={`btn btn-secondary ${autoScroll ? "chip-active" : ""}`}
-            onClick={() => {
-              setAutoScroll((v) => !v);
-              if (!autoScroll) requestAnimationFrame(scrollToBottom);
-            }}
-          >
-            auto scroll: {autoScroll ? "on" : "off"}
-          </button>
-        </div>
-        <div style={{ marginTop: 8 }}>
-          <TranscriptControls
-            languages={languages}
-            inputLanguages={inputLanguages}
-            onToggleInputLanguage={onToggleInputLanguage}
-            outputLanguage={outputLanguage}
-            onOutputLanguageChange={onOutputLanguageChange}
-            running={running}
-          />
-        </div>
-
         <div
           className="transcript-scroll"
-          style={{ marginTop: 12 }}
+          style={{ marginTop: 0 }}
           ref={scrollRef}
           onScroll={() => {
             if (autoScrollingRef.current) return;
@@ -237,7 +187,7 @@ export function TranscriptPanel({
           }}
         >
           <div className="transcript-grid">
-            <TranscriptGrid transcriptGroups={transcript?.groups} langLabelFn={langLabel} />
+            <TranscriptGrid transcriptGroups={transcriptGroups} langLabelFn={langLabel} />
           </div>
         </div>
       </div>

@@ -3,6 +3,7 @@ mod soniox;
 mod types;
 
 use std::sync::Mutex;
+use std::collections::HashMap;
 
 use tauri::{AppHandle, State};
 
@@ -10,47 +11,50 @@ use crate::types::AudioDevice;
 use crate::soniox::SonioxTempKey;
 
 pub struct AppState {
-    capture: Mutex<Option<audio::CaptureHandle>>,
+    captures: Mutex<HashMap<String, audio::CaptureHandle>>,
 }
 
 impl Default for AppState {
     fn default() -> Self {
         Self {
-            capture: Mutex::new(None),
+            captures: Mutex::new(HashMap::new()),
         }
     }
 }
 
 #[tauri::command]
-fn list_loopback_devices() -> Result<Vec<AudioDevice>, String> {
-    audio::list_loopback_devices().map_err(|e| e.to_string())
+fn list_audio_devices() -> Result<Vec<AudioDevice>, String> {
+    audio::list_audio_devices().map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn start_loopback_capture(app: AppHandle, state: State<AppState>, device_id: String) -> Result<(), String> {
+fn start_audio_capture(app: AppHandle, state: State<AppState>, device_id: String, kind: String) -> Result<(), String> {
     #[cfg(not(windows))]
     {
-        let _ = (app, state, device_id);
+        let _ = (app, state, device_id, kind);
         return Err("only supported on windows".to_string());
     }
 
     #[cfg(windows)]
     {
-        let mut guard = state.capture.lock().map_err(|_| "state poisoned".to_string())?;
-        if guard.is_some() {
-            return Err("capture already running".to_string());
+        let mut guard = state.captures.lock().map_err(|_| "state poisoned".to_string())?;
+        
+        // Check if capture of this kind is already running
+        if guard.contains_key(&kind) {
+            return Err(format!("capture for {} already running", kind));
         }
-        let handle = audio::start_loopback_capture(app, device_id).map_err(|e| e.to_string())?;
-        *guard = Some(handle);
+
+        let handle = audio::start_audio_capture(app, device_id, kind.clone()).map_err(|e| e.to_string())?;
+        guard.insert(kind, handle);
         Ok(())
     }
 }
 
 #[tauri::command]
-fn stop_loopback_capture(state: State<AppState>) -> Result<(), String> {
+fn stop_audio_capture(state: State<AppState>, kind: String) -> Result<(), String> {
     let handle = {
-        let mut guard = state.capture.lock().map_err(|_| "state poisoned".to_string())?;
-        guard.take()
+        let mut guard = state.captures.lock().map_err(|_| "state poisoned".to_string())?;
+        guard.remove(&kind)
     };
 
     #[cfg(windows)]
@@ -71,9 +75,9 @@ pub fn run() {
         .manage(AppState::default())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
-            list_loopback_devices,
-            start_loopback_capture,
-            stop_loopback_capture,
+            list_audio_devices,
+            start_audio_capture,
+            stop_audio_capture,
             soniox_get_temp_key
         ])
         .run(tauri::generate_context!())

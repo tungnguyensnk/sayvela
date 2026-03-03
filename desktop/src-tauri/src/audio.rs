@@ -21,43 +21,74 @@ use std::thread;
 #[cfg(windows)]
 use std::time::Duration;
 
-pub fn list_loopback_devices() -> Result<Vec<AudioDevice>> {
+pub fn list_audio_devices() -> Result<Vec<AudioDevice>> {
     #[cfg(not(windows))]
     {
         let _ = ();
-        return Err(anyhow!("loopback capture is only supported on windows"));
+        return Err(anyhow!("audio capture is only supported on windows"));
     }
 
     #[cfg(windows)]
     {
         let _ = wasapi::initialize_mta().ok();
-        let collection = DeviceCollection::new(&Direction::Render)
-            .map_err(|e| anyhow!(e.to_string()))
-            .context("get render devices")?;
-
         let mut out = Vec::new();
+
+        // Loopback devices (Render)
         out.push(AudioDevice {
-            id: "default".to_string(),
-            name: "(Tự động) Thiết bị mặc định hệ thống".to_string(),
-            kind: "loopback_output".to_string(),
+            id: "default-loopback".to_string(),
+            name: "(Tự động) Thiết bị phát mặc định".to_string(),
+            kind: "loopback".to_string(),
         });
-        for dev in &collection {
-            let dev = dev.map_err(|e| anyhow!(e.to_string()))?;
-            let name = dev
-                .get_friendlyname()
-                .unwrap_or_else(|_| "unknown".to_string());
-            let id = dev.get_id().unwrap_or_else(|_| "".to_string());
-            let id = if id.trim().is_empty() {
-                format!("friendly:{name}")
-            } else {
-                id
-            };
-            out.push(AudioDevice {
-                id,
-                name,
-                kind: "loopback_output".to_string(),
-            });
+
+        if let Ok(collection) = DeviceCollection::new(&Direction::Render) {
+            for dev in &collection {
+                if let Ok(dev) = dev {
+                    let name = dev
+                        .get_friendlyname()
+                        .unwrap_or_else(|_| "unknown".to_string());
+                    let id = dev.get_id().unwrap_or_else(|_| "".to_string());
+                    let id = if id.trim().is_empty() {
+                        format!("friendly:loopback:{name}")
+                    } else {
+                        id
+                    };
+                    out.push(AudioDevice {
+                        id,
+                        name,
+                        kind: "loopback".to_string(),
+                    });
+                }
+            }
         }
+
+        // Microphone devices (Capture)
+        out.push(AudioDevice {
+            id: "default-mic".to_string(),
+            name: "(Tự động) Microphone mặc định".to_string(),
+            kind: "microphone".to_string(),
+        });
+
+        if let Ok(collection) = DeviceCollection::new(&Direction::Capture) {
+            for dev in &collection {
+                if let Ok(dev) = dev {
+                    let name = dev
+                        .get_friendlyname()
+                        .unwrap_or_else(|_| "unknown".to_string());
+                    let id = dev.get_id().unwrap_or_else(|_| "".to_string());
+                    let id = if id.trim().is_empty() {
+                        format!("friendly:mic:{name}")
+                    } else {
+                        id
+                    };
+                    out.push(AudioDevice {
+                        id,
+                        name,
+                        kind: "microphone".to_string(),
+                    });
+                }
+            }
+        }
+
         Ok(out)
     }
 }
@@ -79,23 +110,34 @@ impl CaptureHandle {
 }
 
 #[cfg(windows)]
-pub fn start_loopback_capture(app: AppHandle, device_id: String) -> Result<CaptureHandle> {
+pub fn start_audio_capture(app: AppHandle, device_id: String, kind: String) -> Result<CaptureHandle> {
     let stop = Arc::new(AtomicBool::new(false));
     let stop2 = stop.clone();
 
+    // Determine event names based on kind
+    let (event_data, event_state) = if kind == "microphone" {
+        ("audio_chunk_mic", "capture_state_mic")
+    } else {
+        ("audio_chunk_loopback", "capture_state_loopback")
+    };
+
+    // Clone for thread
+    let event_data = event_data.to_string();
+    let event_state = event_state.to_string();
+
     let join = thread::spawn(move || {
         let _ = app.emit(
-            "capture_state",
+            &event_state,
             CaptureState {
                 state: "starting".to_string(),
                 message: None,
                 sample_rate: None,
             },
         );
-        match capture_thread(app.clone(), device_id, stop2) {
+        match capture_thread(app.clone(), device_id, kind, stop2, event_data.clone(), event_state.clone()) {
             Ok(()) => {
                 let _ = app.emit(
-                    "capture_state",
+                    &event_state,
                     CaptureState {
                         state: "stopped".to_string(),
                         message: None,
@@ -105,7 +147,7 @@ pub fn start_loopback_capture(app: AppHandle, device_id: String) -> Result<Captu
             }
             Err(e) => {
                 let _ = app.emit(
-                    "capture_state",
+                    &event_state,
                     CaptureState {
                         state: "error".to_string(),
                         message: Some(e.to_string()),
@@ -123,20 +165,33 @@ pub fn start_loopback_capture(app: AppHandle, device_id: String) -> Result<Captu
 }
 
 #[cfg(windows)]
-fn capture_thread(app: AppHandle, device_id: String, stop: Arc<AtomicBool>) -> Result<()> {
+fn capture_thread(
+    app: AppHandle,
+    device_id: String,
+    kind: String,
+    stop: Arc<AtomicBool>,
+    event_data: String,
+    event_state: String,
+) -> Result<()> {
     wasapi::initialize_mta()
         .ok()
         .map_err(|e| anyhow!(e.to_string()))
         .context("initialize com mta")?;
 
-    let device = if device_id == "default" {
-        wasapi::get_default_device(&Direction::Render)
-            .map_err(|e| anyhow!(e.to_string()))
-            .context("get default render device")?
+    let direction = if kind == "microphone" {
+        Direction::Capture
     } else {
-        let collection = DeviceCollection::new(&Direction::Render)
+        Direction::Render
+    };
+
+    let device = if device_id == "default-loopback" || device_id == "default-mic" {
+        wasapi::get_default_device(&direction)
             .map_err(|e| anyhow!(e.to_string()))
-            .context("get render devices")?;
+            .context("get default device")?
+    } else {
+        let collection = DeviceCollection::new(&direction)
+            .map_err(|e| anyhow!(e.to_string()))
+            .context("get devices")?;
 
         let mut selected: Option<Device> = None;
         for dev in &collection {
@@ -144,7 +199,7 @@ fn capture_thread(app: AppHandle, device_id: String, stop: Arc<AtomicBool>) -> R
             let sys_id = dev.get_id().unwrap_or_default();
             if (!sys_id.is_empty() && sys_id == device_id)
                 || (device_id.starts_with("friendly:")
-                    && dev.get_friendlyname().unwrap_or_default() == device_id[9..])
+                    && dev.get_friendlyname().unwrap_or_default() == device_id[9..]) // Simplified matching
             {
                 selected = Some(dev);
                 break;
@@ -197,7 +252,7 @@ fn capture_thread(app: AppHandle, device_id: String, stop: Arc<AtomicBool>) -> R
     let out_rate = in_rate;
 
     let _ = app.emit(
-        "capture_state",
+        &event_state,
         CaptureState {
             state: "running".to_string(),
             message: Some(format!(
@@ -218,7 +273,7 @@ fn capture_thread(app: AppHandle, device_id: String, stop: Arc<AtomicBool>) -> R
     let mut carry: Vec<f32> = Vec::new();
     let mut carry_idx_f: f32 = 0.0;
     let ratio = out_rate as f32 / in_rate as f32;
-    let chunk_bytes = (out_rate as usize * 2) / 50;
+    let chunk_bytes = (out_rate as usize * 2) / 50; // 20ms chunk
 
     while !stop.load(Ordering::SeqCst) {
         let frames = capture
@@ -278,7 +333,7 @@ fn capture_thread(app: AppHandle, device_id: String, stop: Arc<AtomicBool>) -> R
                 for _ in 0..chunk_bytes {
                     chunk.push(pcm_buf.pop_front().unwrap_or(0));
                 }
-                let _ = app.emit("audio_chunk", chunk);
+                let _ = app.emit(&event_data, chunk);
             }
         }
 
