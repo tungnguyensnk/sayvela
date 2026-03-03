@@ -216,7 +216,7 @@ fn capture_thread(app: AppHandle, device_id: String, stop: Arc<AtomicBool>) -> R
     let mut carry: Vec<f32> = Vec::new();
     let mut carry_idx_f: f32 = 0.0;
     let ratio = out_rate as f32 / in_rate as f32;
-    let chunk_bytes = (out_rate as usize * 2) / 50;
+    let chunk_bytes = (out_rate as usize * 2) / 20;
 
     while !stop.load(Ordering::SeqCst) {
         let frames = capture
