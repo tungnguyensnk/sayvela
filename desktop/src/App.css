@@ -29,28 +29,6 @@ body {
   flex-direction: column;
 }
 
-.topbar {
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
-  border-bottom: 1px solid #243041;
-  background: rgba(18, 24, 36, 0.7);
-  backdrop-filter: blur(10px);
-}
-
-.topbar-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.brand {
-  font-weight: 700;
-  letter-spacing: 0.2px;
-}
-
 .main {
   flex: 1;
   padding: 16px;

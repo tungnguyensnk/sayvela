@@ -179,11 +179,6 @@ function App() {
 
   return (
     <div className="app">
-      <header className="topbar">
-        <div className="topbar-left">
-          <div className="brand">Virex</div>
-        </div>
-      </header>
       <main className="main">
         <AudioControlPanel
           devices={devices}
