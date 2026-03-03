@@ -56,11 +56,37 @@ function TranscriptControls({
   );
 }
 
-function TranscriptBubble({ langLabel, text, isFinal, isTranslation }) {
+function TranscriptBubble({ langLabel, segments, isFinal, isTranslation }) {
+  const content =
+    Array.isArray(segments) && segments.length > 0 ? (
+      segments.map((seg, i) => {
+        const finalText = seg.finalText || "";
+        const partialText = seg.partialText || "";
+        
+        let prefixSpace = "";
+        let highlightText = partialText;
+        if (partialText.startsWith(" ")) {
+          prefixSpace = " ";
+          highlightText = partialText.slice(1);
+        }
+
+        return (
+          <span key={seg.id || i}>
+            {finalText}
+            {prefixSpace}
+            {highlightText && <span className="text-partial">{highlightText}</span>}
+            {i < segments.length - 1 && <br />}
+          </span>
+        );
+      })
+    ) : (
+      "-"
+    );
+
   return (
     <div className={`bubble ${isFinal ? "" : "partial"}`}>
       <span className="lang-pill">{langLabel}</span>
-      <span className={`bubble-text ${isTranslation ? "translation" : ""}`}>{text || "-"}</span>
+      <span className={`bubble-text ${isTranslation ? "translation" : ""}`}>{content}</span>
     </div>
   );
 }
@@ -83,11 +109,6 @@ function TranscriptGrid({ transcriptGroups, langLabelFn }) {
     bySeq.get(seq).push(g);
   }
   const seqs = Array.from(bySeq.keys()).sort((a, b) => a - b);
-
-  const joinText = (list) => {
-    const s = list.map((g) => String(g?.text || "")).join("\n").trim();
-    return s || "-";
-  };
 
   const bubbleMeta = (list) => {
     if (!Array.isArray(list) || list.length === 0) return { langLabel: "-", isFinal: true };
@@ -113,7 +134,7 @@ function TranscriptGrid({ transcriptGroups, langLabelFn }) {
           <div className="speaker-label">SPEAKER {speaker}</div>
           <TranscriptBubble
             langLabel={oMeta.langLabel}
-            text={joinText(original)}
+            segments={original}
             isFinal={oMeta.isFinal}
             isTranslation={false}
           />
@@ -122,7 +143,7 @@ function TranscriptGrid({ transcriptGroups, langLabelFn }) {
           <div className="speaker-label">SPEAKER {speaker}</div>
           <TranscriptBubble
             langLabel={tMeta.langLabel}
-            text={joinText(translated)}
+            segments={translated}
             isFinal={tMeta.isFinal}
             isTranslation={true}
           />
