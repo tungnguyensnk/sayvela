@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import "./App.css";
@@ -23,6 +23,7 @@ function App() {
   const [inputLanguages, setInputLanguages] = useState(["en", "ja"]);
   const [outputLanguage, setOutputLanguage] = useState("vi");
   const transcript = useTranscript();
+  const transcriptStartedRef = useRef(false);
 
   async function refreshDevices() {
     setDevicesError("");
@@ -58,15 +59,32 @@ function App() {
     };
   }, []);
 
-  async function start() {
-    setBytes(0);
-    const languageHints = inputLanguages.length ? inputLanguages : ["vi", "ja"];
-    try {
-      await transcript.start({
+  useEffect(() => {
+    if (!running) {
+      transcriptStartedRef.current = false;
+      return;
+    }
+    
+    if (captureState?.state === "running" && captureState?.sampleRate && !transcriptStartedRef.current) {
+      transcriptStartedRef.current = true;
+      const languageHints = inputLanguages.length ? inputLanguages : ["vi", "ja"];
+      
+      transcript.start({
+        sampleRate: captureState.sampleRate,
         languageHints,
         targetLanguage: outputLanguage,
         enableTranslation: Boolean(outputLanguage),
+      }).catch(err => {
+        console.error("Transcript start failed:", err);
+        stop();
       });
+    }
+  }, [running, captureState, inputLanguages, outputLanguage]);
+
+  async function start() {
+    setBytes(0);
+    // Don't start transcript here. Start loopback first to detect sample rate.
+    try {
       await invoke("start_loopback_capture", { deviceId: selectedDeviceId });
       setRunning(true);
     } catch (e) {

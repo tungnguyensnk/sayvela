@@ -13,4 +13,5 @@ pub struct AudioDevice {
 pub struct CaptureState {
     pub state: String,
     pub message: Option<String>,
+    pub sample_rate: Option<u32>,
 }

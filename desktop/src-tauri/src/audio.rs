@@ -89,6 +89,7 @@ pub fn start_loopback_capture(app: AppHandle, device_id: String) -> Result<Captu
             CaptureState {
                 state: "starting".to_string(),
                 message: None,
+                sample_rate: None,
             },
         );
         match capture_thread(app.clone(), device_id, stop2) {
@@ -98,6 +99,7 @@ pub fn start_loopback_capture(app: AppHandle, device_id: String) -> Result<Captu
                     CaptureState {
                         state: "stopped".to_string(),
                         message: None,
+                        sample_rate: None,
                     },
                 );
             }
@@ -107,6 +109,7 @@ pub fn start_loopback_capture(app: AppHandle, device_id: String) -> Result<Captu
                     CaptureState {
                         state: "error".to_string(),
                         message: Some(e.to_string()),
+                        sample_rate: None,
                     },
                 );
             }
@@ -188,23 +191,22 @@ fn capture_thread(app: AppHandle, device_id: String, stop: Arc<AtomicBool>) -> R
         .map_err(|e| anyhow!(e.to_string()))
         .context("start stream")?;
 
+    let in_rate = desired.get_samplespersec() as u32;
+    let in_ch = desired.get_nchannels() as usize;
+    // Use input rate as output rate to avoid resampling artifacts
+    let out_rate = in_rate;
+
     let _ = app.emit(
         "capture_state",
         CaptureState {
             state: "running".to_string(),
             message: Some(format!(
-                "inRate={} inCh={} outRate={} ratio={}",
-                desired.get_samplespersec(),
-                desired.get_nchannels(),
-                44100,
-                (44100.0 / desired.get_samplespersec() as f32)
+                "inRate={} inCh={} outRate={} (pass-through)",
+                in_rate, in_ch, out_rate
             )),
+            sample_rate: Some(out_rate),
         },
     );
-
-    let in_rate = desired.get_samplespersec() as u32;
-    let in_ch = desired.get_nchannels() as usize;
-    let out_rate: u32 = 44100;
 
     let mut raw_bytes: VecDeque<u8> = VecDeque::new();
     let mut in_f32: Vec<f32> = Vec::new();
@@ -216,7 +218,7 @@ fn capture_thread(app: AppHandle, device_id: String, stop: Arc<AtomicBool>) -> R
     let mut carry: Vec<f32> = Vec::new();
     let mut carry_idx_f: f32 = 0.0;
     let ratio = out_rate as f32 / in_rate as f32;
-    let chunk_bytes = (out_rate as usize * 2) / 20;
+    let chunk_bytes = (out_rate as usize * 2) / 50;
 
     while !stop.load(Ordering::SeqCst) {
         let frames = capture
