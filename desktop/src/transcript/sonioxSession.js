@@ -3,10 +3,6 @@ import { listen } from "@tauri-apps/api/event";
 
 const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 
-function tokenIsFinal(t) {
-  return Boolean(t?.is_final ?? t?.isFinal);
-}
-
 function tokenMeta(t) {
   const speaker = String(t?.speaker ?? "0");
   const language = typeof t?.language === "string" ? t.language : "";
@@ -17,7 +13,8 @@ function tokenMeta(t) {
         ? t.translationStatus
         : "original";
   const text = typeof t?.text === "string" ? t.text : "";
-  return { speaker, language, translationStatus, text, isFinal: tokenIsFinal(t) };
+  const isFinal = Boolean(t?.is_final ?? t?.isFinal);
+  return { speaker, language, translationStatus, text, isFinal };
 }
 
 function toGroupView(seg) {
@@ -34,6 +31,30 @@ function toGroupView(seg) {
     text: `${finalText}${partialText}`,
     isFinal: partialText.length === 0,
   };
+}
+
+function safeJsonParse(s) {
+  try {
+    return JSON.parse(s);
+  } catch {
+    return null;
+  }
+}
+
+function toUint8Array(payload) {
+  if (payload instanceof Uint8Array) return payload;
+  if (payload instanceof ArrayBuffer) return new Uint8Array(payload);
+  if (Array.isArray(payload)) return new Uint8Array(payload);
+  return new Uint8Array(payload);
+}
+
+function sortGroups(a, b) {
+  const ds = (a.seq || 0) - (b.seq || 0);
+  if (ds) return ds;
+  const ao = a.translationStatus === "original" ? 0 : 1;
+  const bo = b.translationStatus === "original" ? 0 : 1;
+  if (ao !== bo) return ao - bo;
+  return String(a.language || "").localeCompare(String(b.language || ""));
 }
 
 export async function startSonioxSession({
@@ -109,12 +130,8 @@ export async function startSonioxSession({
 
   ws.addEventListener("message", (ev) => {
     if (typeof ev.data !== "string") return;
-    let msg;
-    try {
-      msg = JSON.parse(ev.data);
-    } catch {
-      return;
-    }
+    const msg = safeJsonParse(ev.data);
+    if (!msg) return;
 
     onResult?.(msg);
     const tokens = Array.isArray(msg?.tokens) ? msg.tokens : [];
@@ -177,14 +194,7 @@ export async function startSonioxSession({
     }
     currentGroups.sort((a, b) => (a.seq || 0) - (b.seq || 0));
     const mergedGroups = [...allSegments, ...currentGroups];
-    mergedGroups.sort((a, b) => {
-      const ds = (a.seq || 0) - (b.seq || 0);
-      if (ds) return ds;
-      const ao = a.translationStatus === "original" ? 0 : 1;
-      const bo = b.translationStatus === "original" ? 0 : 1;
-      if (ao !== bo) return ao - bo;
-      return String(a.language || "").localeCompare(String(b.language || ""));
-    });
+    mergedGroups.sort(sortGroups);
 
     const finalText = mergedGroups.map((g) => g.finalText || "").join("");
     const partialText = mergedGroups.map((g) => g.partialText || "").join("");
@@ -204,8 +214,7 @@ export async function startSonioxSession({
   const unlistenAudio = await listen("audio_chunk", (e) => {
     if (ws.readyState !== WebSocket.OPEN) return;
     const payload = e.payload;
-    const u8 = payload instanceof Uint8Array ? payload : new Uint8Array(payload);
-    ws.send(u8);
+    ws.send(toUint8Array(payload));
   });
 
   let stopped = false;

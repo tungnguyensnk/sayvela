@@ -43,7 +43,12 @@ export function LoopbackPanel({
                 </option>
               ))}
             </select>
-            <button className="btn btn-secondary" type="button" disabled={running} onClick={onRefreshDevices}>
+            <button
+              className="btn btn-secondary"
+              type="button"
+              disabled={running}
+              onClick={onRefreshDevices}
+            >
               Làm mới
             </button>
           </div>
@@ -52,7 +57,12 @@ export function LoopbackPanel({
 
         <div className="actions">
           {!running ? (
-            <button className="btn btn-primary" type="button" disabled={!selectedDeviceId} onClick={onStart}>
+            <button
+              className="btn btn-primary"
+              type="button"
+              disabled={!selectedDeviceId}
+              onClick={onStart}
+            >
               Bắt đầu
             </button>
           ) : (
@@ -64,10 +74,10 @@ export function LoopbackPanel({
         </div>
 
         <div className="small" style={{ marginTop: 8 }}>
-          state: {captureState?.state || "-"} {captureState?.message ? `(${captureState.message})` : ""}
+          state: {captureState?.state || "-"}{" "}
+          {captureState?.message ? `(${captureState.message})` : ""}
         </div>
       </div>
     </section>
   );
 }
-

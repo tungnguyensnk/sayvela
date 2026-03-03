@@ -6,6 +6,13 @@ import { useTranscript } from "./transcript/useTranscript";
 import { LoopbackPanel } from "./components/LoopbackPanel";
 import { TranscriptPanel } from "./components/TranscriptPanel";
 
+function byteSize(chunk) {
+  if (!chunk) return 0;
+  if (typeof chunk.length === "number") return chunk.length;
+  if (typeof chunk.byteLength === "number") return chunk.byteLength;
+  return 0;
+}
+
 function App() {
   const [devices, setDevices] = useState([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
@@ -13,8 +20,8 @@ function App() {
   const [running, setRunning] = useState(false);
   const [bytes, setBytes] = useState(0);
   const [captureState, setCaptureState] = useState(null);
-  const [inputLanguages, setInputLanguages] = useState(["vi", "ja"]);
-  const [outputLanguage, setOutputLanguage] = useState("ja");
+  const [inputLanguages, setInputLanguages] = useState(["en", "ja"]);
+  const [outputLanguage, setOutputLanguage] = useState("vi");
   const transcript = useTranscript();
 
   async function refreshDevices() {
@@ -38,13 +45,7 @@ function App() {
     let unlistenState = null;
     (async () => {
       unlistenAudio = await listen("audio_chunk", (e) => {
-        const chunk = e.payload;
-        const n =
-          typeof chunk?.length === "number"
-            ? chunk.length
-            : typeof chunk?.byteLength === "number"
-              ? chunk.byteLength
-              : 0;
+        const n = byteSize(e.payload);
         if (n > 0) setBytes((v) => v + n);
       });
       unlistenState = await listen("capture_state", (e) => {
@@ -59,19 +60,35 @@ function App() {
 
   async function start() {
     setBytes(0);
-    await transcript.start({
-      languageHints: inputLanguages.length ? inputLanguages : ["vi", "ja"],
-      targetLanguage: outputLanguage,
-      enableTranslation: Boolean(outputLanguage),
-    });
-    await invoke("start_loopback_capture", { deviceId: selectedDeviceId });
-    setRunning(true);
+    const languageHints = inputLanguages.length ? inputLanguages : ["vi", "ja"];
+    try {
+      await transcript.start({
+        languageHints,
+        targetLanguage: outputLanguage,
+        enableTranslation: Boolean(outputLanguage),
+      });
+      await invoke("start_loopback_capture", { deviceId: selectedDeviceId });
+      setRunning(true);
+    } catch (e) {
+      try {
+        await invoke("stop_loopback_capture");
+      } catch {}
+      try {
+        await transcript.stop();
+      } catch {}
+      throw e;
+    }
   }
 
   async function stop() {
-    await invoke("stop_loopback_capture");
-    setRunning(false);
-    await transcript.stop();
+    try {
+      await invoke("stop_loopback_capture");
+    } finally {
+      setRunning(false);
+      try {
+        await transcript.stop();
+      } catch {}
+    }
   }
 
   function toggleInputLanguage(code) {
