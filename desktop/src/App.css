@@ -322,3 +322,20 @@ body {
 .bubble-text.translation {
   color: #4ea1ff;
 }
+
+.transcript-panel {
+  height: min(520px, 70vh);
+}
+
+.transcript-panel-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.transcript-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
