@@ -14,7 +14,9 @@
       {
         "title": "virex",
         "width": 1300,
-        "height": 930
+        "height": 930,
+        "decorations": false,
+        "transparent": true
       }
     ],
     "security": {

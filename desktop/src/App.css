@@ -4,7 +4,7 @@
   line-height: 20px;
   font-weight: 400;
   color: #e6edf3;
-  background-color: #0b0f14;
+  background-color: transparent;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -17,22 +17,73 @@ body {
   margin: 0;
   padding: 0;
   height: 100%;
+  background: transparent;
+  overflow: hidden;
 }
 
 #root {
   height: 100%;
 }
 
+.window {
+  height: 100%;
+  background: #0b0f14;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.6);
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.window::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
 .app {
   height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .main {
   flex: 1;
   padding: 16px;
   min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(159, 176, 192, 0.35) transparent;
+}
+
+.main::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.main::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.main::-webkit-scrollbar-thumb {
+  background-color: rgba(159, 176, 192, 0.28);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
+}
+
+.main::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(159, 176, 192, 0.42);
+}
+
+.main::-webkit-scrollbar-thumb:active {
+  background-color: rgba(78, 161, 255, 0.55);
+}
+
+.main::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 .panel {
@@ -291,7 +342,8 @@ body {
 
 .text-partial {
   font-style: italic;
-  background-color: rgba(78, 161, 255, 0.15);
+  color: rgba(230, 237, 243, 0.95);
+  background-color: rgba(78, 161, 255, 0.28);
   border-radius: 4px;
   padding: 0 2px;
 }

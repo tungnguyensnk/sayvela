@@ -6,6 +6,7 @@ import { useTranscript } from "./transcript/useTranscript";
 import { AudioControlPanel } from "./components/AudioControlPanel";
 import { TranscriptPanel } from "./components/TranscriptPanel";
 import { useMicTranslationTts } from "./tts/useMicTranslationTts";
+import { TitleBar } from "./components/TitleBar";
 
 function byteSize(chunk) {
   if (!chunk) return 0;
@@ -200,58 +201,61 @@ function App() {
   });
 
   return (
-    <div className="app">
-      <main className="main">
-        <AudioControlPanel
-          devices={devices}
-          
-          loopbackDeviceId={loopbackDeviceId}
-          onChangeLoopbackDeviceId={setLoopbackDeviceId}
-          loopbackBytes={loopbackBytes}
-          loopbackCaptureState={loopbackCaptureState}
-          loopbackInputLangs={loopbackInputLangs}
-          onChangeLoopbackInputLangs={setLoopbackInputLangs}
-          loopbackOutputLang={loopbackOutputLang}
-          onChangeLoopbackOutputLang={setLoopbackOutputLang}
+    <div className="window">
+      <div className="app">
+        <TitleBar title="virex" />
+        <main className="main">
+          <AudioControlPanel
+            devices={devices}
+            
+            loopbackDeviceId={loopbackDeviceId}
+            onChangeLoopbackDeviceId={setLoopbackDeviceId}
+            loopbackBytes={loopbackBytes}
+            loopbackCaptureState={loopbackCaptureState}
+            loopbackInputLangs={loopbackInputLangs}
+            onChangeLoopbackInputLangs={setLoopbackInputLangs}
+            loopbackOutputLang={loopbackOutputLang}
+            onChangeLoopbackOutputLang={setLoopbackOutputLang}
 
-          micDeviceId={micDeviceId}
-          onChangeMicDeviceId={setMicDeviceId}
-          micBytes={micBytes}
-          micCaptureState={micCaptureState}
-          micInputLangs={micInputLangs}
-          onChangeMicInputLangs={setMicInputLangs}
-          micOutputLang={micOutputLang}
-          onChangeMicOutputLang={setMicOutputLang}
-          micTtsEnabled={micTtsEnabled}
-          onChangeMicTtsEnabled={setMicTtsEnabled}
-          micTtsVoiceId={micTtsVoiceId}
-          onChangeMicTtsVoiceId={setMicTtsVoiceId}
-          micTtsRate={micTtsRate}
-          onChangeMicTtsRate={setMicTtsRate}
-          micTtsPitch={micTtsPitch}
-          onChangeMicTtsPitch={setMicTtsPitch}
-          micTtsVolume={micTtsVolume}
-          onChangeMicTtsVolume={setMicTtsVolume}
-          micTtsOutputDeviceId={micTtsOutputDeviceId}
-          onChangeMicTtsOutputDeviceId={setMicTtsOutputDeviceId}
+            micDeviceId={micDeviceId}
+            onChangeMicDeviceId={setMicDeviceId}
+            micBytes={micBytes}
+            micCaptureState={micCaptureState}
+            micInputLangs={micInputLangs}
+            onChangeMicInputLangs={setMicInputLangs}
+            micOutputLang={micOutputLang}
+            onChangeMicOutputLang={setMicOutputLang}
+            micTtsEnabled={micTtsEnabled}
+            onChangeMicTtsEnabled={setMicTtsEnabled}
+            micTtsVoiceId={micTtsVoiceId}
+            onChangeMicTtsVoiceId={setMicTtsVoiceId}
+            micTtsRate={micTtsRate}
+            onChangeMicTtsRate={setMicTtsRate}
+            micTtsPitch={micTtsPitch}
+            onChangeMicTtsPitch={setMicTtsPitch}
+            micTtsVolume={micTtsVolume}
+            onChangeMicTtsVolume={setMicTtsVolume}
+            micTtsOutputDeviceId={micTtsOutputDeviceId}
+            onChangeMicTtsOutputDeviceId={setMicTtsOutputDeviceId}
 
-          loopbackStatus={loopbackTranscript.status}
-          loopbackError={loopbackTranscript.error}
-          micStatus={micTranscript.status}
-          micError={micTranscript.error}
+            loopbackStatus={loopbackTranscript.status}
+            loopbackError={loopbackTranscript.error}
+            micStatus={micTranscript.status}
+            micError={micTranscript.error}
 
-          running={running}
-          onRefreshDevices={refreshDevices}
-          devicesError={devicesError}
-          onStart={start}
-          onStop={stop}
-        />
+            running={running}
+            onRefreshDevices={refreshDevices}
+            devicesError={devicesError}
+            onStart={start}
+            onStop={stop}
+          />
 
-        <TranscriptPanel
-          transcriptGroups={mergedGroups}
-          running={running}
-        />
-      </main>
+          <TranscriptPanel
+            transcriptGroups={mergedGroups}
+            running={running}
+          />
+        </main>
+      </div>
     </div>
   );
 }

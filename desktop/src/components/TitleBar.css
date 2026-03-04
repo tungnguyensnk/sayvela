@@ -1,0 +1,72 @@
+.titlebar {
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 12px;
+  background: rgba(12, 16, 22, 0.8);
+  border-bottom: 1px solid rgba(36, 48, 65, 0.8);
+  user-select: none;
+}
+
+.tb-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.tb-title {
+  font-size: 12px;
+  color: rgba(230, 237, 243, 0.75);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tb-controls {
+  height: 100%;
+  display: flex;
+  align-items: stretch;
+}
+
+.tb-btn {
+  width: 46px;
+  height: 38px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: rgba(230, 237, 243, 0.85);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 120ms ease-out, color 120ms ease-out;
+}
+
+.tb-btn:hover {
+  background: rgba(230, 237, 243, 0.09);
+}
+
+.tb-btn:active {
+  background: rgba(230, 237, 243, 0.06);
+}
+
+.tb-btn-close:hover {
+  background: rgb(232, 17, 35);
+  color: #fff;
+}
+
+.tb-icon {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  fill: none;
+  vector-effect: non-scaling-stroke;
+}
+
+.tb-icon-min {
+  width: 14px;
+}
