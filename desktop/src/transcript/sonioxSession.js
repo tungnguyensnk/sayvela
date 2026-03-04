@@ -64,6 +64,9 @@ function deltaFrom(prev, next) {
   if (!p) return n;
   if (n === p) return "";
   if (n.startsWith(p)) return n.slice(p.length);
+  // Ignore overlapping suffix updates where the new text is just a suffix of the previous text.
+  // This can happen when Soniox sends partial updates that are redundant or when
+  // a final update is a substring of a previous partial update (though less common).
   if (p.endsWith(n)) return "";
   return n;
 }

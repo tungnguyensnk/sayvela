@@ -63,7 +63,7 @@ export function useMicTranslationTts({
       lastFullRef.current = "";
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = null;
-      ttsStop().catch(() => {});
+      ttsStop().catch((e) => console.error("TTS Stop Error:", e));
       return;
     }
 
@@ -77,7 +77,7 @@ export function useMicTranslationTts({
 
       let delta = currentFull.startsWith(currentPrev) ? currentFull.slice(currentPrev.length) : currentFull;
       delta = removeLeadingJunk(delta);
-      if (delta.length < 2) return;
+      if (delta.trim().length === 0) return;
 
       lastFullRef.current = currentFull;
       const cfg = configRef.current;
@@ -90,7 +90,7 @@ export function useMicTranslationTts({
         pitch: cfg.pitch,
         volume: cfg.volume,
         queueMode: cfg.queueMode,
-      }).catch(() => {});
+      }).catch((e) => console.error("TTS Speak Error:", e));
     }, 250);
 
     return () => {

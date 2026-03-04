@@ -323,7 +323,7 @@ export function AudioControlPanel({
                           pitch: micTtsPitch,
                           volume: micTtsVolume,
                           queueMode: "add",
-                        }).catch(() => {});
+                        }).catch((e) => console.error("TTS Test Error:", e));
                       }}
                     >
                       test
