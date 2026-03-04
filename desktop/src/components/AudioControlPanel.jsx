@@ -1,4 +1,7 @@
 import { LANGUAGES } from "../languages";
+import { useEffect, useState } from "react";
+import { ttsGetVoices, ttsSpeak } from "../tts/ttsApi";
+import "./AudioControlPanel.css";
 
 function LanguagePills({ selected, onChange, disabled }) {
   const toggle = (code) => {
@@ -10,7 +13,7 @@ function LanguagePills({ selected, onChange, disabled }) {
   };
 
   return (
-    <div className="chips" style={{ marginTop: 4 }}>
+    <div className="chips acp-pills">
       {LANGUAGES.map((l) => (
         <button
           key={l.code}
@@ -18,7 +21,6 @@ function LanguagePills({ selected, onChange, disabled }) {
           className={`chip ${selected.includes(l.code) ? "chip-active" : ""}`}
           disabled={disabled}
           onClick={() => toggle(l.code)}
-          style={{ fontSize: 11, padding: "2px 6px" }}
         >
           {l.label}
         </button>
@@ -30,11 +32,10 @@ function LanguagePills({ selected, onChange, disabled }) {
 function LanguageDropdown({ value, onChange, disabled }) {
   return (
     <select
-      className="select"
+      className="select acp-select"
       value={value}
       disabled={disabled}
       onChange={(e) => onChange(e.target.value)}
-      style={{ fontSize: 12 }}
     >
       <option value="">(None - Original)</option>
       {LANGUAGES.map((l) => (
@@ -71,6 +72,18 @@ export function AudioControlPanel({
   onChangeMicInputLangs,
   micOutputLang,
   onChangeMicOutputLang,
+  micTtsEnabled,
+  onChangeMicTtsEnabled,
+  micTtsVoiceId,
+  onChangeMicTtsVoiceId,
+  micTtsRate,
+  onChangeMicTtsRate,
+  micTtsPitch,
+  onChangeMicTtsPitch,
+  micTtsVolume,
+  onChangeMicTtsVolume,
+  micTtsOutputDeviceId,
+  onChangeMicTtsOutputDeviceId,
 
   loopbackStatus,
   loopbackError,
@@ -81,7 +94,38 @@ export function AudioControlPanel({
   onStop,
 }) {
   const loopbackDevices = devices.filter((d) => d.kind === "loopback");
+  const ttsOutputDevices = loopbackDevices
+    .filter((d) => d.id !== "default-loopback")
+    .slice()
+    .sort((a, b) => {
+      const aName = String(a?.name || "");
+      const bName = String(b?.name || "");
+      const aCable = aName.toLowerCase().includes("cable") ? 1 : 0;
+      const bCable = bName.toLowerCase().includes("cable") ? 1 : 0;
+      if (aCable !== bCable) return bCable - aCable;
+      return aName.localeCompare(bName);
+    });
   const micDevices = devices.filter((d) => d.kind === "microphone");
+  const [ttsVoices, setTtsVoices] = useState([]);
+  const [ttsError, setTtsError] = useState("");
+
+  useEffect(() => {
+    let alive = true;
+    setTtsError("");
+    ttsGetVoices()
+      .then((v) => {
+        if (!alive) return;
+        setTtsVoices(Array.isArray(v) ? v : []);
+      })
+      .catch((e) => {
+        if (!alive) return;
+        setTtsVoices([]);
+        setTtsError(String(e));
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   return (
     <section className="panel">
@@ -91,21 +135,20 @@ export function AudioControlPanel({
           <div className="panel-sub">Select sources and languages</div>
         </div>
       </div>
-      <div style={{ padding: 12 }}>
-        
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+      <div className="acp-body">
+        <div className="acp-grid">
           {/* Loopback Section */}
-          <div className="field" style={{ marginBottom: 0 }}>
-            <div className="label-row">
-              <span className="label">System Audio (Speakers) </span>
-              <span className="small">
-                {loopbackCaptureState?.state || "stopped"} ({loopbackBytes} B) 
+          <div className="card acp-source">
+            <div className="acp-sourceHeader">
+              <div className="acp-sourceTitle">System Audio (Speakers)</div>
+              <div className="acp-sourceMeta">
+                {loopbackCaptureState?.state || "stopped"} ({loopbackBytes} B)
                 {loopbackStatus && ` | ${loopbackStatus}`}
                 {loopbackError && ` (${loopbackError})`}
-              </span>
+              </div>
             </div>
             <select
-              className="select"
+              className="select acp-select"
               value={loopbackDeviceId}
               disabled={running}
               onChange={(e) => onChangeLoopbackDeviceId?.(e.target.value)}
@@ -119,15 +162,15 @@ export function AudioControlPanel({
                 <option key={d.id} value={d.id}>{d.name}</option>
               ))}
             </select>
-            
-            <div style={{ marginTop: 8, paddingLeft: 8, borderLeft: "2px solid #333" }}>
-              <div className="label" style={{ fontSize: 11 }}>Input Languages (Hints)</div>
+
+            <div className="acp-subsection">
+              <div className="acp-subLabel">Input Languages (Hints)</div>
               <LanguagePills 
                 selected={loopbackInputLangs} 
                 onChange={onChangeLoopbackInputLangs} 
                 disabled={running} 
               />
-              <div className="label" style={{ fontSize: 11, marginTop: 4 }}>Target Translation</div>
+              <div className="acp-subLabel">Target Translation</div>
               <LanguageDropdown 
                 value={loopbackOutputLang} 
                 onChange={onChangeLoopbackOutputLang} 
@@ -137,17 +180,17 @@ export function AudioControlPanel({
           </div>
 
           {/* Mic Section */}
-          <div className="field" style={{ marginTop: 0 }}>
-            <div className="label-row">
-              <span className="label">Microphone (Me) </span>
-              <span className="small">
+          <div className="card acp-source">
+            <div className="acp-sourceHeader">
+              <div className="acp-sourceTitle">Microphone (Me)</div>
+              <div className="acp-sourceMeta">
                 {micCaptureState?.state || "stopped"} ({micBytes} B)
                 {micStatus && ` | ${micStatus}`}
                 {micError && ` (${micError})`}
-              </span>
+              </div>
             </div>
             <select
-              className="select"
+              className="select acp-select"
               value={micDeviceId}
               disabled={running}
               onChange={(e) => onChangeMicDeviceId?.(e.target.value)}
@@ -162,49 +205,166 @@ export function AudioControlPanel({
               ))}
             </select>
 
-            <div style={{ marginTop: 8, paddingLeft: 8, borderLeft: "2px solid #333" }}>
-              <div className="label" style={{ fontSize: 11 }}>Input Languages (Hints)</div>
+            <div className="acp-subsection">
+              <div className="acp-subLabel">Input Languages (Hints)</div>
               <LanguagePills 
                 selected={micInputLangs} 
                 onChange={onChangeMicInputLangs} 
                 disabled={running} 
               />
-              <div className="label" style={{ fontSize: 11, marginTop: 4 }}>Target Translation</div>
+              <div className="acp-subLabel">Target Translation</div>
               <LanguageDropdown 
                 value={micOutputLang} 
                 onChange={onChangeMicOutputLang} 
                 disabled={running} 
               />
+
+              <div className="acp-ttsSection">
+                <div className="acp-ttsHeader">
+                  <div className="acp-subLabel">TTS (ME translation)</div>
+                  <label className="acp-checkboxRow">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(micTtsEnabled)}
+                      onChange={(e) => onChangeMicTtsEnabled?.(e.target.checked)}
+                    />
+                    enable
+                  </label>
+                </div>
+
+                <div className="acp-ttsSelectRow">
+                  <select
+                    className="select acp-select"
+                    value={micTtsOutputDeviceId || "default-loopback"}
+                    disabled={!micTtsEnabled}
+                    onChange={(e) => onChangeMicTtsOutputDeviceId?.(e.target.value)}
+                  >
+                    <option value="default-loopback">Default Output Device</option>
+                    {ttsOutputDevices.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}{String(d?.name || "").toLowerCase().includes("cable") ? " (Recommended)" : ""}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    className="select acp-select"
+                    value={micTtsVoiceId || ""}
+                    disabled={!micTtsEnabled}
+                    onChange={(e) => onChangeMicTtsVoiceId?.(e.target.value)}
+                  >
+                    <option value="">Auto by language</option>
+                    {ttsVoices.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.name || v.id}{v.language ? ` (${v.language})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="acp-ttsControls">
+                  <div className="acp-ttsBottomRow">
+                    <div className="acp-ttsSliders">
+                      <div className="acp-sliderRow">
+                        <div className="acp-sliderLabel">rate</div>
+                        <input
+                          className="acp-range"
+                          type="range"
+                          min="0.5"
+                          max="2"
+                          step="0.05"
+                          value={Number(micTtsRate ?? 1)}
+                          disabled={!micTtsEnabled}
+                          onChange={(e) => onChangeMicTtsRate?.(Number(e.target.value))}
+                        />
+                        <div className="acp-sliderValue">{Number(micTtsRate ?? 1).toFixed(2)}</div>
+                      </div>
+                      <div className="acp-sliderRow">
+                        <div className="acp-sliderLabel">pitch</div>
+                        <input
+                          className="acp-range"
+                          type="range"
+                          min="0.5"
+                          max="2"
+                          step="0.05"
+                          value={Number(micTtsPitch ?? 1)}
+                          disabled={!micTtsEnabled}
+                          onChange={(e) => onChangeMicTtsPitch?.(Number(e.target.value))}
+                        />
+                        <div className="acp-sliderValue">{Number(micTtsPitch ?? 1).toFixed(2)}</div>
+                      </div>
+                      <div className="acp-sliderRow">
+                        <div className="acp-sliderLabel">volume</div>
+                        <input
+                          className="acp-range"
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.05"
+                          value={Number(micTtsVolume ?? 1)}
+                          disabled={!micTtsEnabled}
+                          onChange={(e) => onChangeMicTtsVolume?.(Number(e.target.value))}
+                        />
+                        <div className="acp-sliderValue">{Number(micTtsVolume ?? 1).toFixed(2)}</div>
+                      </div>
+                    </div>
+
+                    <button
+                      className="btn btn-secondary acp-ttsTestBtn"
+                      type="button"
+                      disabled={!micTtsEnabled}
+                      onClick={() => {
+                        ttsSpeak({
+                          text: "test",
+                          language: micOutputLang || undefined,
+                          voiceId: micTtsVoiceId || undefined,
+                          outputDeviceId: micTtsOutputDeviceId || undefined,
+                          rate: micTtsRate,
+                          pitch: micTtsPitch,
+                          volume: micTtsVolume,
+                          queueMode: "add",
+                        }).catch(() => {});
+                      }}
+                    >
+                      test
+                    </button>
+                  </div>
+                </div>
+
+                {ttsError ? <div className="empty acp-error">{ttsError}</div> : null}
+              </div>
             </div>
           </div>
         </div>
 
-        {devicesError ? <div className="empty" style={{ marginTop: 8 }}>{devicesError}</div> : null}
+        {devicesError ? <div className="empty acp-error">{devicesError}</div> : null}
 
-        <div className="actions" style={{ marginTop: 16, borderTop: '1px solid #333', paddingTop: 12 }}>
-          <button
-            className="btn btn-secondary"
-            type="button"
-            disabled={running}
-            onClick={onRefreshDevices}
-          >
-            Refresh Devices
-          </button>
-
-          {!running ? (
+        <div className="acp-footer">
+          <div className="actions">
             <button
-              className="btn btn-primary"
+              className="btn btn-secondary"
               type="button"
-              disabled={!loopbackDeviceId && !micDeviceId}
-              onClick={onStart}
+              disabled={running}
+              onClick={onRefreshDevices}
             >
-              Start Transcription
+              Refresh Devices
             </button>
-          ) : (
-            <button className="btn btn-danger" type="button" onClick={onStop}>
-              Stop All
-            </button>
-          )}
+
+            {!running ? (
+              <button
+                className="btn btn-primary"
+                type="button"
+                disabled={!loopbackDeviceId && !micDeviceId}
+                onClick={onStart}
+              >
+                Start Transcription
+              </button>
+            ) : (
+              <button className="btn btn-danger" type="button" onClick={onStop}>
+                Stop All
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </section>

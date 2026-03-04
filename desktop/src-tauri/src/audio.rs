@@ -36,7 +36,7 @@ pub fn list_audio_devices() -> Result<Vec<AudioDevice>> {
         // Loopback devices (Render)
         out.push(AudioDevice {
             id: "default-loopback".to_string(),
-            name: "(Tự động) Thiết bị phát mặc định".to_string(),
+            name: "Default Output Device".to_string(),
             kind: "loopback".to_string(),
         });
 
@@ -64,7 +64,7 @@ pub fn list_audio_devices() -> Result<Vec<AudioDevice>> {
         // Microphone devices (Capture)
         out.push(AudioDevice {
             id: "default-mic".to_string(),
-            name: "(Tự động) Microphone mặc định".to_string(),
+            name: "Default Microphone".to_string(),
             kind: "microphone".to_string(),
         });
 

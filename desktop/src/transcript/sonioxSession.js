@@ -57,6 +57,17 @@ function sortGroups(a, b) {
   return String(a.language || "").localeCompare(String(b.language || ""));
 }
 
+function deltaFrom(prev, next) {
+  const p = String(prev || "");
+  const n = String(next || "");
+  if (!n) return "";
+  if (!p) return n;
+  if (n === p) return "";
+  if (n.startsWith(p)) return n.slice(p.length);
+  if (p.endsWith(n)) return "";
+  return n;
+}
+
 export async function startSonioxSession({
   sampleRate = 44100,
   model = "stt-rt-v4",
@@ -167,11 +178,22 @@ export async function startSonioxSession({
           translationStatus: m.translationStatus,
           finalText: "",
           partialText: "",
+          finalRaw: "",
+          partialRaw: "",
           createdAt: Date.now(),
         };
       }
-      if (m.isFinal) stream.current.finalText += m.text;
-      else stream.current.partialText += m.text;
+      if (m.isFinal) {
+        const delta = deltaFrom(stream.current.finalRaw, m.text);
+        if (delta) stream.current.finalText += delta;
+        stream.current.finalRaw = String(m.text || "");
+        stream.current.partialText = "";
+        stream.current.partialRaw = "";
+      } else {
+        const delta = deltaFrom(stream.current.partialRaw, m.text);
+        if (delta) stream.current.partialText += delta;
+        stream.current.partialRaw = String(m.text || "");
+      }
     }
 
     if (Boolean(msg?.finished)) {

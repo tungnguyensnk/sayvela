@@ -5,6 +5,7 @@ import "./App.css";
 import { useTranscript } from "./transcript/useTranscript";
 import { AudioControlPanel } from "./components/AudioControlPanel";
 import { TranscriptPanel } from "./components/TranscriptPanel";
+import { useMicTranslationTts } from "./tts/useMicTranslationTts";
 
 function byteSize(chunk) {
   if (!chunk) return 0;
@@ -31,6 +32,14 @@ function App() {
   const [micCaptureState, setMicCaptureState] = useState(null);
   const [micInputLangs, setMicInputLangs] = useState(["vi"]);
   const [micOutputLang, setMicOutputLang] = useState("ja");
+
+  // TTS (Mic translation)
+  const [micTtsEnabled, setMicTtsEnabled] = useState(false);
+  const [micTtsVoiceId, setMicTtsVoiceId] = useState("");
+  const [micTtsRate, setMicTtsRate] = useState(1.1);
+  const [micTtsPitch, setMicTtsPitch] = useState(1);
+  const [micTtsVolume, setMicTtsVolume] = useState(1);
+  const [micTtsOutputDeviceId, setMicTtsOutputDeviceId] = useState("default-loopback");
 
   // Transcripts
   const loopbackTranscript = useTranscript();
@@ -177,6 +186,19 @@ function App() {
     return [...sys, ...mic].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
   }, [loopbackTranscript.groups, micTranscript.groups]);
 
+  useMicTranslationTts({
+    enabled: micTtsEnabled,
+    running,
+    groups: micTranscript.groups,
+    language: micOutputLang,
+    voiceId: micTtsVoiceId,
+    outputDeviceId: micTtsOutputDeviceId,
+    rate: micTtsRate,
+    pitch: micTtsPitch,
+    volume: micTtsVolume,
+    queueMode: "add",
+  });
+
   return (
     <div className="app">
       <main className="main">
@@ -200,6 +222,18 @@ function App() {
           onChangeMicInputLangs={setMicInputLangs}
           micOutputLang={micOutputLang}
           onChangeMicOutputLang={setMicOutputLang}
+          micTtsEnabled={micTtsEnabled}
+          onChangeMicTtsEnabled={setMicTtsEnabled}
+          micTtsVoiceId={micTtsVoiceId}
+          onChangeMicTtsVoiceId={setMicTtsVoiceId}
+          micTtsRate={micTtsRate}
+          onChangeMicTtsRate={setMicTtsRate}
+          micTtsPitch={micTtsPitch}
+          onChangeMicTtsPitch={setMicTtsPitch}
+          micTtsVolume={micTtsVolume}
+          onChangeMicTtsVolume={setMicTtsVolume}
+          micTtsOutputDeviceId={micTtsOutputDeviceId}
+          onChangeMicTtsOutputDeviceId={setMicTtsOutputDeviceId}
 
           loopbackStatus={loopbackTranscript.status}
           loopbackError={loopbackTranscript.error}

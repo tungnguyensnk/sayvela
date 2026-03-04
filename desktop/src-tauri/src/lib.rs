@@ -1,6 +1,7 @@
 mod audio;
 mod soniox;
 mod types;
+mod tts_native;
 
 use std::sync::Mutex;
 use std::collections::HashMap;
@@ -73,12 +74,16 @@ async fn soniox_get_temp_key() -> Result<SonioxTempKey, String> {
 pub fn run() {
     tauri::Builder::default()
         .manage(AppState::default())
+        .manage(tts_native::TtsState::default())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
             list_audio_devices,
             start_audio_capture,
             stop_audio_capture,
-            soniox_get_temp_key
+            soniox_get_temp_key,
+            tts_native::tts_list_voices,
+            tts_native::tts_speak,
+            tts_native::tts_stop
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
