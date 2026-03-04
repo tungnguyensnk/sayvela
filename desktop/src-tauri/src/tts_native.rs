@@ -248,7 +248,7 @@ fn synth_thread_main(stop: Arc<AtomicBool>, rx: mpsc::Receiver<WorkerCmd>, audio
     };
 
     while !stop.load(Ordering::SeqCst) {
-        match rx.recv_timeout(Duration::from_millis(10)) {
+        match rx.recv() {
             Ok(WorkerCmd::Speak(mut opts)) => {
                 let text = opts.text.trim().to_string();
                 if text.is_empty() {
@@ -325,8 +325,7 @@ fn synth_thread_main(stop: Arc<AtomicBool>, rx: mpsc::Receiver<WorkerCmd>, audio
                     pcm,
                 });
             }
-            Err(mpsc::RecvTimeoutError::Timeout) => {}
-            Err(mpsc::RecvTimeoutError::Disconnected) => break,
+            Err(_) => break,
         }
     }
 }
@@ -338,6 +337,8 @@ fn audio_thread_main(stop: Arc<AtomicBool>, rx: mpsc::Receiver<AudioMsg>) {
     let mut current_device_id = "default-loopback".to_string();
     let mut current_sr: u32 = 0;
     let mut current_ch: u16 = 0;
+    let mut pending_sr: u32 = 0;
+    let mut pending_ch: u16 = 0;
 
     let mut audio_client: Option<wasapi::AudioClient> = None;
     let mut render_client: Option<wasapi::AudioRenderClient> = None;
@@ -345,9 +346,28 @@ fn audio_thread_main(stop: Arc<AtomicBool>, rx: mpsc::Receiver<AudioMsg>) {
 
     let mut queue: VecDeque<Vec<u8>> = VecDeque::new();
     let mut current: VecDeque<u8> = VecDeque::new();
+    let mut pending_queue: VecDeque<Vec<u8>> = VecDeque::new();
 
     while !stop.load(Ordering::SeqCst) {
-        while let Ok(msg) = rx.try_recv() {
+        let busy = audio_client.is_some() || !current.is_empty() || !queue.is_empty() || !pending_queue.is_empty();
+        let wait = if busy {
+            Duration::from_millis(2)
+        } else {
+            Duration::from_millis(50)
+        };
+
+        let first = rx.recv_timeout(wait);
+        let mut msgs = Vec::new();
+        match first {
+            Ok(m) => msgs.push(m),
+            Err(mpsc::RecvTimeoutError::Timeout) => {}
+            Err(mpsc::RecvTimeoutError::Disconnected) => break,
+        }
+        while let Ok(m) = rx.try_recv() {
+            msgs.push(m);
+        }
+
+        for msg in msgs {
             match msg {
                 AudioMsg::SetDevice(id) => {
                     if id != current_device_id {
@@ -359,33 +379,54 @@ fn audio_thread_main(stop: Arc<AtomicBool>, rx: mpsc::Receiver<AudioMsg>) {
                         current_device_id = id;
                         current_sr = 0;
                         current_ch = 0;
+                        pending_sr = 0;
+                        pending_ch = 0;
                         queue.clear();
                         current.clear();
+                        pending_queue.clear();
                     }
                 }
                 AudioMsg::Flush => {
                     queue.clear();
                     current.clear();
+                    pending_queue.clear();
+                    pending_sr = 0;
+                    pending_ch = 0;
                 }
                 AudioMsg::Enqueue {
                     sample_rate,
                     channels,
                     pcm,
                 } => {
-                    if current_sr != 0 && (current_sr != sample_rate || current_ch != channels) {
-                        if let Some(c) = audio_client.take() {
-                            let _ = c.stop_stream();
+                    if current_sr == 0 {
+                        current_sr = sample_rate;
+                        current_ch = channels;
+                        queue.push_back(pcm);
+                    } else if current_sr == sample_rate && current_ch == channels {
+                        queue.push_back(pcm);
+                    } else {
+                        if pending_sr != 0 && (pending_sr != sample_rate || pending_ch != channels) {
+                            pending_queue.clear();
                         }
-                        audio_client = None;
-                        render_client = None;
-                        queue.clear();
-                        current.clear();
+                        pending_sr = sample_rate;
+                        pending_ch = channels;
+                        pending_queue.push_back(pcm);
                     }
-                    current_sr = sample_rate;
-                    current_ch = channels;
-                    queue.push_back(pcm);
                 }
             }
+        }
+
+        if current.is_empty() && queue.is_empty() && !pending_queue.is_empty() {
+            if let Some(c) = audio_client.take() {
+                let _ = c.stop_stream();
+            }
+            audio_client = None;
+            render_client = None;
+            current_sr = pending_sr;
+            current_ch = pending_ch;
+            pending_sr = 0;
+            pending_ch = 0;
+            queue = std::mem::take(&mut pending_queue);
         }
 
         if current.is_empty() {
@@ -407,34 +448,25 @@ fn audio_thread_main(stop: Arc<AtomicBool>, rx: mpsc::Receiver<AudioMsg>) {
 
         if let (Some(ref client), Some(ref render)) = (&audio_client, &render_client) {
             if let Ok(space) = client.get_available_space_in_frames() {
-                let mut remaining = space as usize;
-
+                let remaining = space as usize;
                 if !current.is_empty() && remaining > 0 {
                     let frames = std::cmp::min(remaining, current.len() / frame_bytes);
                     if frames > 0 {
                         let _ = render.write_to_device_from_deque(frames, &mut current, None);
-                        remaining = remaining.saturating_sub(frames);
                     }
-                }
-
-                if remaining > 0 && current.is_empty() && queue.is_empty() {
-                    let silent_frames = remaining;
-                    let bytes = silent_frames * frame_bytes;
-                    let zeros: Vec<u8> = vec![0u8; bytes];
-                    let _ = render.write_to_device(
-                        silent_frames,
-                        &zeros,
-                        Some(wasapi::BufferFlags {
-                            data_discontinuity: false,
-                            silent: true,
-                            timestamp_error: false,
-                        }),
-                    );
                 }
             }
         }
 
-        thread::sleep(Duration::from_millis(2));
+        if current.is_empty() && queue.is_empty() && pending_queue.is_empty() {
+            if let Some(c) = audio_client.take() {
+                let _ = c.stop_stream();
+            }
+            audio_client = None;
+            render_client = None;
+            current_sr = 0;
+            current_ch = 0;
+        }
     }
 
     if let Some(c) = audio_client.take() {
