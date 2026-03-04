@@ -1,6 +1,6 @@
 import { LANGUAGES } from "../languages";
 import { useEffect, useState } from "react";
-import { ttsGetVoices, ttsSpeak } from "../tts/ttsApi";
+import { ttsGetTestSentence, ttsGetVoices, ttsSpeak } from "../tts/ttsApi";
 import "./AudioControlPanel.css";
 
 function LanguagePills({ selected, onChange, disabled }) {
@@ -315,7 +315,7 @@ export function AudioControlPanel({
                       disabled={!micTtsEnabled}
                       onClick={() => {
                         ttsSpeak({
-                          text: "test",
+                          text: ttsGetTestSentence(micOutputLang),
                           language: micOutputLang || undefined,
                           voiceId: micTtsVoiceId || undefined,
                           outputDeviceId: micTtsOutputDeviceId || undefined,
