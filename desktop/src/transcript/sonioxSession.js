@@ -41,6 +41,33 @@ function safeJsonParse(s) {
   }
 }
 
+function normalizeContextInput(input) {
+  if (!input) return null;
+
+  if (typeof input === "string") {
+    const s = input.trim();
+    if (!s) return null;
+
+    const parsed = safeJsonParse(s);
+    if (parsed !== null) {
+      if (typeof parsed === "string") return { text: parsed };
+      if (Array.isArray(parsed)) {
+        return parsed.every((v) => typeof v === "string") ? { terms: parsed } : null;
+      }
+      if (typeof parsed === "object") return parsed;
+    }
+
+    return { text: s };
+  }
+
+  if (Array.isArray(input)) {
+    return input.every((v) => typeof v === "string") ? { terms: input } : null;
+  }
+
+  if (typeof input === "object") return input;
+  return null;
+}
+
 function toUint8Array(payload) {
   if (payload instanceof Uint8Array) return payload;
   if (payload instanceof ArrayBuffer) return new Uint8Array(payload);
@@ -79,6 +106,7 @@ export async function startSonioxSession({
   enableLanguageIdentification = true,
   targetLanguage = "ja",
   enableTranslation = true,
+  context = null,
   audioEventName = "audio_chunk",
   speakerOverride = "",
   splitTurnsOnLanguage = true,
@@ -127,6 +155,8 @@ export async function startSonioxSession({
 
   const buildConfig = (apiKey) => {
     const config = { ...configBase, api_key: apiKey };
+    const normalizedContext = normalizeContextInput(context);
+    if (normalizedContext) config.context = normalizedContext;
     if (enableTranslation && targetLanguage) {
       config.translation = {
         type: "one_way",

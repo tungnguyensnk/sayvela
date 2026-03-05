@@ -26,6 +26,7 @@ function App() {
   const [loopbackCaptureState, setLoopbackCaptureState] = useState(null);
   const [loopbackInputLangs, setLoopbackInputLangs] = useState(["ja", "en"]);
   const [loopbackOutputLang, setLoopbackOutputLang] = useState("vi");
+  const [loopbackContext, setLoopbackContext] = useState("");
   
   // Mic State
   const [micDeviceId, setMicDeviceId] = useState("default-mic");
@@ -110,12 +111,13 @@ function App() {
         languageHints,
         targetLanguage: loopbackOutputLang,
         enableTranslation: Boolean(loopbackOutputLang),
-        audioEventName: "audio_chunk_loopback"
+        audioEventName: "audio_chunk_loopback",
+        context: loopbackContext,
       }).catch(err => {
         console.error("Loopback Transcript start failed:", err);
       });
     }
-  }, [running, loopbackCaptureState, loopbackInputLangs, loopbackOutputLang, loopbackDeviceId]);
+  }, [running, loopbackCaptureState, loopbackInputLangs, loopbackOutputLang, loopbackDeviceId, loopbackContext]);
 
   // Manage Mic Transcript Session
   useEffect(() => {
@@ -133,6 +135,7 @@ function App() {
         languageHints,
         targetLanguage: micOutputLang,
         enableTranslation: Boolean(micOutputLang),
+        context: loopbackContext,
         audioEventName: "audio_chunk_mic",
         speakerOverride: "me",
         splitTurnsOnLanguage: false,
@@ -141,7 +144,7 @@ function App() {
         console.error("Mic Transcript start failed:", err);
       });
     }
-  }, [running, micCaptureState, micInputLangs, micOutputLang, micDeviceId]);
+  }, [running, micCaptureState, micInputLangs, micOutputLang, micDeviceId, loopbackContext]);
 
   async function start() {
     setLoopbackBytes(0);
@@ -210,6 +213,8 @@ function App() {
             
             loopbackDeviceId={loopbackDeviceId}
             onChangeLoopbackDeviceId={setLoopbackDeviceId}
+            loopbackContext={loopbackContext}
+            onChangeLoopbackContext={setLoopbackContext}
             loopbackBytes={loopbackBytes}
             loopbackCaptureState={loopbackCaptureState}
             loopbackInputLangs={loopbackInputLangs}

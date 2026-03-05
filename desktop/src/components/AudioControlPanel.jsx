@@ -51,6 +51,8 @@ export function AudioControlPanel({
   devices,
   loopbackDeviceId,
   onChangeLoopbackDeviceId,
+  loopbackContext,
+  onChangeLoopbackContext,
   micDeviceId,
   onChangeMicDeviceId,
   running,
@@ -176,6 +178,16 @@ export function AudioControlPanel({
                 onChange={onChangeLoopbackOutputLang} 
                 disabled={running} 
               />
+
+              <div className="acp-subLabel">Context</div>
+              <textarea
+                className="input acp-contextTextarea"
+                value={loopbackContext || ""}
+                disabled={running}
+                onChange={(e) => onChangeLoopbackContext?.(e.target.value)}
+                placeholder='{"general":[{"domain":"...","topic":"..."}],"terms":["..."]}'
+              />
+              <div className="hint">json object or plain text</div>
             </div>
           </div>
 

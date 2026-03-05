@@ -66,6 +66,19 @@
   font-size: 12px;
 }
 
+.acp-contextTextarea {
+  box-sizing: border-box;
+  height: auto;
+  min-height: 96px;
+  padding: 8px 10px;
+  resize: vertical;
+  width: 100%;
+  max-width: 100%;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
+  line-height: 18px;
+}
+
 .acp-ttsGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
