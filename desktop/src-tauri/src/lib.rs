@@ -7,7 +7,7 @@ mod tts_native;
 use std::sync::Mutex;
 use std::collections::HashMap;
 
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, PhysicalPosition, State};
 use tauri::Manager;
 
 use crate::types::AudioDevice;
@@ -110,6 +110,22 @@ pub fn run() {
         .manage(AppState::default())
         .manage(tts_native::TtsState::default())
         .plugin(tauri_plugin_opener::init())
+        .setup(|app| {
+            if let Some(win) = app.get_webview_window("main") {
+                let monitor = win.current_monitor()?.or_else(|| win.primary_monitor().ok().flatten());
+                if let Some(monitor) = monitor {
+                    let work = monitor.work_area();
+                    let win_size = win.outer_size()?;
+                    let scale = monitor.scale_factor();
+                    let x_offset = (30.0 * scale).round() as i32;
+                    let y_offset = ((work.size.height as i32 - win_size.height as i32) / 2).max(0);
+                    let x = work.position.x + x_offset;
+                    let y = work.position.y + y_offset;
+                    win.set_position(tauri::Position::Physical(PhysicalPosition::new(x, y)))?;
+                }
+            }
+            Ok(())
+        })
         .on_window_event(|window, event| {
             if window.label() != "main" {
                 return;
