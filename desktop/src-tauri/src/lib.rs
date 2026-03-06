@@ -1,4 +1,5 @@
 mod audio;
+mod groq;
 mod soniox;
 mod types;
 mod tts_native;
@@ -72,6 +73,11 @@ async fn soniox_get_temp_key() -> Result<SonioxTempKey, String> {
 }
 
 #[tauri::command]
+async fn groq_check_question(content: String) -> Result<String, String> {
+    groq::check_question(content).await.map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn chatgpt_init(app: AppHandle) -> Result<(), String> {
     let win = app
         .get_webview_window("chatgpt-anon")
@@ -99,6 +105,7 @@ fn chatgpt_send_message(app: AppHandle, text: String) -> Result<(), String> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let _ = dotenvy::dotenv();
     tauri::Builder::default()
         .manage(AppState::default())
         .manage(tts_native::TtsState::default())
@@ -118,6 +125,7 @@ pub fn run() {
             start_audio_capture,
             stop_audio_capture,
             soniox_get_temp_key,
+            groq_check_question,
             chatgpt_init,
             chatgpt_send_message,
             tts_native::tts_list_voices,

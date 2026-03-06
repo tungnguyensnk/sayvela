@@ -34,6 +34,73 @@ function lastFinalOriginalMic(groups) {
   return null;
 }
 
+function groupKey(g) {
+  if (!g) return "";
+  if (g.id) return String(g.id);
+  return String(`${g.createdAt || 0}-${g.seq || 0}-${g.speaker || ""}`);
+}
+
+function groupFullText(g) {
+  const finalText = typeof g?.finalText === "string" ? g.finalText : "";
+  const partialText = typeof g?.partialText === "string" ? g.partialText : "";
+  return `${finalText}${partialText}`;
+}
+
+function buildSpeakerDelta(groups, cursor) {
+  const list = Array.isArray(groups) ? groups : [];
+  const filtered = list.filter((g) => {
+    if (!g) return false;
+    if (String(g.translationStatus || "original") !== "original") return false;
+    const sp = String(g.speaker || "").trim().toLowerCase();
+    if (!sp) return false;
+    if (sp === "me") return false;
+    return true;
+  });
+
+  let startIndex = 0;
+  let startOffset = 0;
+  if (cursor?.groupKey) {
+    const idx = filtered.findIndex((g) => groupKey(g) === cursor.groupKey);
+    if (idx >= 0) {
+      startIndex = idx;
+      startOffset = Math.max(0, Number(cursor.textLen) || 0);
+    }
+  }
+
+  const lines = [];
+  for (let i = startIndex; i < filtered.length; i++) {
+    const g = filtered[i];
+    let text = groupFullText(g);
+    if (i === startIndex && startOffset > 0) {
+      text = text.slice(Math.min(startOffset, text.length));
+    }
+    text = String(text || "").trim();
+    if (!text) continue;
+    lines.push(`SPEAKER ${String(g.speaker)}: ${text}`);
+  }
+  return lines.join("\n").trim();
+}
+
+function cursorAtEnd(groups) {
+  const list = Array.isArray(groups) ? groups : [];
+  const filtered = list.filter((g) => {
+    if (!g) return false;
+    if (String(g.translationStatus || "original") !== "original") return false;
+    const sp = String(g.speaker || "").trim().toLowerCase();
+    if (!sp) return false;
+    if (sp === "me") return false;
+    return true;
+  });
+  const last = filtered[filtered.length - 1];
+  if (!last) return { groupKey: "", textLen: 0 };
+  return { groupKey: groupKey(last), textLen: groupFullText(last).length };
+}
+
+function parseBinaryAnswer(s) {
+  const m = String(s || "").match(/[01]/);
+  return m ? Number(m[0]) : 0;
+}
+
 function App() {
   const [devices, setDevices] = useState([]);
   const [devicesError, setDevicesError] = useState("");
@@ -72,6 +139,40 @@ function App() {
   const chatgptInitRef = useRef(null);
   const chatgptDidInitRef = useRef(false);
   const lastChatgptSentKeyRef = useRef("");
+  const loopbackGroupsRef = useRef([]);
+  const speakerCursorRef = useRef({ groupKey: "", textLen: 0 });
+  const speakerCheckingRef = useRef(false);
+  const speakerPauseTimerRef = useRef(null);
+  const speakerIntervalRef = useRef(null);
+  const runningRef = useRef(false);
+
+  useEffect(() => {
+    runningRef.current = running;
+  }, [running]);
+
+  useEffect(() => {
+    loopbackGroupsRef.current = loopbackTranscript.groups;
+  }, [loopbackTranscript.groups]);
+
+  const triggerSpeakerQuestionCheck = async () => {
+    if (!runningRef.current) return;
+    if (speakerCheckingRef.current) return;
+
+    const delta = buildSpeakerDelta(loopbackGroupsRef.current, speakerCursorRef.current);
+    if (!delta) return;
+
+    speakerCheckingRef.current = true;
+    try {
+      const out = await invoke("groq_check_question", { content: delta });
+      const bin = parseBinaryAnswer(out);
+      console.log(bin);
+      speakerCursorRef.current = cursorAtEnd(loopbackGroupsRef.current);
+    } catch (e) {
+      console.error("groq_check_question failed:", e);
+    } finally {
+      speakerCheckingRef.current = false;
+    }
+  };
 
   const ensureChatGPTWindow = async () => {
     if (chatgptInitRef.current) return chatgptInitRef.current;
@@ -169,6 +270,38 @@ function App() {
       }
     })();
   }, [lastMic]);
+
+  useEffect(() => {
+    if (!running) {
+      if (speakerPauseTimerRef.current) clearTimeout(speakerPauseTimerRef.current);
+      speakerPauseTimerRef.current = null;
+      if (speakerIntervalRef.current) clearInterval(speakerIntervalRef.current);
+      speakerIntervalRef.current = null;
+      speakerCursorRef.current = { groupKey: "", textLen: 0 };
+      speakerCheckingRef.current = false;
+      return;
+    }
+
+    speakerCursorRef.current = { groupKey: "", textLen: 0 };
+    speakerIntervalRef.current = setInterval(() => {
+      triggerSpeakerQuestionCheck();
+    }, 10000);
+
+    return () => {
+      if (speakerPauseTimerRef.current) clearTimeout(speakerPauseTimerRef.current);
+      speakerPauseTimerRef.current = null;
+      if (speakerIntervalRef.current) clearInterval(speakerIntervalRef.current);
+      speakerIntervalRef.current = null;
+    };
+  }, [running]);
+
+  useEffect(() => {
+    if (!running) return;
+    if (speakerPauseTimerRef.current) clearTimeout(speakerPauseTimerRef.current);
+    speakerPauseTimerRef.current = setTimeout(() => {
+      triggerSpeakerQuestionCheck();
+    }, 3000);
+  }, [running, loopbackTranscript.groups]);
 
   // Manage Loopback Transcript Session
   useEffect(() => {
