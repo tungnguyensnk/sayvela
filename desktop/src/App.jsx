@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import "./App.css";
 import { useTranscript } from "./transcript/useTranscript";
 import { AudioControlPanel } from "./components/AudioControlPanel";
@@ -206,7 +207,7 @@ function App() {
       try {
         const existing = await WebviewWindow.getByLabel(CHATGPT_WINDOW_LABEL);
         if (existing) return;
-        new WebviewWindow(CHATGPT_WINDOW_LABEL, {
+        const opts = {
           url: CHATGPT_URL,
           title: "ChatGPT (anon)",
           width: 600,
@@ -214,7 +215,38 @@ function App() {
           resizable: true,
           decorations: true,
           incognito: true,
-        });
+        };
+
+        try {
+          const appWindow = getCurrentWindow();
+          const pos = await appWindow.outerPosition();
+          const size = await appWindow.outerSize();
+          const gap = 8;
+
+          let x = Math.round((pos?.x ?? 0) + (size?.width ?? 0) + gap);
+          let y = Math.round(pos?.y ?? 0);
+
+          try {
+            const monitor = await appWindow.currentMonitor();
+            const work = monitor?.workArea || monitor;
+            const wx = work?.position?.x;
+            const wy = work?.position?.y;
+            const ww = work?.size?.width;
+            const wh = work?.size?.height;
+
+            if ([wx, wy, ww, wh].every((n) => Number.isFinite(n))) {
+              const maxX = Math.round(wx + ww - opts.width);
+              const maxY = Math.round(wy + wh - opts.height);
+              x = Math.min(maxX, Math.max(Math.round(wx), x));
+              y = Math.min(maxY, Math.max(Math.round(wy), y));
+            }
+          } catch {}
+
+          if (Number.isFinite(x)) opts.x = x;
+          if (Number.isFinite(y)) opts.y = y;
+        } catch {}
+
+        new WebviewWindow(CHATGPT_WINDOW_LABEL, opts);
       } catch {
         chatgptInitRef.current = null;
       }
