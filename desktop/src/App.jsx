@@ -19,21 +19,6 @@ function byteSize(chunk) {
   return 0;
 }
 
-function lastFinalOriginalMic(groups) {
-  const list = Array.isArray(groups) ? groups : [];
-  for (let i = list.length - 1; i >= 0; i--) {
-    const g = list[i];
-    if (!g) continue;
-    if (g.translationStatus && g.translationStatus !== "original") continue;
-    if (!g.isFinal) continue;
-    const text = String(g.finalText || "").trim();
-    if (!text) continue;
-    const key = String(g.id || `${g.createdAt || 0}-${g.seq || 0}-${text}`);
-    return { key, text };
-  }
-  return null;
-}
-
 function groupKey(g) {
   if (!g) return "";
   if (g.id) return String(g.id);
@@ -101,6 +86,26 @@ function parseBinaryAnswer(s) {
   return m ? Number(m[0]) : 0;
 }
 
+function buildRecentConversationText(loopbackGroups, micGroups, limitChars = 2000) {
+  const sys = (Array.isArray(loopbackGroups) ? loopbackGroups : []).map((g) => ({ ...g, sessionId: "sys" }));
+  const mic = (Array.isArray(micGroups) ? micGroups : []).map((g) => ({ ...g, sessionId: "mic" }));
+  const merged = [...sys, ...mic].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  const lines = [];
+
+  for (const g of merged) {
+    if (!g) continue;
+    if (String(g.translationStatus || "original") !== "original") continue;
+    const text = String(groupFullText(g) || "").trim();
+    if (!text) continue;
+    const label = g.sessionId === "mic" ? "ME" : `SPEAKER ${String(g.speaker || "").trim()}`;
+    lines.push(`${label}: ${text}`);
+  }
+
+  const all = lines.join("\n").trim();
+  if (all.length <= limitChars) return all;
+  return all.slice(all.length - limitChars);
+}
+
 function App() {
   const [devices, setDevices] = useState([]);
   const [devicesError, setDevicesError] = useState("");
@@ -138,13 +143,14 @@ function App() {
   const micStartedRef = useRef(false);
   const chatgptInitRef = useRef(null);
   const chatgptDidInitRef = useRef(false);
-  const lastChatgptSentKeyRef = useRef("");
   const loopbackGroupsRef = useRef([]);
+  const micGroupsRef = useRef([]);
   const speakerCursorRef = useRef({ groupKey: "", textLen: 0 });
   const speakerCheckingRef = useRef(false);
   const speakerPauseTimerRef = useRef(null);
   const speakerIntervalRef = useRef(null);
   const runningRef = useRef(false);
+  const lastChatgptSentContextRef = useRef("");
 
   useEffect(() => {
     runningRef.current = running;
@@ -153,6 +159,10 @@ function App() {
   useEffect(() => {
     loopbackGroupsRef.current = loopbackTranscript.groups;
   }, [loopbackTranscript.groups]);
+
+  useEffect(() => {
+    micGroupsRef.current = micTranscript.groups;
+  }, [micTranscript.groups]);
 
   const triggerSpeakerQuestionCheck = async () => {
     if (!runningRef.current) return;
@@ -166,6 +176,21 @@ function App() {
       const out = await invoke("groq_check_question", { content: delta });
       const bin = parseBinaryAnswer(out);
       console.log(bin);
+
+      if (bin === 1) {
+        const recent = buildRecentConversationText(loopbackGroupsRef.current, micGroupsRef.current, 2000);
+        if (recent && lastChatgptSentContextRef.current !== recent) {
+          lastChatgptSentContextRef.current = recent;
+          try {
+            await ensureChatGPTWindow();
+            await invoke("chatgpt_send_message", { text: recent });
+          } catch (e) {
+            lastChatgptSentContextRef.current = "";
+            console.error("chatgpt_send_message failed:", e);
+          }
+        }
+      }
+
       speakerCursorRef.current = cursorAtEnd(loopbackGroupsRef.current);
     } catch (e) {
       console.error("groq_check_question failed:", e);
@@ -254,23 +279,6 @@ function App() {
     };
   }, []);
 
-  const lastMic = useMemo(() => lastFinalOriginalMic(micTranscript.groups), [micTranscript.groups]);
-
-  useEffect(() => {
-    if (!lastMic) return;
-    if (lastChatgptSentKeyRef.current === lastMic.key) return;
-    lastChatgptSentKeyRef.current = lastMic.key;
-
-    (async () => {
-      try {
-        await ensureChatGPTWindow();
-        await invoke("chatgpt_send_message", { text: lastMic.text });
-      } catch {
-        lastChatgptSentKeyRef.current = "";
-      }
-    })();
-  }, [lastMic]);
-
   useEffect(() => {
     if (!running) {
       if (speakerPauseTimerRef.current) clearTimeout(speakerPauseTimerRef.current);
@@ -279,6 +287,7 @@ function App() {
       speakerIntervalRef.current = null;
       speakerCursorRef.current = { groupKey: "", textLen: 0 };
       speakerCheckingRef.current = false;
+      lastChatgptSentContextRef.current = "";
       return;
     }
 
