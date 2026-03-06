@@ -7,6 +7,7 @@ use std::sync::Mutex;
 use std::collections::HashMap;
 
 use tauri::{AppHandle, State};
+use tauri::Manager;
 
 use crate::types::AudioDevice;
 use crate::soniox::SonioxTempKey;
@@ -70,17 +71,55 @@ async fn soniox_get_temp_key() -> Result<SonioxTempKey, String> {
     soniox::get_temp_key().await.map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn chatgpt_init(app: AppHandle) -> Result<(), String> {
+    let win = app
+        .get_webview_window("chatgpt-anon")
+        .ok_or_else(|| "chatgpt window not found".to_string())?;
+
+    let common = include_str!("chatgpt_inject_common.js");
+    let init = include_str!("chatgpt_inject_init.js");
+    let js = format!("{common}\n{init}", common = common, init = init);
+    win.eval(&js).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn chatgpt_send_message(app: AppHandle, text: String) -> Result<(), String> {
+    let win = app
+        .get_webview_window("chatgpt-anon")
+        .ok_or_else(|| "chatgpt window not found".to_string())?;
+
+    let text_js = serde_json::to_string(&text).map_err(|e| e.to_string())?;
+    let common = include_str!("chatgpt_inject_common.js");
+    let send = include_str!("chatgpt_inject_send.js").replace("__TEXT_JSON__", &text_js);
+    let js = format!("{common}\n{send}", common = common, send = send);
+
+    win.eval(&js).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .manage(AppState::default())
         .manage(tts_native::TtsState::default())
         .plugin(tauri_plugin_opener::init())
+        .on_window_event(|window, event| {
+            if window.label() != "main" {
+                return;
+            }
+            if let tauri::WindowEvent::CloseRequested { .. } = event {
+                if let Some(chat) = window.app_handle().get_webview_window("chatgpt-anon") {
+                    let _ = chat.close();
+                }
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             list_audio_devices,
             start_audio_capture,
             stop_audio_capture,
             soniox_get_temp_key,
+            chatgpt_init,
+            chatgpt_send_message,
             tts_native::tts_list_voices,
             tts_native::tts_speak,
             tts_native::tts_stop

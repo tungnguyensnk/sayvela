@@ -11,6 +11,7 @@
     "core:window:allow-start-dragging",
     "core:window:allow-toggle-maximize",
     "core:window:allow-is-maximized",
+    "core:webview:allow-create-webview-window",
     "opener:default"
   ]
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 import "./App.css";
 import { useTranscript } from "./transcript/useTranscript";
 import { AudioControlPanel } from "./components/AudioControlPanel";
@@ -8,11 +9,29 @@ import { TranscriptPanel } from "./components/TranscriptPanel";
 import { useMicTranslationTts } from "./tts/useMicTranslationTts";
 import { TitleBar } from "./components/TitleBar";
 
+const CHATGPT_URL = "https://chatgpt.com";
+const CHATGPT_WINDOW_LABEL = "chatgpt-anon";
+
 function byteSize(chunk) {
   if (!chunk) return 0;
   if (typeof chunk.length === "number") return chunk.length;
   if (typeof chunk.byteLength === "number") return chunk.byteLength;
   return 0;
+}
+
+function lastFinalOriginalMic(groups) {
+  const list = Array.isArray(groups) ? groups : [];
+  for (let i = list.length - 1; i >= 0; i--) {
+    const g = list[i];
+    if (!g) continue;
+    if (g.translationStatus && g.translationStatus !== "original") continue;
+    if (!g.isFinal) continue;
+    const text = String(g.finalText || "").trim();
+    if (!text) continue;
+    const key = String(g.id || `${g.createdAt || 0}-${g.seq || 0}-${text}`);
+    return { key, text };
+  }
+  return null;
 }
 
 function App() {
@@ -50,6 +69,33 @@ function App() {
   // Refs to track transcript start state to avoid double-start
   const loopbackStartedRef = useRef(false);
   const micStartedRef = useRef(false);
+  const chatgptInitRef = useRef(null);
+  const chatgptDidInitRef = useRef(false);
+  const lastChatgptSentKeyRef = useRef("");
+
+  const ensureChatGPTWindow = async () => {
+    if (chatgptInitRef.current) return chatgptInitRef.current;
+
+    chatgptInitRef.current = (async () => {
+      try {
+        const existing = await WebviewWindow.getByLabel(CHATGPT_WINDOW_LABEL);
+        if (existing) return;
+        new WebviewWindow(CHATGPT_WINDOW_LABEL, {
+          url: CHATGPT_URL,
+          title: "ChatGPT (anon)",
+          width: 600,
+          height: 800,
+          resizable: true,
+          decorations: true,
+          incognito: true,
+        });
+      } catch {
+        chatgptInitRef.current = null;
+      }
+    })();
+
+    return chatgptInitRef.current;
+  };
 
   async function refreshDevices() {
     setDevicesError("");
@@ -64,6 +110,18 @@ function App() {
 
   useEffect(() => {
     refreshDevices();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        await ensureChatGPTWindow();
+        if (chatgptDidInitRef.current) return;
+        chatgptDidInitRef.current = true;
+        await new Promise((r) => setTimeout(r, 300));
+        await invoke("chatgpt_init");
+      } catch {}
+    })();
   }, []);
 
   // Listeners
@@ -94,6 +152,23 @@ function App() {
       unlistenList.forEach(u => u());
     };
   }, []);
+
+  const lastMic = useMemo(() => lastFinalOriginalMic(micTranscript.groups), [micTranscript.groups]);
+
+  useEffect(() => {
+    if (!lastMic) return;
+    if (lastChatgptSentKeyRef.current === lastMic.key) return;
+    lastChatgptSentKeyRef.current = lastMic.key;
+
+    (async () => {
+      try {
+        await ensureChatGPTWindow();
+        await invoke("chatgpt_send_message", { text: lastMic.text });
+      } catch {
+        lastChatgptSentKeyRef.current = "";
+      }
+    })();
+  }, [lastMic]);
 
   // Manage Loopback Transcript Session
   useEffect(() => {
