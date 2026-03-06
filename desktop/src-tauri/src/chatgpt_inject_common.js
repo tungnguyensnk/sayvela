@@ -14,12 +14,6 @@
     document.head.appendChild(style);
   };
 
-  const removeAll = (selector) => {
-    try {
-      document.querySelectorAll(selector).forEach((el) => el.remove());
-    } catch {}
-  };
-
   const setCookie = (name, value) => {
     try {
       document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=31536000; samesite=lax; secure`;
@@ -48,7 +42,6 @@
     setCookie("oai-allow-ne", "true");
     setLocalStorage("oai/apps/noAuthUserMessageCount", "1");
     setLocalStorage("oai/apps/noAuthHasAcceptedFooterDisclaimer", "true");
-    removeAll(".leading-none");
   };
 
   window[STATE_KEY] = {
