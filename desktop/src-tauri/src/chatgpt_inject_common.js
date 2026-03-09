@@ -10,6 +10,7 @@
       .text-page-header, #page-header { display: none !important; }
       .user-message-bubble-color { display: none !important; }
       aside.text-token-text-primary { display: none !important; }
+      article[data-turn="user"] { display: none !important; }
     `;
     document.head.appendChild(style);
   };
