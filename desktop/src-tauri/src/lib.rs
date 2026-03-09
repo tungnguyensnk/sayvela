@@ -68,6 +68,24 @@ fn stop_audio_capture(state: State<AppState>, kind: String) -> Result<(), String
 }
 
 #[tauri::command]
+fn set_main_window_content_protected(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let win = app
+        .get_webview_window("main")
+        .ok_or_else(|| "main window not found".to_string())?;
+
+    win.set_content_protected(enabled).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn set_chatgpt_window_content_protected(app: AppHandle, enabled: bool) -> Result<(), String> {
+    let win = app.get_webview_window("chatgpt-anon");
+    if let Some(win) = win {
+        win.set_content_protected(enabled).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
 async fn soniox_get_temp_key() -> Result<SonioxTempKey, String> {
     soniox::get_temp_key().await.map_err(|e| e.to_string())
 }
@@ -160,6 +178,8 @@ pub fn run() {
             list_audio_devices,
             start_audio_capture,
             stop_audio_capture,
+            set_main_window_content_protected,
+            set_chatgpt_window_content_protected,
             soniox_get_temp_key,
             groq_check_question,
             chatgpt_init,

@@ -55,6 +55,8 @@ export function AudioControlPanel({
   onChangeLoopbackContext,
   micDeviceId,
   onChangeMicDeviceId,
+  contentProtectionEnabled,
+  onChangeContentProtectionEnabled,
   running,
   onRefreshDevices,
   devicesError,
@@ -352,6 +354,14 @@ export function AudioControlPanel({
         {devicesError ? <div className="empty acp-error">{devicesError}</div> : null}
 
         <div className="acp-footer">
+          <label className="acp-checkboxRow">
+            <input
+              type="checkbox"
+              checked={Boolean(contentProtectionEnabled)}
+              onChange={(e) => onChangeContentProtectionEnabled?.(e.target.checked)}
+            />
+            hide app in screen share/recording
+          </label>
           <div className="actions">
             <button
               className="btn btn-secondary"

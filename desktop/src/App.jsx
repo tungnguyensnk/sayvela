@@ -111,6 +111,14 @@ function App() {
   const [devices, setDevices] = useState([]);
   const [devicesError, setDevicesError] = useState("");
   const [running, setRunning] = useState(false);
+  const [contentProtectionEnabled, setContentProtectionEnabled] = useState(() => {
+    try {
+      const v = localStorage.getItem("contentProtectionEnabled");
+      if (v === "0") return false;
+      if (v === "1") return true;
+    } catch {}
+    return true;
+  });
   
   // Loopback State
   const [loopbackDeviceId, setLoopbackDeviceId] = useState("default-loopback");
@@ -156,6 +164,18 @@ function App() {
   useEffect(() => {
     runningRef.current = running;
   }, [running]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("contentProtectionEnabled", contentProtectionEnabled ? "1" : "0");
+    } catch {}
+    invoke("set_main_window_content_protected", { enabled: contentProtectionEnabled }).catch((e) => {
+      console.error("set_main_window_content_protected failed:", e);
+    });
+    invoke("set_chatgpt_window_content_protected", { enabled: contentProtectionEnabled }).catch((e) => {
+      console.error("set_chatgpt_window_content_protected failed:", e);
+    });
+  }, [contentProtectionEnabled]);
 
   useEffect(() => {
     loopbackGroupsRef.current = loopbackTranscript.groups;
@@ -247,6 +267,10 @@ function App() {
         } catch {}
 
         new WebviewWindow(CHATGPT_WINDOW_LABEL, opts);
+        try {
+          await new Promise((r) => setTimeout(r, 200));
+          await invoke("set_chatgpt_window_content_protected", { enabled: contentProtectionEnabled });
+        } catch {}
       } catch {
         chatgptInitRef.current = null;
       }
@@ -484,6 +508,8 @@ function App() {
             onChangeLoopbackDeviceId={setLoopbackDeviceId}
             loopbackContext={loopbackContext}
             onChangeLoopbackContext={setLoopbackContext}
+            contentProtectionEnabled={contentProtectionEnabled}
+            onChangeContentProtectionEnabled={setContentProtectionEnabled}
             loopbackBytes={loopbackBytes}
             loopbackCaptureState={loopbackCaptureState}
             loopbackInputLangs={loopbackInputLangs}
