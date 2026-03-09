@@ -90,10 +90,30 @@ fn chatgpt_init(app: AppHandle) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn chatgpt_send_message(app: AppHandle, text: String) -> Result<(), String> {
+fn chatgpt_send_message(app: AppHandle, me_input_language: String, context: String, conversation: String) -> Result<(), String> {
     let win = app
         .get_webview_window("chatgpt-anon")
         .ok_or_else(|| "chatgpt window not found".to_string())?;
+
+    let template = r#"Bạn là một AI hỗ trợ trả lời câu hỏi. Hãy tuân thủ mạnh mẽ những điều sau:
+    - giao tiếp bằng ngôn ngữ (ngôn ngữ input của ME)
+    - trả lời câu hỏi cuối cùng (mới nhất từ dưới lên) của đoạn hội thoại phía dưới
+    - dùng từ ngữ ngắn gọn, đúng trọng tâm, không lời lẽ thừa thãi
+    - tìm kiếm internet khi cần thiết
+    - nếu câu hỏi về code, nếu có thể hãy hiển thị code mẫu bằng python
+    ví dụ về câu trả lời đầy đủ:
+    Câu hỏi: 長所と短所を教えてください。
+    Dịch: Hãy cho biết điểm mạnh và điểm yếu của bạn.
+    Trả lời:
+    Điểm mạnh: Có trách nhiệm, làm việc đến cùng, có kinh nghiệm làm leader dự án.
+    Điểm yếu: Hơi quá cẩn thận, nhưng đang cải thiện bằng cách đặt ưu tiên và hành động nhanh hơn.
+    context là: (context)
+    đoạn hội thoại là: (đoạn hội thoại)"#;
+
+    let text = template
+        .replace("(ngôn ngữ input của ME)", me_input_language.trim())
+        .replace("(context)", context.trim())
+        .replace("(đoạn hội thoại)", conversation.trim());
 
     let text_js = serde_json::to_string(&text).map_err(|e| e.to_string())?;
     let common = include_str!("chatgpt_inject_common.js");

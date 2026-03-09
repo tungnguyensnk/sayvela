@@ -184,7 +184,7 @@ function App() {
           lastChatgptSentContextRef.current = recent;
           try {
             await ensureChatGPTWindow();
-            await invoke("chatgpt_send_message", { text: recent });
+            await invoke("chatgpt_send_message", { meInputLanguage: micInputLangs?.[0] || "vi", context: loopbackContext, conversation: recent });
           } catch (e) {
             lastChatgptSentContextRef.current = "";
             console.error("chatgpt_send_message failed:", e);
@@ -255,6 +255,25 @@ function App() {
     return chatgptInitRef.current;
   };
 
+  const resetChatGPTWindow = async () => {
+    try {
+      const existing = await WebviewWindow.getByLabel(CHATGPT_WINDOW_LABEL);
+      if (existing) {
+        await existing.close();
+      }
+    } catch {}
+    chatgptInitRef.current = null;
+    chatgptDidInitRef.current = false;
+  };
+
+  const initChatGPTWindow = async () => {
+    await ensureChatGPTWindow();
+    if (chatgptDidInitRef.current) return;
+    chatgptDidInitRef.current = true;
+    await new Promise((r) => setTimeout(r, 300));
+    await invoke("chatgpt_init");
+  };
+
   async function refreshDevices() {
     setDevicesError("");
     try {
@@ -273,11 +292,7 @@ function App() {
   useEffect(() => {
     (async () => {
       try {
-        await ensureChatGPTWindow();
-        if (chatgptDidInitRef.current) return;
-        chatgptDidInitRef.current = true;
-        await new Promise((r) => setTimeout(r, 300));
-        await invoke("chatgpt_init");
+        await initChatGPTWindow();
       } catch {}
     })();
   }, []);
@@ -341,7 +356,7 @@ function App() {
     if (speakerPauseTimerRef.current) clearTimeout(speakerPauseTimerRef.current);
     speakerPauseTimerRef.current = setTimeout(() => {
       triggerSpeakerQuestionCheck();
-    }, 3000);
+    }, 2000);
   }, [running, loopbackTranscript.groups]);
 
   // Manage Loopback Transcript Session
@@ -399,6 +414,11 @@ function App() {
     setLoopbackBytes(0);
     setMicBytes(0);
     setRunning(true);
+
+    try {
+      await resetChatGPTWindow();
+      await initChatGPTWindow();
+    } catch {}
     
     try {
       if (loopbackDeviceId) {
