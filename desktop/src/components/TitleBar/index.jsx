@@ -1,41 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { IconMinimize, IconMaximize, IconRestore, IconClose } from "./Icons";
 import "./TitleBar.css";
 
-function IconMinimize() {
-  return (
-    <svg className="tb-icon tb-icon-min" viewBox="0 0 10 10" aria-hidden="true">
-      <path d="M1 7.5h8" />
-    </svg>
-  );
-}
-
-function IconMaximize() {
-  return (
-    <svg className="tb-icon" viewBox="0 0 10 10" aria-hidden="true">
-      <rect x="1.5" y="1.5" width="7" height="7" rx="0" />
-    </svg>
-  );
-}
-
-function IconRestore() {
-  return (
-    <svg className="tb-icon" viewBox="0 0 10 10" aria-hidden="true">
-      <path d="M3 2.5h4v4" />
-      <path d="M3 3.5H2.5v4H6.5V7" />
-    </svg>
-  );
-}
-
-function IconClose() {
-  return (
-    <svg className="tb-icon" viewBox="0 0 10 10" aria-hidden="true">
-      <path d="M2 2l6 6" />
-      <path d="M8 2L2 8" />
-    </svg>
-  );
-}
-
+// custom title bar component with window controls (minimize, maximize, close)
 export function TitleBar({ title = "virex" }) {
   const appWindow = useMemo(() => getCurrentWindow(), []);
   const [isMaximized, setIsMaximized] = useState(false);
@@ -66,12 +34,14 @@ export function TitleBar({ title = "virex" }) {
     };
   }, [appWindow]);
 
+  // minimizes the application window
   const minimize = async () => {
     try {
       await appWindow.minimize();
     } catch {}
   };
 
+  // toggles the application window between maximized and restored states
   const toggleMaximize = async () => {
     try {
       await appWindow.toggleMaximize();
@@ -81,6 +51,7 @@ export function TitleBar({ title = "virex" }) {
     } catch {}
   };
 
+  // closes the application window
   const close = async () => {
     try {
       await appWindow.close();
@@ -127,4 +98,3 @@ export function TitleBar({ title = "virex" }) {
     </header>
   );
 }
-
