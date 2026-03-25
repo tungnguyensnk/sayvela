@@ -3,5 +3,5 @@
 
 // main entry point of the tauri application
 fn main() {
-    virex_lib::run()
+    sayvela_lib::run()
 }

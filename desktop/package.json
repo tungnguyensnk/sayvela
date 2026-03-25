@@ -1,7 +1,8 @@
 {
-  "name": "virex",
+  "name": "sayvela",
   "private": true,
   "version": "0.1.0",
+  "description": "Words are like sails - cross language barriers effortlessly with real-time voice translation and transcription",
   "type": "module",
   "scripts": {
     "dev": "vite",

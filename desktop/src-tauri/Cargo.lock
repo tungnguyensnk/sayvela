@@ -3196,6 +3196,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "sayvela"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "base64 0.22.1",
+ "dotenvy",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-opener",
+ "wasapi",
+ "windows 0.58.0",
+]
+
+[[package]]
 name = "schemars"
 version = "0.8.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4490,23 +4507,6 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
-
-[[package]]
-name = "virex"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "base64 0.22.1",
- "dotenvy",
- "reqwest 0.12.28",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-opener",
- "wasapi",
- "windows 0.58.0",
-]
 
 [[package]]
 name = "vswhom"

@@ -244,7 +244,7 @@ function App() {
   return (
     <div className="window">
       <div className="app">
-        <TitleBar title="virex" />
+        <TitleBar title="sayvela" />
         <main className="main">
           <AudioControlPanel
             devices={devices}

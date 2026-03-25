@@ -4,7 +4,7 @@ import { IconMinimize, IconMaximize, IconRestore, IconClose } from "./Icons";
 import "./TitleBar.css";
 
 // custom title bar component with window controls (minimize, maximize, close)
-export function TitleBar({ title = "virex" }) {
+export function TitleBar({ title = "sayvela" }) {
   const appWindow = useMemo(() => getCurrentWindow(), []);
   const [isMaximized, setIsMaximized] = useState(false);
 

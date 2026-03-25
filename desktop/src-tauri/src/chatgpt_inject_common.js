@@ -1,6 +1,6 @@
 (function () {
-  const STYLE_ID = "virex-chatgpt-style";
-  const STATE_KEY = "__virexChatGPTInject";
+  const STYLE_ID = "sayvela-chatgpt-style";
+  const STATE_KEY = "__sayvelaChatGPTInject";
 
   const ensureStyle = () => {
     if (document.getElementById(STYLE_ID)) return;

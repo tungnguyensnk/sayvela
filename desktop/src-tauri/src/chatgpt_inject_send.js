@@ -1,5 +1,5 @@
 (function () {
-  const api = window.__virexChatGPTInject;
+  const api = window.__sayvelaChatGPTInject;
   if (!api) return;
 
   const msg = __TEXT_JSON__;

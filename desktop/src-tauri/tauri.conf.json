@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "virex",
+  "productName": "sayvela",
   "version": "0.1.0",
-  "identifier": "com.kizunasoft.virex",
+  "identifier": "com.sayvela.app",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "virex",
+        "title": "sayvela",
         "width": 1300,
         "height": 930,
         "decorations": false,

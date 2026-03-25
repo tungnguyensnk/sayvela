@@ -1,5 +1,5 @@
 (function () {
-  const api = window.__virexChatGPTInject;
+  const api = window.__sayvelaChatGPTInject;
   if (!api) return;
 
   // repeatedly run cleanup and focus prompt until successful or timeout
