@@ -21,6 +21,7 @@ use std::thread;
 #[cfg(windows)]
 use std::time::Duration;
 
+// list both loopback (render) and microphone (capture) audio devices
 pub fn list_audio_devices() -> Result<Vec<AudioDevice>> {
     #[cfg(not(windows))]
     {
@@ -165,6 +166,7 @@ pub fn start_audio_capture(app: AppHandle, device_id: String, kind: String) -> R
 }
 
 #[cfg(windows)]
+// capture audio data from device, resample it, and emit to frontend
 fn capture_thread(
     app: AppHandle,
     device_id: String,
@@ -345,6 +347,7 @@ fn capture_thread(
 }
 
 #[cfg(windows)]
+// linearly resample audio data to match output sample rate
 fn linear_resample_append(
     input: &[f32],
     ratio: f32,

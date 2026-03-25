@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { ttsSpeak, ttsStop } from "./ttsApi";
 
+// normalizes text by collapsing whitespace and removing spaces before punctuation
 function normalizeText(s) {
   return String(s || "")
     .replace(/\s+/g, " ")
@@ -8,10 +9,12 @@ function normalizeText(s) {
     .trim();
 }
 
+// removes leading whitespace and punctuation from a string
 function removeLeadingJunk(s) {
   return String(s || "").replace(/^[\s,.;:!?-]+/, "").trim();
 }
 
+// hook that manages real-time text-to-speech for translated microphone input
 export function useMicTranslationTts({
   enabled,
   running,
@@ -51,6 +54,7 @@ export function useMicTranslationTts({
     };
   }, [language, voiceId, outputDeviceId, rate, pitch, volume, queueMode]);
 
+  // clears all pending tts queue items and timers
   function clearPending() {
     pendingTimersRef.current.forEach((t) => clearTimeout(t));
     pendingTimersRef.current = [];
@@ -58,12 +62,14 @@ export function useMicTranslationTts({
     pendingTextRef.current = "";
   }
 
+  // estimates the playback duration of a text segment based on the speaking rate
   function estimateDurationMs(text, rateValue) {
     const safeRate = Number.isFinite(rateValue) && rateValue > 0 ? rateValue : 1;
     const ms = (String(text || "").length * 45) / safeRate;
     return Math.max(250, ms);
   }
 
+  // adds a text segment to the pending playback queue and schedules its removal
   function enqueuePending(text, rateValue) {
     const durationMs = estimateDurationMs(text, rateValue);
     const queue = pendingQueueRef.current;

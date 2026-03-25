@@ -2,6 +2,7 @@
   const api = window.__virexChatGPTInject;
   if (!api) return;
 
+  // repeatedly run cleanup and focus prompt until successful or timeout
   let tries = 0;
   const t = setInterval(() => {
     tries++;

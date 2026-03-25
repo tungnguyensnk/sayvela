@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 
 const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 
+// extracts metadata like speaker, language, and finalization status from a transcript token
 function tokenMeta(t) {
   const speaker = String(t?.speaker ?? "0");
   const language = typeof t?.language === "string" ? t.language : "";
@@ -17,6 +18,7 @@ function tokenMeta(t) {
   return { speaker, language, translationStatus, text, isFinal };
 }
 
+// formats an internal segment state into a unified view object for rendering
 function toGroupView(seg) {
   const finalText = seg.finalText || "";
   const partialText = seg.partialText || "";
@@ -33,6 +35,7 @@ function toGroupView(seg) {
   };
 }
 
+// attempts to parse a json string safely, returning null on failure
 function safeJsonParse(s) {
   try {
     return JSON.parse(s);
@@ -41,6 +44,7 @@ function safeJsonParse(s) {
   }
 }
 
+// normalizes various context input formats (string, array, object) into a standard object
 function normalizeContextInput(input) {
   if (!input) return null;
 
@@ -68,6 +72,7 @@ function normalizeContextInput(input) {
   return null;
 }
 
+// ensures an incoming audio payload is converted to a uint8array
 function toUint8Array(payload) {
   if (payload instanceof Uint8Array) return payload;
   if (payload instanceof ArrayBuffer) return new Uint8Array(payload);
@@ -84,6 +89,7 @@ function sortGroups(a, b) {
   return String(a.language || "").localeCompare(String(b.language || ""));
 }
 
+// calculates the newly appended text delta between previous and next strings
 function deltaFrom(prev, next) {
   const p = String(prev || "");
   const n = String(next || "");
@@ -98,6 +104,7 @@ function deltaFrom(prev, next) {
   return n;
 }
 
+// initializes and manages a websocket session with the soniox api for real-time transcription
 export async function startSonioxSession({
   sampleRate = 44100,
   model = "stt-rt-v4",

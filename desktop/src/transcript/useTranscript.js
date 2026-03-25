@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 import { startSonioxSession } from "./sonioxSession";
 
+// hook that provides state and controls for managing a transcription session
 export function useTranscript() {
   const sessionRef = useRef(null);
   const [status, setStatus] = useState("idle");
@@ -10,6 +11,7 @@ export function useTranscript() {
   const [groups, setGroups] = useState([]);
   const [error, setError] = useState("");
 
+  // starts a new transcription session with the provided options
   const start = useCallback(async (opts = {}) => {
     if (sessionRef.current) return;
     setError("");
@@ -38,6 +40,7 @@ export function useTranscript() {
     }
   }, []);
 
+  // stops the currently active transcription session
   const stop = useCallback(async () => {
     const s = sessionRef.current;
     sessionRef.current = null;

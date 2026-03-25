@@ -4,6 +4,7 @@
 
   const msg = __TEXT_JSON__;
 
+  // attempt to find input field, fill it with message, and trigger send button
   let tries = 0;
   const tick = () => {
     tries++;
@@ -45,6 +46,7 @@
 
   if (tick()) return;
 
+  // repeatedly try to send message until successful or timeout
   const t = setInterval(() => {
     if (tick() || tries > 60) {
       clearInterval(t);

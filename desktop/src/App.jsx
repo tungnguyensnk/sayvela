@@ -1,112 +1,17 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import "./App.css";
 import { useTranscript } from "./transcript/useTranscript";
 import { AudioControlPanel } from "./components/AudioControlPanel";
 import { TranscriptPanel } from "./components/TranscriptPanel";
 import { useMicTranslationTts } from "./tts/useMicTranslationTts";
 import { TitleBar } from "./components/TitleBar";
+import { useChatGPT } from "./hooks/useChatGPT";
+import { useSpeakerCheck } from "./hooks/useSpeakerCheck";
+import { byteSize } from "./transcript/transcriptUtils";
 
-const CHATGPT_URL = "https://chatgpt.com";
-const CHATGPT_WINDOW_LABEL = "chatgpt-anon";
-
-function byteSize(chunk) {
-  if (!chunk) return 0;
-  if (typeof chunk.length === "number") return chunk.length;
-  if (typeof chunk.byteLength === "number") return chunk.byteLength;
-  return 0;
-}
-
-function groupKey(g) {
-  if (!g) return "";
-  if (g.id) return String(g.id);
-  return String(`${g.createdAt || 0}-${g.seq || 0}-${g.speaker || ""}`);
-}
-
-function groupFullText(g) {
-  const finalText = typeof g?.finalText === "string" ? g.finalText : "";
-  const partialText = typeof g?.partialText === "string" ? g.partialText : "";
-  return `${finalText}${partialText}`;
-}
-
-function buildSpeakerDelta(groups, cursor) {
-  const list = Array.isArray(groups) ? groups : [];
-  const filtered = list.filter((g) => {
-    if (!g) return false;
-    if (String(g.translationStatus || "original") !== "original") return false;
-    const sp = String(g.speaker || "").trim().toLowerCase();
-    if (!sp) return false;
-    if (sp === "me") return false;
-    return true;
-  });
-
-  let startIndex = 0;
-  let startOffset = 0;
-  if (cursor?.groupKey) {
-    const idx = filtered.findIndex((g) => groupKey(g) === cursor.groupKey);
-    if (idx >= 0) {
-      startIndex = idx;
-      startOffset = Math.max(0, Number(cursor.textLen) || 0);
-    }
-  }
-
-  const lines = [];
-  for (let i = startIndex; i < filtered.length; i++) {
-    const g = filtered[i];
-    let text = groupFullText(g);
-    if (i === startIndex && startOffset > 0) {
-      text = text.slice(Math.min(startOffset, text.length));
-    }
-    text = String(text || "").trim();
-    if (!text) continue;
-    lines.push(`SPEAKER ${String(g.speaker)}: ${text}`);
-  }
-  return lines.join("\n").trim();
-}
-
-function cursorAtEnd(groups) {
-  const list = Array.isArray(groups) ? groups : [];
-  const filtered = list.filter((g) => {
-    if (!g) return false;
-    if (String(g.translationStatus || "original") !== "original") return false;
-    const sp = String(g.speaker || "").trim().toLowerCase();
-    if (!sp) return false;
-    if (sp === "me") return false;
-    return true;
-  });
-  const last = filtered[filtered.length - 1];
-  if (!last) return { groupKey: "", textLen: 0 };
-  return { groupKey: groupKey(last), textLen: groupFullText(last).length };
-}
-
-function parseBinaryAnswer(s) {
-  const m = String(s || "").match(/[01]/);
-  return m ? Number(m[0]) : 0;
-}
-
-function buildRecentConversationText(loopbackGroups, micGroups, limitChars = 2000) {
-  const sys = (Array.isArray(loopbackGroups) ? loopbackGroups : []).map((g) => ({ ...g, sessionId: "sys" }));
-  const mic = (Array.isArray(micGroups) ? micGroups : []).map((g) => ({ ...g, sessionId: "mic" }));
-  const merged = [...sys, ...mic].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-  const lines = [];
-
-  for (const g of merged) {
-    if (!g) continue;
-    if (String(g.translationStatus || "original") !== "original") continue;
-    const text = String(groupFullText(g) || "").trim();
-    if (!text) continue;
-    const label = g.sessionId === "mic" ? "ME" : `SPEAKER ${String(g.speaker || "").trim()}`;
-    lines.push(`${label}: ${text}`);
-  }
-
-  const all = lines.join("\n").trim();
-  if (all.length <= limitChars) return all;
-  return all.slice(all.length - limitChars);
-}
-
+// main application component that manages audio capture, transcription, and translation state
 function App() {
   const [devices, setDevices] = useState([]);
   const [devicesError, setDevicesError] = useState("");
@@ -150,20 +55,17 @@ function App() {
   // Refs to track transcript start state to avoid double-start
   const loopbackStartedRef = useRef(false);
   const micStartedRef = useRef(false);
-  const chatgptInitRef = useRef(null);
-  const chatgptDidInitRef = useRef(false);
-  const loopbackGroupsRef = useRef([]);
-  const micGroupsRef = useRef([]);
-  const speakerCursorRef = useRef({ groupKey: "", textLen: 0 });
-  const speakerCheckingRef = useRef(false);
-  const speakerPauseTimerRef = useRef(null);
-  const speakerIntervalRef = useRef(null);
-  const runningRef = useRef(false);
-  const lastChatgptSentContextRef = useRef("");
 
-  useEffect(() => {
-    runningRef.current = running;
-  }, [running]);
+  // ChatGPT hook
+  const chatgpt = useChatGPT({ contentProtectionEnabled, micInputLangs, loopbackContext });
+
+  // Speaker check hook
+  useSpeakerCheck({ 
+    running, 
+    loopbackGroups: loopbackTranscript.groups, 
+    micGroups: micTranscript.groups, 
+    chatgpt 
+  });
 
   useEffect(() => {
     try {
@@ -177,127 +79,7 @@ function App() {
     });
   }, [contentProtectionEnabled]);
 
-  useEffect(() => {
-    loopbackGroupsRef.current = loopbackTranscript.groups;
-  }, [loopbackTranscript.groups]);
-
-  useEffect(() => {
-    micGroupsRef.current = micTranscript.groups;
-  }, [micTranscript.groups]);
-
-  const triggerSpeakerQuestionCheck = async () => {
-    if (!runningRef.current) return;
-    if (speakerCheckingRef.current) return;
-
-    const delta = buildSpeakerDelta(loopbackGroupsRef.current, speakerCursorRef.current);
-    if (!delta) return;
-
-    speakerCheckingRef.current = true;
-    try {
-      const out = await invoke("groq_check_question", { content: delta });
-      const bin = parseBinaryAnswer(out);
-      console.log(bin);
-
-      if (bin === 1) {
-        const recent = buildRecentConversationText(loopbackGroupsRef.current, micGroupsRef.current, 2000);
-        if (recent && lastChatgptSentContextRef.current !== recent) {
-          lastChatgptSentContextRef.current = recent;
-          try {
-            await ensureChatGPTWindow();
-            await invoke("chatgpt_send_message", { meInputLanguage: micInputLangs?.[0] || "vi", context: loopbackContext, conversation: recent });
-          } catch (e) {
-            lastChatgptSentContextRef.current = "";
-            console.error("chatgpt_send_message failed:", e);
-          }
-        }
-      }
-
-      speakerCursorRef.current = cursorAtEnd(loopbackGroupsRef.current);
-    } catch (e) {
-      console.error("groq_check_question failed:", e);
-    } finally {
-      speakerCheckingRef.current = false;
-    }
-  };
-
-  const ensureChatGPTWindow = async () => {
-    if (chatgptInitRef.current) return chatgptInitRef.current;
-
-    chatgptInitRef.current = (async () => {
-      try {
-        const existing = await WebviewWindow.getByLabel(CHATGPT_WINDOW_LABEL);
-        if (existing) return;
-        const opts = {
-          url: CHATGPT_URL,
-          title: "ChatGPT (anon)",
-          width: 600,
-          height: 800,
-          resizable: true,
-          decorations: true,
-          incognito: true,
-        };
-
-        try {
-          const appWindow = getCurrentWindow();
-          const pos = await appWindow.outerPosition();
-          const size = await appWindow.outerSize();
-          const gap = 8;
-
-          let x = Math.round((pos?.x ?? 0) + (size?.width ?? 0) + gap);
-          let y = Math.round(pos?.y ?? 0);
-
-          try {
-            const monitor = await appWindow.currentMonitor();
-            const work = monitor?.workArea || monitor;
-            const wx = work?.position?.x;
-            const wy = work?.position?.y;
-            const ww = work?.size?.width;
-            const wh = work?.size?.height;
-
-            if ([wx, wy, ww, wh].every((n) => Number.isFinite(n))) {
-              const maxX = Math.round(wx + ww - opts.width);
-              const maxY = Math.round(wy + wh - opts.height);
-              x = Math.min(maxX, Math.max(Math.round(wx), x));
-              y = Math.min(maxY, Math.max(Math.round(wy), y));
-            }
-          } catch {}
-
-          if (Number.isFinite(x)) opts.x = x;
-          if (Number.isFinite(y)) opts.y = y;
-        } catch {}
-
-        new WebviewWindow(CHATGPT_WINDOW_LABEL, opts);
-        try {
-          await new Promise((r) => setTimeout(r, 200));
-          await invoke("set_chatgpt_window_content_protected", { enabled: contentProtectionEnabled });
-        } catch {}
-      } catch {
-        chatgptInitRef.current = null;
-      }
-    })();
-
-    return chatgptInitRef.current;
-  };
-
-  const resetChatGPTWindow = async () => {
-    try {
-      const existing = await WebviewWindow.getByLabel(CHATGPT_WINDOW_LABEL);
-      if (existing) {
-        await existing.close();
-      }
-    } catch {}
-    chatgptInitRef.current = null;
-    chatgptDidInitRef.current = false;
-  };
-
-  const initChatGPTWindow = async () => {
-    await ensureChatGPTWindow();
-    if (chatgptDidInitRef.current) return;
-    chatgptDidInitRef.current = true;
-    await new Promise((r) => setTimeout(r, 300));
-    await invoke("chatgpt_init");
-  };
-
+  // fetches the list of available audio devices from the backend
   async function refreshDevices() {
     setDevicesError("");
     try {
@@ -311,14 +93,7 @@ function App() {
 
   useEffect(() => {
     refreshDevices();
-  }, []);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        await initChatGPTWindow();
-      } catch {}
-    })();
+    chatgpt.initChatGPTWindow().catch(() => {});
   }, []);
 
   // Listeners
@@ -349,39 +124,6 @@ function App() {
       unlistenList.forEach(u => u());
     };
   }, []);
-
-  useEffect(() => {
-    if (!running) {
-      if (speakerPauseTimerRef.current) clearTimeout(speakerPauseTimerRef.current);
-      speakerPauseTimerRef.current = null;
-      if (speakerIntervalRef.current) clearInterval(speakerIntervalRef.current);
-      speakerIntervalRef.current = null;
-      speakerCursorRef.current = { groupKey: "", textLen: 0 };
-      speakerCheckingRef.current = false;
-      lastChatgptSentContextRef.current = "";
-      return;
-    }
-
-    speakerCursorRef.current = { groupKey: "", textLen: 0 };
-    speakerIntervalRef.current = setInterval(() => {
-      triggerSpeakerQuestionCheck();
-    }, 10000);
-
-    return () => {
-      if (speakerPauseTimerRef.current) clearTimeout(speakerPauseTimerRef.current);
-      speakerPauseTimerRef.current = null;
-      if (speakerIntervalRef.current) clearInterval(speakerIntervalRef.current);
-      speakerIntervalRef.current = null;
-    };
-  }, [running]);
-
-  useEffect(() => {
-    if (!running) return;
-    if (speakerPauseTimerRef.current) clearTimeout(speakerPauseTimerRef.current);
-    speakerPauseTimerRef.current = setTimeout(() => {
-      triggerSpeakerQuestionCheck();
-    }, 2000);
-  }, [running, loopbackTranscript.groups]);
 
   // Manage Loopback Transcript Session
   useEffect(() => {
@@ -434,14 +176,16 @@ function App() {
     }
   }, [running, micCaptureState, micInputLangs, micOutputLang, micDeviceId, loopbackContext]);
 
+  // starts the audio capture and transcription process
   async function start() {
     setLoopbackBytes(0);
     setMicBytes(0);
     setRunning(true);
 
     try {
-      await resetChatGPTWindow();
-      await initChatGPTWindow();
+      await chatgpt.resetChatGPTWindow();
+      await chatgpt.initChatGPTWindow();
+      chatgpt.clearSentContext();
     } catch {}
     
     try {
@@ -458,6 +202,7 @@ function App() {
     }
   }
 
+  // stops all active audio captures and transcriptions
   async function stop() {
     try {
       if (loopbackDeviceId) await invoke("stop_audio_capture", { kind: "loopback" });

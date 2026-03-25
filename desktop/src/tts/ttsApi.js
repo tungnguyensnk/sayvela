@@ -10,6 +10,7 @@ const TEST_SENTENCE_BY_LANG = {
   de: "Wer nicht wagt, der nicht gewinnt.",
 };
 
+// fetches the list of available text-to-speech voices from the backend
 export async function ttsGetVoices(language) {
   const voices = await invoke("tts_list_voices", { language: language || null });
   return Array.isArray(voices) ? voices : [];
@@ -24,10 +25,12 @@ export function ttsGetTestSentence(language) {
   return TEST_SENTENCE_BY_LANG[key] || TEST_SENTENCE_BY_LANG.en;
 }
 
+// sends a request to the backend to synthesize and play text
 export async function ttsSpeak(options) {
   return invoke("tts_speak", { options });
 }
 
+// sends a request to the backend to stop all currently playing tts audio
 export async function ttsStop() {
   return invoke("tts_stop");
 }

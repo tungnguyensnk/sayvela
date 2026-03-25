@@ -21,6 +21,7 @@ struct WorkerHandle {
 }
 
 impl WorkerHandle {
+    // stop tts worker threads by setting flag and joining them
     fn stop(mut self) {
         self.stop.store(true, Ordering::SeqCst);
         drop(self.tx);
@@ -85,11 +86,13 @@ enum AudioMsg {
 }
 
 #[cfg(not(windows))]
+// return error for unsupported platforms
 fn win_only_err() -> Result<(), String> {
     Err("only supported on windows".to_string())
 }
 
 #[cfg(windows)]
+// escape special characters for ssml xml
 fn escape_xml(s: &str) -> String {
     s.replace('&', "&amp;")
         .replace('<', "&lt;")
@@ -99,24 +102,28 @@ fn escape_xml(s: &str) -> String {
 }
 
 #[cfg(windows)]
+// convert playback rate to ssml percentage string
 fn ssml_percent_from_rate(rate: f32) -> String {
     let pct = ((rate.clamp(0.1, 4.0) - 1.0) * 100.0).round().clamp(-90.0, 200.0);
     format!("{pct:+.0}%")
 }
 
 #[cfg(windows)]
+// convert pitch factor to ssml semitones string
 fn ssml_pitch_from_factor(pitch: f32) -> String {
     let st = ((pitch.clamp(0.5, 2.0) - 1.0) * 12.0).round().clamp(-12.0, 12.0);
     format!("{st:+.0}st")
 }
 
 #[cfg(windows)]
+// convert volume factor to ssml percentage string
 fn ssml_volume_from_factor(volume: f32) -> String {
     let pct = (volume.clamp(0.0, 1.0) * 100.0).round();
     format!("{pct:.0}%")
 }
 
 #[cfg(windows)]
+// construct ssml string with voice parameters and escaped text
 fn build_ssml(text: &str, lang: &str, rate: f32, pitch: f32, volume: f32) -> String {
     let escaped = escape_xml(text);
     let rate_s = ssml_percent_from_rate(rate);
@@ -194,6 +201,7 @@ fn resolve_render_device(device_id: &str) -> Result<wasapi::Device, String> {
 }
 
 #[cfg(windows)]
+// initialize and start wasapi audio render stream
 fn open_render_stream(device_id: &str, sample_rate: u32, channels: u16) -> Result<(wasapi::AudioClient, wasapi::AudioRenderClient, usize), String> {
     let device = resolve_render_device(device_id)?;
     let mut client = device.get_iaudioclient().map_err(|e| e.to_string())?;
@@ -220,6 +228,7 @@ fn open_render_stream(device_id: &str, sample_rate: u32, channels: u16) -> Resul
 }
 
 #[cfg(windows)]
+// ensure audio render stream is open and ready
 fn ensure_render_stream(
     device_id: &str,
     sample_rate: u32,
@@ -475,6 +484,7 @@ fn audio_thread_main(stop: Arc<AtomicBool>, rx: mpsc::Receiver<AudioMsg>) {
 }
 
 #[tauri::command]
+// get list of available tts voices from windows speech synthesis
 pub fn tts_list_voices(state: tauri::State<TtsState>, language: Option<String>) -> Result<Vec<TtsVoice>, String> {
     #[cfg(not(windows))]
     {
@@ -508,6 +518,7 @@ pub fn tts_list_voices(state: tauri::State<TtsState>, language: Option<String>) 
 }
 
 #[tauri::command]
+// stop current tts playback by dropping worker handle
 pub fn tts_stop(state: tauri::State<TtsState>) -> Result<(), String> {
     let handle = {
         let mut guard = state.worker.lock().map_err(|_| "state poisoned".to_string())?;
@@ -520,6 +531,7 @@ pub fn tts_stop(state: tauri::State<TtsState>) -> Result<(), String> {
 }
 
 #[tauri::command]
+// send text and voice options to tts worker thread for playback
 pub fn tts_speak(state: tauri::State<TtsState>, options: TtsSpeakOptions) -> Result<(), String> {
     let text = options.text.trim().to_string();
     if text.is_empty() {

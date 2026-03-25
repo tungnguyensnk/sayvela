@@ -32,6 +32,7 @@ struct GroqChoiceMessage {
   content: Option<String>,
 }
 
+// send chat request to groq to check if user text contains a question
 pub async fn check_question(content: String) -> Result<String> {
   let api_key = std::env::var("GROQ_API_KEY").context("missing GROQ_API_KEY env")?;
   let content = content.trim().to_string();

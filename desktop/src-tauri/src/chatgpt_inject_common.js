@@ -15,27 +15,32 @@
     document.head.appendChild(style);
   };
 
+  // set a cookie with standard attributes
   const setCookie = (name, value) => {
     try {
       document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=31536000; samesite=lax; secure`;
     } catch {}
   };
 
+  // set an item in local storage
   const setLocalStorage = (key, value) => {
     try {
       localStorage.setItem(key, String(value));
     } catch {}
   };
 
+  // find and return the chat input textarea element
   const getPromptTextarea = () =>
     document.querySelector("textarea#prompt-textarea") || document.querySelector("textarea");
 
+  // click and focus the chat input textarea
   const focusPrompt = () => {
     const ta = getPromptTextarea();
     if (ta) ta.click();
     return Boolean(ta);
   };
 
+  // apply ui styles and set necessary cookies/storage for injection
   const cleanup = () => {
     ensureStyle();
     setCookie("oai_consent_analytics", "true");

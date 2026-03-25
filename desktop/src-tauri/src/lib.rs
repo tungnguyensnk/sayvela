@@ -18,6 +18,7 @@ pub struct AppState {
 }
 
 impl Default for AppState {
+    // initialize app state with empty captures map
     fn default() -> Self {
         Self {
             captures: Mutex::new(HashMap::new()),
@@ -68,6 +69,7 @@ fn stop_audio_capture(state: State<AppState>, kind: String) -> Result<(), String
 }
 
 #[tauri::command]
+// toggle content protection (prevent screenshot) for main window
 fn set_main_window_content_protected(app: AppHandle, enabled: bool) -> Result<(), String> {
     let win = app
         .get_webview_window("main")
@@ -77,6 +79,7 @@ fn set_main_window_content_protected(app: AppHandle, enabled: bool) -> Result<()
 }
 
 #[tauri::command]
+// toggle content protection for chatgpt window
 fn set_chatgpt_window_content_protected(app: AppHandle, enabled: bool) -> Result<(), String> {
     let win = app.get_webview_window("chatgpt-anon");
     if let Some(win) = win {
@@ -142,6 +145,7 @@ fn chatgpt_send_message(app: AppHandle, me_input_language: String, context: Stri
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+// setup and run the tauri application with window positioning and event handlers
 pub fn run() {
     let _ = dotenvy::dotenv();
     tauri::Builder::default()
