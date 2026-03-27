@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 240" fill="none">
+  <defs>
+    <linearGradient id="sayvela-wordmark-grad-a" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22d3ee" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+    <linearGradient id="sayvela-wordmark-grad-b" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#818cf8" />
+      <stop offset="100%" stop-color="#a855f7" />
+    </linearGradient>
+  </defs>
+  <g transform="translate(8 8)">
+    <path
+      d="M70 104 C112 64 161 74 203 121 C233 157 213 213 157 213 C121 213 95 199 80 178"
+      stroke="url(#sayvela-wordmark-grad-a)"
+      stroke-width="34"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M70 175 C111 216 163 216 208 174 C242 141 227 84 173 84 C136 84 103 100 84 128"
+      stroke="url(#sayvela-wordmark-grad-b)"
+      stroke-width="34"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M89 106 C123 92 149 96 179 126"
+      stroke="#ffffff"
+      stroke-width="8"
+      stroke-linecap="round"
+      opacity="0.45"
+    />
+    <path
+      d="M89 175 C123 197 149 198 179 165"
+      stroke="#ffffff"
+      stroke-width="8"
+      stroke-linecap="round"
+      opacity="0.4"
+    />
+  </g>
+  <text
+    x="282"
+    y="200"
+    fill="#f8fafc"
+    font-family="'Inter', 'Arial', sans-serif"
+    font-size="126"
+    font-weight="800"
+    letter-spacing="10"
+  >
+    SAYVELA
+  </text>
+</svg>
