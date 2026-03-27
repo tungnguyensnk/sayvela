@@ -61,6 +61,12 @@ export function TitleBar({ title = "sayvela" }) {
   return (
     <header className="titlebar" data-tauri-drag-region onDoubleClick={toggleMaximize}>
       <div className="tb-left" data-tauri-drag-region>
+        <img
+          src="/sayvela-mark.svg"
+          alt="Sayvela"
+          className="tb-logo"
+          data-tauri-drag-region
+        />
         <div className="tb-title" data-tauri-drag-region>
           {title}
         </div>

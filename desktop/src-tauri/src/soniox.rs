@@ -15,7 +15,7 @@ struct SonioxTempKeyResponse {
     expires_at: String,
 }
  
-// request a temporary api key from soniox for speech-to-text
+// request a temporary backend key from soniox for speech-to-text
 pub async fn get_temp_key() -> Result<SonioxTempKey> {
     let client = reqwest::Client::new();
     let resp = client

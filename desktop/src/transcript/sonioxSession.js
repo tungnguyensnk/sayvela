@@ -104,7 +104,7 @@ function deltaFrom(prev, next) {
   return n;
 }
 
-// initializes and manages a websocket session with the soniox api for real-time transcription
+// initializes and manages a websocket session with the soniox backend for real-time transcription
 export async function startSonioxSession({
   sampleRate = 44100,
   model = "stt-rt-v4",
