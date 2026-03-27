@@ -1,0 +1,67 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: sayvela-postgres
+    env_file:
+      - .env
+    ports:
+      - "52432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - sayvela-network
+
+  backend:
+    build: ./backend
+    container_name: sayvela-backend
+    env_file:
+      - .env
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    networks:
+      - sayvela-network
+    stdin_open: true
+    tty: true
+
+  frontend:
+    build: ./frontend
+    container_name: sayvela-frontend
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    networks:
+      - sayvela-network
+    stdin_open: true
+    tty: true
+
+  nginx:
+    image: nginx:alpine
+    container_name: sayvela-nginx
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - sayvela-network
+
+volumes:
+  postgres_data:
+
+networks:
+  sayvela-network:
+    driver: bridge
