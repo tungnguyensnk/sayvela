@@ -34,13 +34,13 @@ describe("AuthForm", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Tạo tài khoản" }));
 
-    expect(await screen.findByText("Vui lòng nhập email.")).toBeInTheDocument();
+    expect(await screen.findByText("Vui lòng nhập email.")).not.toBeNull();
     expect(
       screen.getByText("Vui lòng nhập mật khẩu."),
-    ).toBeInTheDocument();
+    ).not.toBeNull();
     expect(
       screen.getByText("Vui lòng xác nhận mật khẩu."),
-    ).toBeInTheDocument();
+    ).not.toBeNull();
   });
 
   it("submits register form and switches back to login", async () => {
@@ -65,7 +65,7 @@ describe("AuthForm", () => {
 
     expect(
       await screen.findByText("Tạo tài khoản thành công. Bạn có thể đăng nhập ngay bây giờ."),
-    ).toBeInTheDocument();
+    ).not.toBeNull();
 
     expect(replace).toHaveBeenCalledWith("/auth?mode=login");
   });
@@ -120,6 +120,6 @@ describe("AuthForm", () => {
 
     expect(
       await screen.findByText("Email hoặc mật khẩu không chính xác."),
-    ).toBeInTheDocument();
+    ).not.toBeNull();
   });
 });

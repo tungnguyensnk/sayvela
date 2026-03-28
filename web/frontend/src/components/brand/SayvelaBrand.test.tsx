@@ -20,18 +20,11 @@ describe("SayvelaBrand", () => {
     cleanup();
   });
 
-  it("renders the wordmark image and tagline by default", () => {
+  it("renders the wordmark image", () => {
     render(<SayvelaBrand />);
 
     expect(screen.getByAltText("Sayvela").getAttribute("src")).toBe(
       "/brand/sayvela-wordmark-dark.svg",
     );
-    expect(screen.getByText("Words are like sails")).not.toBeNull();
-  });
-
-  it("hides the tagline when disabled", () => {
-    render(<SayvelaBrand showTagline={false} />);
-
-    expect(screen.queryByText("Words are like sails")).toBeNull();
   });
 });

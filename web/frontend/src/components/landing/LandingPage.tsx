@@ -2,6 +2,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { SayvelaBrand } from "@/components/brand/SayvelaBrand";
 import { AuthActions } from "@/components/landing/AuthActions";
+import { LandingHeader } from "@/components/landing/LandingHeader";
 
 const UseCasesSection = dynamic(
   () => import("@/components/landing/UseCasesSection"),
@@ -89,36 +90,14 @@ const softwareApplicationSchema = {
 
 export function LandingPage() {
   return (
-    <main className="relative flex-1 overflow-hidden">
-      <div className="page-glow page-glow-top" />
-      <div className="page-glow page-glow-bottom" />
+    <main className="relative flex-1">
+      <LandingHeader />
 
-      <header className="sticky top-0 z-30 border-b border-white/10 bg-slate-950/48 backdrop-blur-xl">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-4 sm:px-8">
-          <Link href="/" className="min-w-0">
-            <SayvelaBrand size="sm" priority />
-          </Link>
+      <div className="relative overflow-x-hidden">
+        <div className="page-glow page-glow-top" />
+        <div className="page-glow page-glow-bottom" />
 
-          <nav className="hidden items-center gap-6 text-sm text-white/68 lg:flex">
-            <a href="#features" className="nav-link">
-              Tính năng
-            </a>
-            <a href="#workflow" className="nav-link">
-              Cách hoạt động
-            </a>
-            <a href="#use-cases" className="nav-link">
-              Use cases
-            </a>
-            <a href="#faq" className="nav-link">
-              FAQ
-            </a>
-          </nav>
-
-          <AuthActions />
-        </div>
-      </header>
-
-      <section className="mx-auto grid w-full max-w-6xl gap-12 px-6 pb-12 pt-14 sm:px-8 lg:grid-cols-[1.1fr_0.9fr] lg:pt-20">
+        <section className="mx-auto grid w-full max-w-6xl gap-12 px-6 pb-12 pt-14 sm:px-8 lg:grid-cols-[1.1fr_0.9fr] lg:pt-20">
         <div className="flex flex-col justify-center">
           <div className="glass-chip w-fit">
             Real-time voice translation cho team toàn cầu
@@ -299,7 +278,7 @@ export function LandingPage() {
       <footer className="border-t border-white/10 bg-slate-950/60">
         <div className="mx-auto grid w-full max-w-6xl gap-8 px-6 py-8 text-sm text-white/64 sm:px-8 md:grid-cols-[1.2fr_0.8fr]">
           <div>
-            <SayvelaBrand size="sm" showTagline={false} />
+            <SayvelaBrand size="sm" />
             <p className="mt-3 max-w-xl leading-7">
               Real-time voice translation và transcription cho team làm việc xuyên
               ngôn ngữ, được tối ưu cho tốc độ, sự rõ ràng và quyền riêng tư.
@@ -330,6 +309,7 @@ export function LandingPage() {
           __html: JSON.stringify(softwareApplicationSchema),
         }}
       />
+      </div>
     </main>
   );
 }

@@ -2,7 +2,6 @@ import Image from "next/image";
 
 type SayvelaBrandProps = {
   size?: "sm" | "md" | "lg";
-  showTagline?: boolean;
   priority?: boolean;
   className?: string;
 };
@@ -15,7 +14,6 @@ const sizeClasses = {
 
 export function SayvelaBrand({
   size = "md",
-  showTagline = true,
   priority = false,
   className = "",
 }: SayvelaBrandProps) {
@@ -26,14 +24,9 @@ export function SayvelaBrand({
         alt="Sayvela"
         width={1080}
         height={320}
-        className={`w-auto ${sizeClasses[size]}`}
+        className={`block w-auto -translate-y-1 ${sizeClasses[size]}`}
         priority={priority}
       />
-      {showTagline ? (
-        <span className="hidden text-xs uppercase tracking-[0.26em] text-cyan-100/62 sm:inline-flex">
-          Words are like sails
-        </span>
-      ) : null}
     </div>
   );
 }
