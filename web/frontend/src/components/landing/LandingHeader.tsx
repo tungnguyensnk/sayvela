@@ -11,6 +11,9 @@ export function LandingHeader() {
         </Link>
 
         <nav className="hidden items-center gap-6 text-sm text-white/68 lg:flex">
+          <Link href="/pricing" className="nav-link">
+            Pricing
+          </Link>
           <a href="#features" className="nav-link">
             Tính năng
           </a>

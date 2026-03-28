@@ -115,6 +115,9 @@ export function LandingPage() {
             <Link href="/auth?mode=register" className="primary-button">
               Bắt đầu miễn phí
             </Link>
+            <Link href="/pricing" className="glass-button">
+              Xem pricing
+            </Link>
             <a href="#features" className="glass-button">
               Xem tính năng
             </a>

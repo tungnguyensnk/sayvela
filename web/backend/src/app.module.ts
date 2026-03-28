@@ -6,6 +6,7 @@ import { UsersModule } from './users/users.module';
 import { ProtectedModule } from './protected/protected.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
+import { BillingModule } from './billing/billing.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { APP_GUARD } from '@nestjs/core';
     AuthModule,
     UsersModule,
     ProtectedModule,
+    BillingModule,
   ],
   controllers: [AppController],
   providers: [

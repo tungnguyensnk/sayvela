@@ -25,14 +25,14 @@ services:
       - /app/node_modules
     networks:
       - sayvela-network
-    stdin_open: true
-    tty: true
 
   frontend:
     build: ./frontend
     container_name: sayvela-frontend
     env_file:
       - .env
+    environment:
+      WATCHPACK_POLLING: "true"
     ports:
       - "3000:3000"
     depends_on:

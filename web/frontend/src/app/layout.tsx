@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { getServerSession } from "next-auth/next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AppProviders } from "./providers";
+import { authOptions } from "@/lib/auth";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,18 +38,43 @@ export const metadata: Metadata = {
   category: "productivity",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const session = await getServerSession(authOptions);
+  const accessToken =
+    (session as unknown as { accessToken?: string } | null)?.accessToken ?? null;
+  let initialEntitlement: { plan: "free" | "pro" } | null = null;
+
+  if (accessToken) {
+    const apiBase =
+      process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+
+    try {
+      const res = await fetch(new URL("/api/backend/billing/entitlement", apiBase), {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        cache: "no-store",
+      });
+
+      if (res.ok) {
+        initialEntitlement = (await res.json()) as { plan: "free" | "pro" };
+      }
+    } catch {}
+  }
+
   return (
     <html
       lang="vi"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full bg-slate-950 text-white">
-        <AppProviders>{children}</AppProviders>
+        <AppProviders session={session} initialEntitlement={initialEntitlement}>
+          {children}
+        </AppProviders>
       </body>
     </html>
   );

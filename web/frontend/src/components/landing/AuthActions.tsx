@@ -11,6 +11,29 @@ export function AuthActions({ compact = false }: AuthActionsProps) {
   const { data: session, status } = useSession();
   const userEmail = session?.user?.email ?? session?.user?.name ?? "người dùng";
 
+  if (status === "loading") {
+    return (
+      <div
+        className={`flex ${
+          compact ? "flex-col items-stretch" : "flex-wrap items-center"
+        } gap-3`}
+        aria-busy="true"
+      >
+        <div className="glass-chip text-center text-sm text-white/80 animate-pulse">
+          Đang kiểm tra phiên…
+        </div>
+        <div
+          className="glass-button w-48 opacity-60 pointer-events-none"
+          aria-hidden="true"
+        />
+        <div
+          className="primary-button w-40 opacity-60 pointer-events-none"
+          aria-hidden="true"
+        />
+      </div>
+    );
+  }
+
   if (status === "authenticated") {
     return (
       <div
@@ -21,6 +44,9 @@ export function AuthActions({ compact = false }: AuthActionsProps) {
         <div className="glass-chip text-center text-sm text-white/80">
           Phiên đang hoạt động · {userEmail}
         </div>
+        <Link href="/settings/billing" className="glass-button text-center">
+          Quản lý subscription
+        </Link>
         <button
           type="button"
           className="glass-button"

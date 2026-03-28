@@ -8,6 +8,13 @@
       "when": 1774540000000,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1774694800000,
+      "tag": "0001_billing",
+      "breakpoints": true
     }
   ]
 }
