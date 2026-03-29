@@ -1,4 +1,10 @@
-import { integer, pgTable, timestamp, uuid, varchar } from 'drizzle-orm/pg-core';
+import {
+  integer,
+  pgTable,
+  timestamp,
+  uuid,
+  varchar,
+} from 'drizzle-orm/pg-core';
 import { users } from './users';
 
 export const billingUsageCycles = pgTable('billing_usage_cycles', {

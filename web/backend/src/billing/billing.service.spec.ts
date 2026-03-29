@@ -278,7 +278,7 @@ describe('BillingService', () => {
     expect(createUsageCycle).toHaveBeenCalled();
   });
 
-  it('preserves minutes when upgrading lite to pro within same cycle', async () => {
+  it('carries remaining minutes and resets usage when upgrading lite to pro within same cycle', async () => {
     hasProcessedStripeEvent.mockResolvedValue(false);
     markStripeEventProcessed.mockResolvedValue();
 
@@ -315,13 +315,53 @@ describe('BillingService', () => {
       },
     } as unknown as Stripe.Event);
 
-    expect(updateUsageCycle).toHaveBeenCalledWith(
-      'cycle_lite',
+    expect(updateUsageCycle).toHaveBeenCalledWith('cycle_lite', {
+      cycleEndsAt: new Date('2026-03-15T00:00:00.000Z'),
+    });
+
+    const remaining = 900 - 280;
+    expect(createUsageCycle).toHaveBeenCalledWith(
       expect.objectContaining({
+        userId: 'u1',
         plan: 'pro',
-        minutesLimit: 2400,
+        minutesLimit: 2400 + remaining,
+        minutesUsed: 0,
+        cycleStartedAt,
+        cycleEndsAt,
+        stripeSubscriptionId: 'sub_1',
       }),
     );
+  });
+
+  it('does not reduce bonus minutes within same pro cycle', async () => {
+    const cycleStartedAt = new Date('2026-03-01T00:00:00.000Z');
+    const cycleEndsAt = new Date('2026-04-01T00:00:00.000Z');
+
+    getActiveSubscriptionByUserId.mockResolvedValue({
+      priceId: 'price_pro_monthly',
+      stripeSubscriptionId: 'sub_1',
+      currentPeriodEnd: cycleEndsAt,
+    });
+
+    getActiveUsageCycleByUserId.mockResolvedValue({
+      id: 'cycle_pro_bonus',
+      userId: 'u1',
+      plan: 'pro',
+      minutesLimit: 2600,
+      minutesUsed: 100,
+      cycleStartedAt,
+      cycleEndsAt,
+      stripeSubscriptionId: 'sub_1',
+      createdAt: null,
+      updatedAt: null,
+    });
+
+    const res = await service.getEntitlement('u1');
+
+    expect(updateUsageCycle).not.toHaveBeenCalled();
     expect(createUsageCycle).not.toHaveBeenCalled();
+    expect(res.plan).toBe('pro');
+    expect(res.minutesPerMonth).toBe(2400);
+    expect(res.minutesRemaining).toBe(2500);
   });
 });

@@ -365,10 +365,13 @@ export class BillingService {
     return { cycleStartedAt, cycleEndsAt };
   }
 
-  private isSameWindow(a: { cycleStartedAt: Date; cycleEndsAt: Date }, b: {
-    cycleStartedAt: Date;
-    cycleEndsAt: Date;
-  }) {
+  private isSameWindow(
+    a: { cycleStartedAt: Date; cycleEndsAt: Date },
+    b: {
+      cycleStartedAt: Date;
+      cycleEndsAt: Date;
+    },
+  ) {
     return (
       a.cycleStartedAt.getTime() === b.cycleStartedAt.getTime() &&
       a.cycleEndsAt.getTime() === b.cycleEndsAt.getTime()
@@ -438,17 +441,22 @@ export class BillingService {
 
     if (active && this.isSameWindow(active, window)) {
       if (active.plan === params.plan) {
+        const effectiveMinutesLimit =
+          active.minutesLimit >= minutesLimit
+            ? active.minutesLimit
+            : minutesLimit;
+
         if (
-          active.minutesLimit !== minutesLimit ||
+          effectiveMinutesLimit !== active.minutesLimit ||
           active.stripeSubscriptionId !== params.stripeSubscriptionId
         ) {
           await this.repo.updateUsageCycle(active.id, {
-            minutesLimit,
+            minutesLimit: effectiveMinutesLimit,
             stripeSubscriptionId: params.stripeSubscriptionId,
           });
           return {
             ...active,
-            minutesLimit,
+            minutesLimit: effectiveMinutesLimit,
             stripeSubscriptionId: params.stripeSubscriptionId,
           };
         }
@@ -456,16 +464,37 @@ export class BillingService {
       }
 
       if (active.plan === 'lite' && params.plan === 'pro') {
+        const carryOverMinutes = Math.max(
+          0,
+          active.minutesLimit - active.minutesUsed,
+        );
+        const upgradedMinutesLimit = minutesLimit + carryOverMinutes;
+
         await this.repo.updateUsageCycle(active.id, {
+          cycleEndsAt: params.now,
+        });
+
+        const id = await this.repo.createUsageCycle({
+          userId: params.userId,
           plan: 'pro',
-          minutesLimit,
+          minutesLimit: upgradedMinutesLimit,
+          minutesUsed: 0,
+          cycleStartedAt: window.cycleStartedAt,
+          cycleEndsAt: window.cycleEndsAt,
           stripeSubscriptionId: params.stripeSubscriptionId,
         });
+
         return {
-          ...active,
+          id,
+          userId: params.userId,
           plan: 'pro',
-          minutesLimit,
+          minutesLimit: upgradedMinutesLimit,
+          minutesUsed: 0,
+          cycleStartedAt: window.cycleStartedAt,
+          cycleEndsAt: window.cycleEndsAt,
           stripeSubscriptionId: params.stripeSubscriptionId,
+          createdAt: null,
+          updatedAt: null,
         };
       }
 
