@@ -23,7 +23,7 @@ describe("BillingSettingsDashboard", () => {
     );
   });
 
-  it("shows login CTA when unauthenticated", () => {
+  it("renders nothing when unauthenticated", () => {
     useSession.mockReturnValue({ data: null, status: "unauthenticated" });
 
     render(
@@ -32,8 +32,7 @@ describe("BillingSettingsDashboard", () => {
       </EntitlementProvider>,
     );
 
-    expect(screen.getByRole("link", { name: "Đăng nhập" })).not.toBeNull();
-    expect(screen.getByRole("link", { name: "Xem pricing" })).not.toBeNull();
+    expect(screen.queryByRole("link", { name: "Đăng nhập" })).toBeNull();
   });
 
   it("shows upgrade to lite for free users", () => {

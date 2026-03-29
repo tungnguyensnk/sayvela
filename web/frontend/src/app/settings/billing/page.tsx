@@ -1,7 +1,10 @@
 import { LandingHeader } from "@/components/landing/LandingHeader";
 import { BillingSettingsDashboard } from "@/components/billing/BillingSettingsDashboard";
+import { requireAuth } from "@/lib/auth-guard";
 
-export default function BillingSettingsPage() {
+export default async function BillingSettingsPage() {
+  await requireAuth("/settings/billing");
+
   return (
     <main className="relative flex-1">
       <LandingHeader />

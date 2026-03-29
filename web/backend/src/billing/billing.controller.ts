@@ -8,6 +8,7 @@ import {
   Post,
   Req,
   Get,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { SkipThrottle } from '@nestjs/throttler';
@@ -98,6 +99,60 @@ export class BillingController {
     }
 
     return await this.billing.getEntitlement(userId);
+  }
+
+  @Get('checkout-session/verify')
+  @UseGuards(JwtAuthGuard)
+  async verifyCheckoutSession(
+    @Req() req: RequestWithUser,
+    @Query('session_id') sessionId: string | undefined,
+  ) {
+    const userId = req.user?.userId;
+    if (!userId) {
+      throw new HttpException('unauthorized', HttpStatus.UNAUTHORIZED);
+    }
+
+    if (!sessionId) {
+      throw new HttpException('missing session_id', HttpStatus.BAD_REQUEST);
+    }
+
+    const trimmed = sessionId.trim();
+    const looksLikeCheckoutSession =
+      /^cs_(test|live)_[A-Za-z0-9]+$/.test(trimmed) ||
+      /^cs_[A-Za-z0-9]+$/.test(trimmed);
+    if (!looksLikeCheckoutSession) {
+      throw new HttpException('invalid session_id', HttpStatus.BAD_REQUEST);
+    }
+
+    try {
+      const result = await this.billing.verifyCheckoutSession({
+        userId,
+        sessionId: trimmed,
+      });
+
+      if (result.state === 'not_found') {
+        throw new HttpException('session not found', HttpStatus.NOT_FOUND);
+      }
+
+      if (result.state === 'unpaid') {
+        throw new HttpException(
+          { state: 'unpaid', paymentStatus: result.paymentStatus },
+          HttpStatus.CONFLICT,
+        );
+      }
+
+      return { state: 'paid', synced: result.synced };
+    } catch (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new HttpException(
+        err instanceof Error
+          ? err.message
+          : 'failed to verify checkout session',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 
   @Post('webhook')

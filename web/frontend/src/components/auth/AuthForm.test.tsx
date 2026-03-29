@@ -100,6 +100,36 @@ describe("AuthForm", () => {
     });
   });
 
+  it("submits login form with callbackUrl when provided", async () => {
+    signIn.mockResolvedValue({
+      ok: true,
+      error: null,
+      url: "/settings/billing",
+    });
+
+    render(<AuthForm initialMode="login" callbackUrl="/settings/billing" />);
+
+    fireEvent.change(screen.getByLabelText("Email"), {
+      target: { value: "demo@sayvela.local" },
+    });
+    fireEvent.change(screen.getByLabelText("Mật khẩu"), {
+      target: { value: "Admin@1234!" },
+    });
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Đăng nhập" })[1]);
+
+    await waitFor(() => {
+      expect(signIn).toHaveBeenCalledWith("credentials", {
+        email: "demo@sayvela.local",
+        password: "Admin@1234!",
+        redirect: false,
+        callbackUrl: "/settings/billing",
+      });
+      expect(push).toHaveBeenCalledWith("/settings/billing");
+      expect(refresh).toHaveBeenCalled();
+    });
+  });
+
   it("shows login error from auth provider", async () => {
     signIn.mockResolvedValue({
       ok: false,

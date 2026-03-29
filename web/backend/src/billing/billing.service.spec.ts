@@ -42,10 +42,16 @@ describe('BillingService', () => {
 
   const stripeCustomersCreate = jest.fn();
   const stripeCheckoutSessionsCreate = jest.fn();
+  const stripeCheckoutSessionsRetrieve = jest.fn();
   const stripeSubscriptionsRetrieve = jest.fn();
   const stripe = {
     customers: { create: stripeCustomersCreate },
-    checkout: { sessions: { create: stripeCheckoutSessionsCreate } },
+    checkout: {
+      sessions: {
+        create: stripeCheckoutSessionsCreate,
+        retrieve: stripeCheckoutSessionsRetrieve,
+      },
+    },
     subscriptions: { retrieve: stripeSubscriptionsRetrieve },
     webhooks: { constructEvent: jest.fn() },
   } as unknown as Stripe;
@@ -237,6 +243,98 @@ describe('BillingService', () => {
 
     expect(markStripeEventProcessed).not.toHaveBeenCalled();
     expect(upsertSubscription).not.toHaveBeenCalled();
+  });
+
+  it('returns not_found when checkout session does not exist', async () => {
+    stripeCheckoutSessionsRetrieve.mockRejectedValue({
+      code: 'resource_missing',
+    });
+
+    const res = await service.verifyCheckoutSession({
+      userId: 'u1',
+      sessionId: 'cs_test_missing',
+    });
+
+    expect(res).toEqual({ state: 'not_found' });
+  });
+
+  it('returns not_found when checkout session belongs to another user', async () => {
+    stripeCheckoutSessionsRetrieve.mockResolvedValue({
+      id: 'cs_test_1',
+      payment_status: 'paid',
+      metadata: { userId: 'other' },
+      client_reference_id: 'other',
+      subscription: null,
+    });
+
+    const res = await service.verifyCheckoutSession({
+      userId: 'u1',
+      sessionId: 'cs_test_1',
+    });
+
+    expect(res).toEqual({ state: 'not_found' });
+  });
+
+  it('returns unpaid when checkout session is not paid', async () => {
+    stripeCheckoutSessionsRetrieve.mockResolvedValue({
+      id: 'cs_test_2',
+      payment_status: 'unpaid',
+      metadata: { userId: 'u1' },
+      client_reference_id: 'u1',
+      subscription: null,
+    });
+
+    const res = await service.verifyCheckoutSession({
+      userId: 'u1',
+      sessionId: 'cs_test_2',
+    });
+
+    expect(res).toEqual({ state: 'unpaid', paymentStatus: 'unpaid' });
+  });
+
+  it('syncs subscription when checkout session is paid', async () => {
+    stripeCheckoutSessionsRetrieve.mockResolvedValue({
+      id: 'cs_test_3',
+      payment_status: 'paid',
+      metadata: { userId: 'u1' },
+      client_reference_id: 'u1',
+      subscription: 'sub_1',
+    });
+
+    stripeSubscriptionsRetrieve.mockResolvedValue({
+      id: 'sub_1',
+      status: 'active',
+      customer: 'cus_1',
+      cancel_at_period_end: false,
+      current_period_end: 1_777_777_777,
+      items: {
+        data: [
+          {
+            price: { id: 'price_pro_monthly' },
+          },
+        ],
+      },
+      metadata: { userId: 'u1' },
+    });
+
+    const res = await service.verifyCheckoutSession({
+      userId: 'u1',
+      sessionId: 'cs_test_3',
+    });
+
+    expect(stripeCheckoutSessionsRetrieve).toHaveBeenCalledWith('cs_test_3', {
+      expand: ['subscription'],
+    });
+    expect(stripeSubscriptionsRetrieve).toHaveBeenCalledWith('sub_1');
+    expect(upsertSubscription).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'u1',
+        stripeSubscriptionId: 'sub_1',
+        status: 'active',
+        priceId: 'price_pro_monthly',
+      }),
+    );
+    expect(res).toEqual({ state: 'paid', paymentStatus: 'paid', synced: true });
   });
 
   it('upserts subscription from checkout.session.completed', async () => {

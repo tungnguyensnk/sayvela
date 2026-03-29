@@ -27,6 +27,20 @@ type Entitlement = {
   };
 };
 
+type VerifyCheckoutSessionResult =
+  | {
+      state: 'paid';
+      paymentStatus: Stripe.Checkout.Session.PaymentStatus;
+      synced: boolean;
+    }
+  | {
+      state: 'unpaid';
+      paymentStatus: Stripe.Checkout.Session.PaymentStatus;
+    }
+  | {
+      state: 'not_found';
+    };
+
 @Injectable()
 export class BillingService {
   constructor(
@@ -150,6 +164,53 @@ export class BillingService {
         plan === 'free' ? 'lite' : plan === 'lite' ? 'pro' : null,
       features: this.getFeatures(plan),
     };
+  }
+
+  async verifyCheckoutSession(params: {
+    userId: string;
+    sessionId: string;
+  }): Promise<VerifyCheckoutSessionResult> {
+    const stripe = this.stripeService.getClient();
+    if (!stripe) throw new Error('stripe is not configured');
+
+    let session: Stripe.Checkout.Session;
+    try {
+      session = await stripe.checkout.sessions.retrieve(params.sessionId, {
+        expand: ['subscription'],
+      });
+    } catch (err) {
+      const stripeCode =
+        typeof err === 'object' && err
+          ? 'code' in err
+            ? (err as { code?: unknown }).code
+            : undefined
+          : undefined;
+      if (stripeCode === 'resource_missing') return { state: 'not_found' };
+      return { state: 'not_found' };
+    }
+
+    const sessionUserId =
+      session.metadata?.userId ?? session.client_reference_id ?? null;
+    if (!sessionUserId || sessionUserId !== params.userId) {
+      return { state: 'not_found' };
+    }
+
+    if (session.payment_status !== 'paid') {
+      return { state: 'unpaid', paymentStatus: session.payment_status };
+    }
+
+    let synced = false;
+    const subscriptionRef = session.subscription;
+    if (subscriptionRef) {
+      const subscription =
+        typeof subscriptionRef === 'string'
+          ? await stripe.subscriptions.retrieve(subscriptionRef)
+          : subscriptionRef;
+      await this.upsertFromStripeSubscription(params.userId, subscription);
+      synced = true;
+    }
+
+    return { state: 'paid', paymentStatus: session.payment_status, synced };
   }
 
   async handleStripeWebhookEvent(event: Stripe.Event) {

@@ -33,6 +33,7 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
   const mode = normalizeAuthMode(
     Array.isArray(params.mode) ? params.mode[0] : params.mode,
   );
+  const callbackUrl = Array.isArray(params.callbackUrl) ? params.callbackUrl[0] : params.callbackUrl;
 
   return (
     <main className="relative flex min-h-screen flex-1 items-center justify-center overflow-hidden px-6 py-10 sm:px-8">
@@ -41,7 +42,7 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
 
       <div className="mx-auto flex w-full max-w-6xl justify-center">
         <section className="flex items-center justify-center">
-          <AuthForm initialMode={mode} />
+          <AuthForm initialMode={mode} callbackUrl={callbackUrl} />
         </section>
       </div>
     </main>

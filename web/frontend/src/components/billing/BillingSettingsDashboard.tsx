@@ -240,25 +240,7 @@ export function BillingSettingsDashboard() {
 
   const content = useMemo(() => {
     if (state.kind === "unauthenticated") {
-      return (
-        <div className="glass-panel p-10">
-          <div className="section-eyebrow">Billing</div>
-          <h1 className="mt-4 text-3xl font-semibold text-white sm:text-4xl">
-            Quản lý gói subscription
-          </h1>
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-white/68 sm:text-base">
-            Đăng nhập để xem quota phút và Quản lý của bạn.
-          </p>
-          <div className="mt-8 grid gap-3 sm:grid-cols-2">
-            <Link href="/auth?mode=login" className="primary-button w-full text-center">
-              Đăng nhập
-            </Link>
-            <Link href="/pricing" className="glass-button w-full text-center">
-              Xem pricing
-            </Link>
-          </div>
-        </div>
-      );
+      return null;
     }
 
     if (state.kind === "loading") {
@@ -314,7 +296,7 @@ export function BillingSettingsDashboard() {
             <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
               {e.plan !== "free" ? <ManageBillingButton /> : null}
               <Link href="/pricing" className="glass-button w-full text-center sm:w-auto">
-                Xem pricing
+                Pricing
               </Link>
             </div>
           </div>
