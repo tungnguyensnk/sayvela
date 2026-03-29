@@ -45,7 +45,7 @@ export function AuthActions({ compact = false }: AuthActionsProps) {
           Phiên đang hoạt động · {userEmail}
         </div>
         <Link href="/settings/billing" className="glass-button text-center">
-          Quản lý subscription
+          Quản lý
         </Link>
         <button
           type="button"

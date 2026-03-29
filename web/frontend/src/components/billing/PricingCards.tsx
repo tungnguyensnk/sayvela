@@ -70,11 +70,7 @@ export function PricingCards() {
           <div className="flex items-center justify-between gap-3">
             <div className="text-lg font-semibold text-white">Free</div>
             {isFree ? (
-              <div className="glass-chip">đang dùng</div>
-            ) : isLite ? (
-              <div className="glass-chip">đã có Lite</div>
-            ) : isPro ? (
-              <div className="glass-chip">đã có Pro</div>
+              <div className="glass-chip glass-chip-active">đang dùng</div>
             ) : null}
           </div>
           <div className="mt-2 text-3xl font-semibold text-white">0</div>
@@ -94,45 +90,27 @@ export function PricingCards() {
             ) : state.kind === "error" ? (
               <div className="space-y-3">
                 <div className="text-sm text-rose-200/90">{state.message}</div>
-                <ManageBillingButton className="glass-button w-full" label="Quản lý subscription" />
+                <ManageBillingButton className="glass-button w-full" label="Quản lý" />
               </div>
-            ) : isPro ? (
-              <button
-                type="button"
-                className="glass-button w-full opacity-70 pointer-events-none"
-                aria-disabled="true"
-              >
-                Đang dùng Pro
-              </button>
-            ) : isLite ? (
-              <button
-                type="button"
-                className="glass-button w-full opacity-70 pointer-events-none"
-                aria-disabled="true"
-              >
-                Đang dùng Lite
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="glass-button w-full opacity-70 pointer-events-none"
-                aria-disabled="true"
-              >
-                Đang dùng Free
-              </button>
-            )}
+            ) : isFree ? (
+              <ManageBillingButton label="Quản lý" />
+            ) : null}
           </div>
         </article>
 
         <article className="glass-panel-muted flex flex-col p-6">
           <div className="flex items-center justify-between gap-3">
             <div className="text-lg font-semibold text-white">Lite</div>
-            {isLite ? <div className="glass-chip">đang dùng</div> : <div className="glass-chip">tiết kiệm</div>}
+            {isLite ? (
+              <div className="glass-chip glass-chip-active">đang dùng</div>
+            ) : (
+              <div className="glass-chip">tiết kiệm</div>
+            )}
           </div>
 
           <div className="mt-2 grid grid-cols-1 grid-rows-1 items-center">
             <div
-              className={`col-start-1 row-start-1 transform-gpu will-change-transform will-change-opacity transition-opacity transition-transform duration-200 ease-out ${
+              className={`col-start-1 row-start-1 transform-gpu will-change-transform will-change-opacity transition-transform duration-200 ease-out ${
                 interval === "month" ? "opacity-100 translate-y-0" : "pointer-events-none opacity-0 -translate-y-1"
               }`}
               aria-hidden={interval !== "month"}
@@ -140,7 +118,7 @@ export function PricingCards() {
               <div className="text-3xl font-semibold leading-none text-white">{liteMonthlyPrice}</div>
             </div>
             <div
-              className={`col-start-1 row-start-1 transform-gpu will-change-transform will-change-opacity transition-opacity transition-transform duration-200 ease-out ${
+              className={`col-start-1 row-start-1 transform-gpu will-change-transform will-change-opacity transition-transform duration-200 ease-out ${
                 interval === "year" ? "opacity-100 translate-y-0" : "pointer-events-none opacity-0 translate-y-1"
               }`}
               aria-hidden={interval !== "year"}
@@ -167,15 +145,9 @@ export function PricingCards() {
             {showLoadingEntitlement ? (
               <div className="text-sm text-white/60">Đang kiểm tra subscription...</div>
             ) : isPro ? (
-              <button
-                type="button"
-                className="glass-button w-full opacity-70 pointer-events-none"
-                aria-disabled="true"
-              >
-                Đã có Pro
-              </button>
+              <></>
             ) : isLite ? (
-              <ManageBillingButton label="Quản lý subscription" />
+              <ManageBillingButton label="Quản lý" />
             ) : (
               <CheckoutButton
                 plan="lite"
@@ -190,7 +162,7 @@ export function PricingCards() {
           <div className="flex items-center justify-between gap-3">
             <div className="text-lg font-semibold text-white">Pro</div>
             {isPro ? (
-              <div className="glass-chip">đang dùng</div>
+              <div className="glass-chip glass-chip-active">đang dùng</div>
             ) : (
               <div className="glass-chip">khuyến nghị</div>
             )}
@@ -198,7 +170,7 @@ export function PricingCards() {
 
           <div className="mt-2 grid grid-cols-1 grid-rows-1 items-center">
             <div
-              className={`col-start-1 row-start-1 transform-gpu will-change-transform will-change-opacity transition-opacity transition-transform duration-200 ease-out ${
+              className={`col-start-1 row-start-1 transform-gpu will-change-transform will-change-opacity transition-transform duration-200 ease-out ${
                 interval === "month"
                   ? "opacity-100 translate-y-0"
                   : "pointer-events-none opacity-0 -translate-y-1"
@@ -210,7 +182,7 @@ export function PricingCards() {
               </div>
             </div>
             <div
-              className={`col-start-1 row-start-1 transform-gpu will-change-transform will-change-opacity transition-opacity transition-transform duration-200 ease-out ${
+              className={`col-start-1 row-start-1 transform-gpu will-change-transform will-change-opacity transition-transform duration-200 ease-out ${
                 interval === "year"
                   ? "opacity-100 translate-y-0"
                   : "pointer-events-none opacity-0 translate-y-1"
@@ -247,7 +219,7 @@ export function PricingCards() {
             {showLoadingEntitlement ? (
               <div className="text-sm text-white/60">Đang kiểm tra subscription...</div>
             ) : isPro ? (
-              <ManageBillingButton label="Quản lý subscription" />
+              <ManageBillingButton label="Quản lý" />
             ) : (
               <CheckoutButton
                 plan="pro"

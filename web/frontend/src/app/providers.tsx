@@ -14,7 +14,7 @@ export function AppProviders({
 }: {
   children: React.ReactNode;
   session?: Session | null;
-  initialEntitlement?: Entitlement | null;
+  initialEntitlement?: ({ plan: Entitlement["plan"] } & Partial<Entitlement>) | null;
 }) {
   return (
     <SessionProvider session={session}>

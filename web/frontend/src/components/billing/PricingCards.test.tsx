@@ -90,7 +90,8 @@ describe("PricingCards", () => {
     );
 
     expect(screen.queryByText("Bắt đầu miễn phí")).toBeNull();
-    expect(screen.getByText("Đang dùng Free")).not.toBeNull();
+    expect(screen.getByText("Free")).not.toBeNull();
+    expect(screen.getByText("đang dùng")).not.toBeNull();
   });
 
   it("shows manage billing CTA when entitlement is pro", () => {
@@ -105,10 +106,11 @@ describe("PricingCards", () => {
       </EntitlementProvider>,
     );
 
-    expect(screen.getByText("Quản lý subscription")).not.toBeNull();
+    expect(screen.getByText("Quản lý")).not.toBeNull();
     expect(screen.queryByText(/Nâng cấp Pro/)).toBeNull();
     expect(screen.queryByText("Bắt đầu miễn phí")).toBeNull();
-    expect(screen.getByText("Đang dùng Pro")).not.toBeNull();
+    expect(screen.getByText("Pro")).not.toBeNull();
+    expect(screen.getByText("đang dùng")).not.toBeNull();
   });
 
   it("shows manage billing CTA when entitlement is lite", () => {
@@ -123,8 +125,9 @@ describe("PricingCards", () => {
       </EntitlementProvider>,
     );
 
-    expect(screen.getByText("Quản lý subscription")).not.toBeNull();
-    expect(screen.getByText("Đang dùng Lite")).not.toBeNull();
+    expect(screen.getByText("Quản lý")).not.toBeNull();
+    expect(screen.getByText("Lite")).not.toBeNull();
+    expect(screen.getByText("đang dùng")).not.toBeNull();
     expect(screen.queryByText("Bắt đầu miễn phí")).toBeNull();
   });
 });

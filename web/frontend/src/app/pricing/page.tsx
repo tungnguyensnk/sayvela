@@ -1,5 +1,6 @@
 import { LandingHeader } from "@/components/landing/LandingHeader";
 import { PricingCards } from "@/components/billing/PricingCards";
+import { PricingComparisonTable } from "@/components/billing/PricingComparisonTable";
 
 export default function PricingPage() {
   return (
@@ -22,6 +23,7 @@ export default function PricingPage() {
               procurement riêng.
             </p>
             <PricingCards />
+            <PricingComparisonTable />
           </div>
         </section>
       </div>

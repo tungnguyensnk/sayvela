@@ -11,7 +11,7 @@ type Props = {
 
 export function ManageBillingButton({
   className,
-  label = "Quản lý subscription",
+  label = "Quản lý",
 }: Props) {
   const { data: session, status } = useSession();
   const [isLoading, setIsLoading] = useState(false);

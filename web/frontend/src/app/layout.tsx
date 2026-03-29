@@ -46,7 +46,7 @@ export default async function RootLayout({
   const session = await getServerSession(authOptions);
   const accessToken =
     (session as unknown as { accessToken?: string } | null)?.accessToken ?? null;
-  let initialEntitlement: { plan: "free" | "pro" } | null = null;
+  let initialEntitlement: { plan: "free" | "lite" | "pro" } | null = null;
 
   if (accessToken) {
     const apiBase =
@@ -61,7 +61,7 @@ export default async function RootLayout({
       });
 
       if (res.ok) {
-        initialEntitlement = (await res.json()) as { plan: "free" | "pro" };
+        initialEntitlement = (await res.json()) as { plan: "free" | "lite" | "pro" };
       }
     } catch {}
   }

@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, gt, lte } from 'drizzle-orm';
 import crypto from 'crypto';
 import { db } from '../db';
-import { billingCustomers } from '../schema/billing-customers';
-import { stripeEvents } from '../schema/stripe-events';
-import { subscriptions } from '../schema/subscriptions';
+import { billingCustomers } from '../schema';
+import { billingUsageCycles } from '../schema';
+import { stripeEvents } from '../schema';
+import { subscriptions } from '../schema';
 
 type SubscriptionUpsertInput = {
   userId: string;
@@ -14,6 +15,16 @@ type SubscriptionUpsertInput = {
   priceId: string;
   currentPeriodEnd: Date | null;
   cancelAtPeriodEnd: boolean;
+};
+
+type UsageCycleCreateInput = {
+  userId: string;
+  plan: string;
+  minutesLimit: number;
+  minutesUsed: number;
+  cycleStartedAt: Date;
+  cycleEndsAt: Date;
+  stripeSubscriptionId: string | null;
 };
 
 @Injectable()
@@ -120,5 +131,61 @@ export class BillingRepository {
       .orderBy(desc(subscriptions.updatedAt))
       .limit(1);
     return res[0] ?? null;
+  }
+
+  async getActiveUsageCycleByUserId(userId: string, now = new Date()) {
+    const res = await db
+      .select()
+      .from(billingUsageCycles)
+      .where(
+        and(
+          eq(billingUsageCycles.userId, userId),
+          lte(billingUsageCycles.cycleStartedAt, now),
+          gt(billingUsageCycles.cycleEndsAt, now),
+        ),
+      )
+      .orderBy(desc(billingUsageCycles.cycleStartedAt))
+      .limit(1);
+    return res[0] ?? null;
+  }
+
+  async createUsageCycle(input: UsageCycleCreateInput) {
+    const id = crypto.randomUUID();
+    await db.insert(billingUsageCycles).values({
+      id,
+      userId: input.userId,
+      plan: input.plan,
+      minutesLimit: input.minutesLimit,
+      minutesUsed: input.minutesUsed,
+      cycleStartedAt: input.cycleStartedAt,
+      cycleEndsAt: input.cycleEndsAt,
+      stripeSubscriptionId: input.stripeSubscriptionId ?? undefined,
+    });
+    return id;
+  }
+
+  async updateUsageCycle(
+    id: string,
+    patch: Partial<{
+      plan: string;
+      minutesLimit: number;
+      minutesUsed: number;
+      cycleStartedAt: Date;
+      cycleEndsAt: Date;
+      stripeSubscriptionId: string | null;
+    }>,
+  ) {
+    await db
+      .update(billingUsageCycles)
+      .set({
+        plan: patch.plan,
+        minutesLimit: patch.minutesLimit,
+        minutesUsed: patch.minutesUsed,
+        cycleStartedAt: patch.cycleStartedAt,
+        cycleEndsAt: patch.cycleEndsAt,
+        stripeSubscriptionId: patch.stripeSubscriptionId ?? undefined,
+        updatedAt: new Date(),
+      })
+      .where(eq(billingUsageCycles.id, id));
   }
 }

@@ -15,6 +15,13 @@
       "when": 1774694800000,
       "tag": "0001_billing",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1774720400000,
+      "tag": "0002_billing_usage_cycles",
+      "breakpoints": true
     }
   ]
 }

@@ -11,9 +11,24 @@ import {
 } from "react";
 import { useSession } from "next-auth/react";
 import { getPublicApiUrl } from "@/lib/api";
+import {
+  BILLING_PLAN_FEATURES,
+  BILLING_PLAN_MINUTES,
+  getUpgradeRecommendation,
+  type BillingFeatures,
+  type BillingPlan,
+} from "@/lib/billing-catalog";
 
 export type Entitlement = {
-  plan: "free" | "lite" | "pro";
+  plan: BillingPlan;
+  minutesPerMonth: number;
+  minutesUsed: number;
+  minutesRemaining: number;
+  usagePercentage: number;
+  cycleStartedAt: string | null;
+  cycleEndsAt: string | null;
+  upgradeRecommendation: "lite" | "pro" | null;
+  features: BillingFeatures;
 };
 
 type EntitlementState =
@@ -29,12 +44,38 @@ type EntitlementContextValue = {
 
 const EntitlementContext = createContext<EntitlementContextValue | null>(null);
 
+function normalizeEntitlement(input: unknown): Entitlement {
+  const value = input as Partial<Entitlement> & { plan?: BillingPlan };
+  const plan = value.plan ?? "free";
+  const minutesPerMonth = value.minutesPerMonth ?? BILLING_PLAN_MINUTES[plan];
+  const minutesUsed = value.minutesUsed ?? 0;
+  const minutesRemaining =
+    value.minutesRemaining ?? Math.max(0, minutesPerMonth - minutesUsed);
+  const usagePercentage =
+    value.usagePercentage ??
+    (minutesPerMonth <= 0
+      ? 0
+      : Math.max(0, Math.min(100, Math.round((minutesUsed / minutesPerMonth) * 100))));
+
+  return {
+    plan,
+    minutesPerMonth,
+    minutesUsed,
+    minutesRemaining,
+    usagePercentage,
+    cycleStartedAt: value.cycleStartedAt ?? null,
+    cycleEndsAt: value.cycleEndsAt ?? null,
+    upgradeRecommendation: value.upgradeRecommendation ?? getUpgradeRecommendation(plan),
+    features: value.features ?? BILLING_PLAN_FEATURES[plan],
+  };
+}
+
 export function EntitlementProvider({
   children,
   initialEntitlement,
 }: {
   children: React.ReactNode;
-  initialEntitlement?: Entitlement | null;
+  initialEntitlement?: (Partial<Entitlement> & { plan: BillingPlan }) | null;
 }) {
   const { data: session, status } = useSession();
 
@@ -43,12 +84,12 @@ export function EntitlementProvider({
     return value ?? null;
   }, [session]);
 
-  const initialEntitlementRef = useRef<Entitlement | null>(initialEntitlement ?? null);
+  const initialEntitlementRef = useRef<unknown>(initialEntitlement ?? null);
   const tokenRef = useRef<string | null>(null);
   const inFlightRef = useRef(false);
   const [state, setState] = useState<EntitlementState>(() => {
     if (status === "authenticated" && accessToken && initialEntitlementRef.current) {
-      return { kind: "ready", entitlement: initialEntitlementRef.current };
+      return { kind: "ready", entitlement: normalizeEntitlement(initialEntitlementRef.current) };
     }
 
     if (status === "authenticated" && accessToken) {
@@ -81,7 +122,7 @@ export function EntitlementProvider({
       }
 
       const data = (await res.json()) as Entitlement;
-      setState({ kind: "ready", entitlement: data });
+      setState({ kind: "ready", entitlement: normalizeEntitlement(data) });
     } catch {
       setState({ kind: "error", message: "Không thể kiểm tra subscription." });
     } finally {
@@ -107,7 +148,10 @@ export function EntitlementProvider({
     if (tokenRef.current !== accessToken) {
       tokenRef.current = accessToken;
       if (initialEntitlementRef.current) {
-        setState({ kind: "ready", entitlement: initialEntitlementRef.current });
+        setState({
+          kind: "ready",
+          entitlement: normalizeEntitlement(initialEntitlementRef.current),
+        });
         initialEntitlementRef.current = null;
         return;
       }

@@ -14,6 +14,9 @@ describe('BillingService', () => {
   >();
   const upsertSubscription = jest.fn<Promise<void>, [any]>();
   const getActiveSubscriptionByUserId = jest.fn<Promise<any>, [string]>();
+  const getActiveUsageCycleByUserId = jest.fn<Promise<any>, [string, Date?]>();
+  const createUsageCycle = jest.fn<Promise<string>, [any]>();
+  const updateUsageCycle = jest.fn<Promise<void>, [string, any]>();
   const hasProcessedStripeEvent = jest.fn<Promise<boolean>, [string]>();
   const markStripeEventProcessed = jest.fn<
     Promise<void>,
@@ -29,6 +32,9 @@ describe('BillingService', () => {
     createBillingCustomerMapping,
     upsertSubscription,
     getActiveSubscriptionByUserId,
+    getActiveUsageCycleByUserId,
+    createUsageCycle,
+    updateUsageCycle,
     hasProcessedStripeEvent,
     markStripeEventProcessed,
     getUserIdByStripeCustomerId,
@@ -56,11 +62,19 @@ describe('BillingService', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date('2026-03-15T00:00:00.000Z'));
     getClient.mockReturnValue(stripe);
     process.env.STRIPE_PRICE_PRO_MONTHLY = 'price_pro_monthly';
     process.env.STRIPE_PRICE_PRO_YEARLY = 'price_pro_yearly';
     process.env.STRIPE_PRICE_LITE_MONTHLY = 'price_lite_monthly';
     process.env.STRIPE_PRICE_LITE_YEARLY = 'price_lite_yearly';
+    getActiveUsageCycleByUserId.mockResolvedValue(null);
+    createUsageCycle.mockResolvedValue('cycle_1');
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
   });
 
   it('creates checkout session with existing stripe customer', async () => {
@@ -155,6 +169,18 @@ describe('BillingService', () => {
       expect.objectContaining({
         plan: 'free',
         minutesPerMonth: 300,
+        minutesUsed: 0,
+        minutesRemaining: 300,
+        usagePercentage: 0,
+        upgradeRecommendation: 'lite',
+      }),
+    );
+    expect(createUsageCycle).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'u_free',
+        plan: 'free',
+        minutesLimit: 300,
+        minutesUsed: 0,
       }),
     );
   });
@@ -162,12 +188,16 @@ describe('BillingService', () => {
   it('returns lite entitlement when subscription price is lite', async () => {
     getActiveSubscriptionByUserId.mockResolvedValue({
       priceId: 'price_lite_monthly',
+      stripeSubscriptionId: 'sub_lite',
+      currentPeriodEnd: new Date('2026-04-01T00:00:00.000Z'),
     });
 
     const res = await service.getEntitlement('u_lite');
 
     expect(res.plan).toBe('lite');
     expect(res.minutesPerMonth).toBe(900);
+    expect(res.minutesRemaining).toBe(900);
+    expect(res.upgradeRecommendation).toBe('pro');
     expect(res.features).toEqual(
       expect.objectContaining({
         extendedHistory: true,
@@ -179,12 +209,15 @@ describe('BillingService', () => {
   it('returns pro entitlement when subscription price is pro', async () => {
     getActiveSubscriptionByUserId.mockResolvedValue({
       priceId: 'price_pro_yearly',
+      stripeSubscriptionId: 'sub_pro',
+      currentPeriodEnd: new Date('2027-03-15T00:00:00.000Z'),
     });
 
     const res = await service.getEntitlement('u_pro');
 
     expect(res.plan).toBe('pro');
     expect(res.minutesPerMonth).toBe(2400);
+    expect(res.upgradeRecommendation).toBeNull();
     expect(res.features).toEqual(
       expect.objectContaining({
         extendedHistory: true,
@@ -242,5 +275,53 @@ describe('BillingService', () => {
         priceId: 'price_pro_monthly',
       }),
     );
+    expect(createUsageCycle).toHaveBeenCalled();
+  });
+
+  it('preserves minutes when upgrading lite to pro within same cycle', async () => {
+    hasProcessedStripeEvent.mockResolvedValue(false);
+    markStripeEventProcessed.mockResolvedValue();
+
+    const cycleStartedAt = new Date('2026-03-01T00:00:00.000Z');
+    const cycleEndsAt = new Date('2026-04-01T00:00:00.000Z');
+
+    getActiveUsageCycleByUserId.mockResolvedValue({
+      id: 'cycle_lite',
+      userId: 'u1',
+      plan: 'lite',
+      minutesLimit: 900,
+      minutesUsed: 280,
+      cycleStartedAt,
+      cycleEndsAt,
+      stripeSubscriptionId: 'sub_1',
+      createdAt: null,
+      updatedAt: null,
+    });
+
+    await service.handleStripeWebhookEvent({
+      id: 'evt_3',
+      type: 'customer.subscription.updated',
+      created: 1_700_000_000,
+      data: {
+        object: {
+          id: 'sub_1',
+          customer: 'cus_1',
+          status: 'active',
+          current_period_end: Math.floor(cycleEndsAt.getTime() / 1000),
+          cancel_at_period_end: false,
+          metadata: { userId: 'u1' },
+          items: { data: [{ price: { id: 'price_pro_monthly' } }] },
+        },
+      },
+    } as unknown as Stripe.Event);
+
+    expect(updateUsageCycle).toHaveBeenCalledWith(
+      'cycle_lite',
+      expect.objectContaining({
+        plan: 'pro',
+        minutesLimit: 2400,
+      }),
+    );
+    expect(createUsageCycle).not.toHaveBeenCalled();
   });
 });
