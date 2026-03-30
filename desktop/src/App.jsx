@@ -7,7 +7,7 @@ import { AudioControlPanel } from "./components/AudioControlPanel";
 import { TranscriptPanel } from "./components/TranscriptPanel";
 import { useMicTranslationTts } from "./tts/useMicTranslationTts";
 import { TitleBar } from "./components/TitleBar";
-import { useChatGPT } from "./hooks/useChatGPT";
+import { useAI } from "./hooks/useAI";
 import { useSpeakerCheck } from "./hooks/useSpeakerCheck";
 import { byteSize } from "./transcript/transcriptUtils";
 
@@ -56,8 +56,8 @@ function App() {
   const loopbackStartedRef = useRef(false);
   const micStartedRef = useRef(false);
 
-  // ChatGPT hook
-  const chatgpt = useChatGPT({ contentProtectionEnabled, micInputLangs, loopbackContext });
+  // AI hook
+  const chatgpt = useAI({ micInputLangs, loopbackContext });
 
   // Speaker check hook
   useSpeakerCheck({ 

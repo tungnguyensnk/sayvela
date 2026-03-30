@@ -29,10 +29,10 @@ export function AnimatedPrice({
         }`}
         aria-hidden={interval !== "year"}
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center">
           <span className="text-xl font-semibold leading-none text-white/40 line-through">{yearlyListPrice}</span>
-          <span className="text-3xl font-semibold leading-none text-white">{yearlyPrice}</span>
-          <span className="whitespace-nowrap text-sm font-medium leading-none text-emerald-200/85">
+          <span className="ml-3 text-3xl font-semibold leading-none text-white">{yearlyPrice}</span>
+          <span className="ml-1 mt-0.5 whitespace-nowrap text-sm font-medium leading-none text-emerald-200/85">
             tiết kiệm {monthsSaved} tháng
           </span>
         </div>

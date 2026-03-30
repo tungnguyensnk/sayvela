@@ -42,23 +42,21 @@ pub fn list_audio_devices() -> Result<Vec<AudioDevice>> {
         });
 
         if let Ok(collection) = DeviceCollection::new(&Direction::Render) {
-            for dev in &collection {
-                if let Ok(dev) = dev {
-                    let name = dev
-                        .get_friendlyname()
-                        .unwrap_or_else(|_| "unknown".to_string());
-                    let id = dev.get_id().unwrap_or_else(|_| "".to_string());
-                    let id = if id.trim().is_empty() {
-                        format!("friendly:loopback:{name}")
-                    } else {
-                        id
-                    };
-                    out.push(AudioDevice {
-                        id,
-                        name,
-                        kind: "loopback".to_string(),
-                    });
-                }
+            for dev in (&collection).into_iter().flatten() {
+                let name = dev
+                    .get_friendlyname()
+                    .unwrap_or_else(|_| "unknown".to_string());
+                let id = dev.get_id().unwrap_or_else(|_| "".to_string());
+                let id = if id.trim().is_empty() {
+                    format!("friendly:loopback:{name}")
+                } else {
+                    id
+                };
+                out.push(AudioDevice {
+                    id,
+                    name,
+                    kind: "loopback".to_string(),
+                });
             }
         }
 
@@ -70,23 +68,21 @@ pub fn list_audio_devices() -> Result<Vec<AudioDevice>> {
         });
 
         if let Ok(collection) = DeviceCollection::new(&Direction::Capture) {
-            for dev in &collection {
-                if let Ok(dev) = dev {
-                    let name = dev
-                        .get_friendlyname()
-                        .unwrap_or_else(|_| "unknown".to_string());
-                    let id = dev.get_id().unwrap_or_else(|_| "".to_string());
-                    let id = if id.trim().is_empty() {
-                        format!("friendly:mic:{name}")
-                    } else {
-                        id
-                    };
-                    out.push(AudioDevice {
-                        id,
-                        name,
-                        kind: "microphone".to_string(),
-                    });
-                }
+            for dev in (&collection).into_iter().flatten() {
+                let name = dev
+                    .get_friendlyname()
+                    .unwrap_or_else(|_| "unknown".to_string());
+                let id = dev.get_id().unwrap_or_else(|_| "".to_string());
+                let id = if id.trim().is_empty() {
+                    format!("friendly:mic:{name}")
+                } else {
+                    id
+                };
+                out.push(AudioDevice {
+                    id,
+                    name,
+                    kind: "microphone".to_string(),
+                });
             }
         }
 
@@ -111,7 +107,11 @@ impl CaptureHandle {
 }
 
 #[cfg(windows)]
-pub fn start_audio_capture(app: AppHandle, device_id: String, kind: String) -> Result<CaptureHandle> {
+pub fn start_audio_capture(
+    app: AppHandle,
+    device_id: String,
+    kind: String,
+) -> Result<CaptureHandle> {
     let stop = Arc::new(AtomicBool::new(false));
     let stop2 = stop.clone();
 
@@ -135,7 +135,14 @@ pub fn start_audio_capture(app: AppHandle, device_id: String, kind: String) -> R
                 sample_rate: None,
             },
         );
-        match capture_thread(app.clone(), device_id, kind, stop2, event_data.clone(), event_state.clone()) {
+        match capture_thread(
+            app.clone(),
+            device_id,
+            kind,
+            stop2,
+            event_data.clone(),
+            event_state.clone(),
+        ) {
             Ok(()) => {
                 let _ = app.emit(
                     &event_state,
@@ -201,7 +208,8 @@ fn capture_thread(
             let sys_id = dev.get_id().unwrap_or_default();
             if (!sys_id.is_empty() && sys_id == device_id)
                 || (device_id.starts_with("friendly:")
-                    && dev.get_friendlyname().unwrap_or_default() == device_id[9..]) // Simplified matching
+                    && dev.get_friendlyname().unwrap_or_default() == device_id[9..])
+            // Simplified matching
             {
                 selected = Some(dev);
                 break;
@@ -302,8 +310,8 @@ fn capture_thread(
             in_f32.reserve(total_frames * in_ch);
             for _ in 0..(total_frames * in_ch) {
                 let mut b = [0u8; 4];
-                for i in 0..4 {
-                    b[i] = raw_bytes.pop_front().unwrap_or(0);
+                for byte in &mut b {
+                    *byte = raw_bytes.pop_front().unwrap_or(0);
                 }
                 in_f32.push(f32::from_le_bytes(b));
             }

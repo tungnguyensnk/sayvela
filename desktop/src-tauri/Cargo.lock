@@ -3208,6 +3208,7 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tauri-plugin-opener",
+ "tokio",
  "wasapi",
  "windows 0.58.0",
 ]

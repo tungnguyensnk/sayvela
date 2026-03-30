@@ -1,40 +1,30 @@
 mod audio;
 mod groq;
 mod soniox;
-mod types;
 mod tts_native;
+mod types;
 
-use std::sync::Mutex;
 use std::collections::HashMap;
+use std::sync::Mutex;
 
-use tauri::{AppHandle, PhysicalPosition, State};
-use tauri::Manager;
+use tauri::{AppHandle, Manager, PhysicalPosition, State};
 
-use crate::types::AudioDevice;
 use crate::soniox::SonioxTempKey;
-
-#[derive(Default)]
-struct ChatgptBridgeState {
-    initialized: bool,
-    last_prompt: Option<String>,
-}
+use crate::types::AudioDevice;
 
 pub struct AppState {
     captures: Mutex<HashMap<String, audio::CaptureHandle>>,
-    chatgpt_bridge: Mutex<ChatgptBridgeState>,
 }
 
 impl Default for AppState {
-    // initialize app state with empty captures map
     fn default() -> Self {
         Self {
             captures: Mutex::new(HashMap::new()),
-            chatgpt_bridge: Mutex::new(ChatgptBridgeState::default()),
         }
     }
 }
 
-fn build_chatgpt_prompt(me_input_language: &str, context: &str, conversation: &str) -> String {
+fn build_prompt_impl(me_input_language: &str, context: &str, conversation: &str) -> String {
     let template = r#"Bạn là một AI hỗ trợ trả lời câu hỏi. Hãy tuân thủ mạnh mẽ những điều sau:
     - giao tiếp bằng ngôn ngữ (ngôn ngữ input của ME)
     - trả lời câu hỏi cuối cùng (mới nhất từ dưới lên) của đoạn hội thoại phía dưới
@@ -62,7 +52,12 @@ fn list_audio_devices() -> Result<Vec<AudioDevice>, String> {
 }
 
 #[tauri::command]
-fn start_audio_capture(app: AppHandle, state: State<AppState>, device_id: String, kind: String) -> Result<(), String> {
+fn start_audio_capture(
+    app: AppHandle,
+    state: State<AppState>,
+    device_id: String,
+    kind: String,
+) -> Result<(), String> {
     #[cfg(not(windows))]
     {
         let _ = (app, state, device_id, kind);
@@ -71,14 +66,18 @@ fn start_audio_capture(app: AppHandle, state: State<AppState>, device_id: String
 
     #[cfg(windows)]
     {
-        let mut guard = state.captures.lock().map_err(|_| "state poisoned".to_string())?;
-        
+        let mut guard = state
+            .captures
+            .lock()
+            .map_err(|_| "state poisoned".to_string())?;
+
         // Check if capture of this kind is already running
         if guard.contains_key(&kind) {
             return Err(format!("capture for {} already running", kind));
         }
 
-        let handle = audio::start_audio_capture(app, device_id, kind.clone()).map_err(|e| e.to_string())?;
+        let handle =
+            audio::start_audio_capture(app, device_id, kind.clone()).map_err(|e| e.to_string())?;
         guard.insert(kind, handle);
         Ok(())
     }
@@ -87,7 +86,10 @@ fn start_audio_capture(app: AppHandle, state: State<AppState>, device_id: String
 #[tauri::command]
 fn stop_audio_capture(state: State<AppState>, kind: String) -> Result<(), String> {
     let handle = {
-        let mut guard = state.captures.lock().map_err(|_| "state poisoned".to_string())?;
+        let mut guard = state
+            .captures
+            .lock()
+            .map_err(|_| "state poisoned".to_string())?;
         guard.remove(&kind)
     };
 
@@ -105,13 +107,8 @@ fn set_main_window_content_protected(app: AppHandle, enabled: bool) -> Result<()
         .get_webview_window("main")
         .ok_or_else(|| "main window not found".to_string())?;
 
-    win.set_content_protected(enabled).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-// toggle content protection for chatgpt window
-fn set_chatgpt_window_content_protected(_app: AppHandle, _enabled: bool) -> Result<(), String> {
-    Ok(())
+    win.set_content_protected(enabled)
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -121,36 +118,14 @@ async fn soniox_get_temp_key() -> Result<SonioxTempKey, String> {
 
 #[tauri::command]
 async fn groq_check_question(content: String) -> Result<String, String> {
-    groq::check_question(content).await.map_err(|e| e.to_string())
+    groq::check_question(content)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
-fn chatgpt_init(state: State<AppState>) -> Result<(), String> {
-    let mut guard = state
-        .chatgpt_bridge
-        .lock()
-        .map_err(|_| "state poisoned".to_string())?;
-    guard.initialized = true;
-    Ok(())
-}
-
-#[tauri::command]
-fn chatgpt_send_message(
-    state: State<AppState>,
-    me_input_language: String,
-    context: String,
-    conversation: String,
-) -> Result<(), String> {
-    let prompt = build_chatgpt_prompt(&me_input_language, &context, &conversation);
-    let mut guard = state
-        .chatgpt_bridge
-        .lock()
-        .map_err(|_| "state poisoned".to_string())?;
-    if !guard.initialized {
-        guard.initialized = true;
-    }
-    guard.last_prompt = Some(prompt);
-    Ok(())
+fn build_prompt(me_input_language: String, context: String, conversation: String) -> String {
+    build_prompt_impl(&me_input_language, &context, &conversation)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -163,7 +138,9 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             if let Some(win) = app.get_webview_window("main") {
-                let monitor = win.current_monitor()?.or_else(|| win.primary_monitor().ok().flatten());
+                let monitor = win
+                    .current_monitor()?
+                    .or_else(|| win.primary_monitor().ok().flatten());
                 if let Some(monitor) = monitor {
                     let work = monitor.work_area();
                     let win_size = win.outer_size()?;
@@ -182,11 +159,9 @@ pub fn run() {
             start_audio_capture,
             stop_audio_capture,
             set_main_window_content_protected,
-            set_chatgpt_window_content_protected,
             soniox_get_temp_key,
             groq_check_question,
-            chatgpt_init,
-            chatgpt_send_message,
+            build_prompt,
             tts_native::tts_list_voices,
             tts_native::tts_speak,
             tts_native::tts_stop
@@ -197,11 +172,11 @@ pub fn run() {
 
 #[cfg(test)]
 mod tests {
-    use super::build_chatgpt_prompt;
+    use super::build_prompt_impl;
 
     #[test]
-    fn build_chatgpt_prompt_replaces_all_placeholders() {
-        let out = build_chatgpt_prompt(" vi ", " weather ", " hello ");
+    fn build_prompt_replaces_all_placeholders() {
+        let out = build_prompt_impl(" vi ", " weather ", " hello ");
         assert!(out.contains("giao tiếp bằng ngôn ngữ vi"));
         assert!(out.contains("context là: weather"));
         assert!(out.contains("đoạn hội thoại là: hello"));

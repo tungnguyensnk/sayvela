@@ -82,7 +82,11 @@ enum WorkerCmd {
 enum AudioMsg {
     SetDevice(String),
     Flush,
-    Enqueue { sample_rate: u32, channels: u16, pcm: Vec<u8> },
+    Enqueue {
+        sample_rate: u32,
+        channels: u16,
+        pcm: Vec<u8>,
+    },
 }
 
 #[cfg(not(windows))]
@@ -104,14 +108,18 @@ fn escape_xml(s: &str) -> String {
 #[cfg(windows)]
 // convert playback rate to ssml percentage string
 fn ssml_percent_from_rate(rate: f32) -> String {
-    let pct = ((rate.clamp(0.1, 4.0) - 1.0) * 100.0).round().clamp(-90.0, 200.0);
+    let pct = ((rate.clamp(0.1, 4.0) - 1.0) * 100.0)
+        .round()
+        .clamp(-90.0, 200.0);
     format!("{pct:+.0}%")
 }
 
 #[cfg(windows)]
 // convert pitch factor to ssml semitones string
 fn ssml_pitch_from_factor(pitch: f32) -> String {
-    let st = ((pitch.clamp(0.5, 2.0) - 1.0) * 12.0).round().clamp(-12.0, 12.0);
+    let st = ((pitch.clamp(0.5, 2.0) - 1.0) * 12.0)
+        .round()
+        .clamp(-12.0, 12.0);
     format!("{st:+.0}st")
 }
 
@@ -147,7 +155,8 @@ fn parse_wav_pcm(wav: &[u8]) -> Result<(u32, u16, Vec<u8>), String> {
 
     while idx + 8 <= wav.len() {
         let chunk_id = &wav[idx..idx + 4];
-        let size = u32::from_le_bytes([wav[idx + 4], wav[idx + 5], wav[idx + 6], wav[idx + 7]]) as usize;
+        let size =
+            u32::from_le_bytes([wav[idx + 4], wav[idx + 5], wav[idx + 6], wav[idx + 7]]) as usize;
         idx += 8;
         if idx + size > wav.len() {
             break;
@@ -186,7 +195,8 @@ fn resolve_render_device(device_id: &str) -> Result<wasapi::Device, String> {
     if device_id == "default-loopback" {
         return wasapi::get_default_device(&wasapi::Direction::Render).map_err(|e| e.to_string());
     }
-    let collection = wasapi::DeviceCollection::new(&wasapi::Direction::Render).map_err(|e| e.to_string())?;
+    let collection =
+        wasapi::DeviceCollection::new(&wasapi::Direction::Render).map_err(|e| e.to_string())?;
     for dev in &collection {
         let dev = dev.map_err(|e| e.to_string())?;
         let sys_id = dev.get_id().unwrap_or_default();
@@ -202,7 +212,11 @@ fn resolve_render_device(device_id: &str) -> Result<wasapi::Device, String> {
 
 #[cfg(windows)]
 // initialize and start wasapi audio render stream
-fn open_render_stream(device_id: &str, sample_rate: u32, channels: u16) -> Result<(wasapi::AudioClient, wasapi::AudioRenderClient, usize), String> {
+fn open_render_stream(
+    device_id: &str,
+    sample_rate: u32,
+    channels: u16,
+) -> Result<(wasapi::AudioClient, wasapi::AudioRenderClient, usize), String> {
     let device = resolve_render_device(device_id)?;
     let mut client = device.get_iaudioclient().map_err(|e| e.to_string())?;
     let desired = wasapi::WaveFormat::new(
@@ -248,7 +262,11 @@ fn ensure_render_stream(
 }
 
 #[cfg(windows)]
-fn synth_thread_main(stop: Arc<AtomicBool>, rx: mpsc::Receiver<WorkerCmd>, audio_tx: mpsc::Sender<AudioMsg>) {
+fn synth_thread_main(
+    stop: Arc<AtomicBool>,
+    rx: mpsc::Receiver<WorkerCmd>,
+    audio_tx: mpsc::Sender<AudioMsg>,
+) {
     let _ = wasapi::initialize_mta();
 
     let synthesizer = match windows::Media::SpeechSynthesis::SpeechSynthesizer::new() {
@@ -276,9 +294,12 @@ fn synth_thread_main(stop: Arc<AtomicBool>, rx: mpsc::Receiver<WorkerCmd>, audio
 
                 if let Some(voice_id) = opts.voice_id.as_deref().filter(|s| !s.is_empty()) {
                     if let Ok(native_id) = decode_voice_id(voice_id) {
-                        if let Ok(voices) = windows::Media::SpeechSynthesis::SpeechSynthesizer::AllVoices() {
+                        if let Ok(voices) =
+                            windows::Media::SpeechSynthesis::SpeechSynthesizer::AllVoices()
+                        {
                             for v in voices {
-                                if v.Id().map(|id| id.to_string()).unwrap_or_default() == native_id {
+                                if v.Id().map(|id| id.to_string()).unwrap_or_default() == native_id
+                                {
                                     let _ = synthesizer.SetVoice(&v);
                                     break;
                                 }
@@ -287,13 +308,19 @@ fn synth_thread_main(stop: Arc<AtomicBool>, rx: mpsc::Receiver<WorkerCmd>, audio
                     }
                 }
 
-                let lang = opts.language.as_deref().filter(|s| !s.is_empty()).unwrap_or("en-US");
+                let lang = opts
+                    .language
+                    .as_deref()
+                    .filter(|s| !s.is_empty())
+                    .unwrap_or("en-US");
                 let rate = opts.rate.unwrap_or(1.0);
                 let pitch = opts.pitch.unwrap_or(1.0);
                 let volume = opts.volume.unwrap_or(1.0);
                 let ssml = build_ssml(&text, lang, rate, pitch, volume);
 
-                let stream = match synthesizer.SynthesizeSsmlToStreamAsync(&windows::core::HSTRING::from(ssml)) {
+                let stream = match synthesizer
+                    .SynthesizeSsmlToStreamAsync(&windows::core::HSTRING::from(ssml))
+                {
                     Ok(op) => match op.get() {
                         Ok(s) => s,
                         Err(_) => continue,
@@ -358,7 +385,10 @@ fn audio_thread_main(stop: Arc<AtomicBool>, rx: mpsc::Receiver<AudioMsg>) {
     let mut pending_queue: VecDeque<Vec<u8>> = VecDeque::new();
 
     while !stop.load(Ordering::SeqCst) {
-        let busy = audio_client.is_some() || !current.is_empty() || !queue.is_empty() || !pending_queue.is_empty();
+        let busy = audio_client.is_some()
+            || !current.is_empty()
+            || !queue.is_empty()
+            || !pending_queue.is_empty();
         let wait = if busy {
             Duration::from_millis(2)
         } else {
@@ -414,7 +444,8 @@ fn audio_thread_main(stop: Arc<AtomicBool>, rx: mpsc::Receiver<AudioMsg>) {
                     } else if current_sr == sample_rate && current_ch == channels {
                         queue.push_back(pcm);
                     } else {
-                        if pending_sr != 0 && (pending_sr != sample_rate || pending_ch != channels) {
+                        if pending_sr != 0 && (pending_sr != sample_rate || pending_ch != channels)
+                        {
                             pending_queue.clear();
                         }
                         pending_sr = sample_rate;
@@ -444,7 +475,7 @@ fn audio_thread_main(stop: Arc<AtomicBool>, rx: mpsc::Receiver<AudioMsg>) {
             }
         }
 
-        if audio_client.is_none() && current_sr != 0 && (current.len() > 0 || queue.len() > 0) {
+        if audio_client.is_none() && current_sr != 0 && (!current.is_empty() || !queue.is_empty()) {
             let _ = ensure_render_stream(
                 &current_device_id,
                 current_sr,
@@ -485,7 +516,10 @@ fn audio_thread_main(stop: Arc<AtomicBool>, rx: mpsc::Receiver<AudioMsg>) {
 
 #[tauri::command]
 // get list of available tts voices from windows speech synthesis
-pub fn tts_list_voices(state: tauri::State<TtsState>, language: Option<String>) -> Result<Vec<TtsVoice>, String> {
+pub fn tts_list_voices(
+    state: tauri::State<TtsState>,
+    language: Option<String>,
+) -> Result<Vec<TtsVoice>, String> {
     #[cfg(not(windows))]
     {
         let _ = (state, language);
@@ -496,7 +530,8 @@ pub fn tts_list_voices(state: tauri::State<TtsState>, language: Option<String>) 
         let _ = state;
         let _ = wasapi::initialize_mta();
         let lang_filter = language.map(|s| s.to_lowercase());
-        let voices = windows::Media::SpeechSynthesis::SpeechSynthesizer::AllVoices().map_err(|e| e.to_string())?;
+        let voices = windows::Media::SpeechSynthesis::SpeechSynthesizer::AllVoices()
+            .map_err(|e| e.to_string())?;
         let mut out = Vec::new();
         for v in voices {
             let id = v.Id().map(|s| s.to_string()).unwrap_or_default();
@@ -521,7 +556,10 @@ pub fn tts_list_voices(state: tauri::State<TtsState>, language: Option<String>) 
 // stop current tts playback by dropping worker handle
 pub fn tts_stop(state: tauri::State<TtsState>) -> Result<(), String> {
     let handle = {
-        let mut guard = state.worker.lock().map_err(|_| "state poisoned".to_string())?;
+        let mut guard = state
+            .worker
+            .lock()
+            .map_err(|_| "state poisoned".to_string())?;
         guard.take()
     };
     if let Some(h) = handle {
@@ -548,7 +586,10 @@ pub fn tts_speak(state: tauri::State<TtsState>, options: TtsSpeakOptions) -> Res
         let mut opts = options;
         opts.text = text;
         let tx = {
-            let mut guard = state.worker.lock().map_err(|_| "state poisoned".to_string())?;
+            let mut guard = state
+                .worker
+                .lock()
+                .map_err(|_| "state poisoned".to_string())?;
             if guard.is_none() {
                 let stop = Arc::new(AtomicBool::new(false));
                 let (cmd_tx, cmd_rx) = mpsc::channel::<WorkerCmd>();
@@ -556,7 +597,8 @@ pub fn tts_speak(state: tauri::State<TtsState>, options: TtsSpeakOptions) -> Res
 
                 let stop_synth = stop.clone();
                 let audio_tx_synth = audio_tx.clone();
-                let join_synth = thread::spawn(move || synth_thread_main(stop_synth, cmd_rx, audio_tx_synth));
+                let join_synth =
+                    thread::spawn(move || synth_thread_main(stop_synth, cmd_rx, audio_tx_synth));
 
                 let stop_audio = stop.clone();
                 let join_audio = thread::spawn(move || audio_thread_main(stop_audio, audio_rx));
