@@ -74,9 +74,6 @@ function App() {
     invoke("set_main_window_content_protected", { enabled: contentProtectionEnabled }).catch((e) => {
       console.error("set_main_window_content_protected failed:", e);
     });
-    invoke("set_chatgpt_window_content_protected", { enabled: contentProtectionEnabled }).catch((e) => {
-      console.error("set_chatgpt_window_content_protected failed:", e);
-    });
   }, [contentProtectionEnabled]);
 
   // fetches the list of available audio devices from the backend

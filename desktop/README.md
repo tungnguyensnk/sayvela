@@ -131,13 +131,9 @@ desktop/
 │   ├── languages.js
 │   └── main.jsx
 ├── src-tauri/
-│   ├── src/
-│   │   ├── audio.rs          # WASAPI audio capture
 │   │   ├── chatgpt_inject_*.js
 │   │   ├── groq.rs           # Groq API client
 │   │   ├── lib.rs            # Tauri command handlers
-│   │   ├── main.rs
-│   │   ├── soniox.rs         # Soniox API client
 │   │   ├── tts_native.rs     # Windows TTS
 │   │   └── types.rs
 │   ├── Cargo.toml
@@ -200,12 +196,10 @@ Full list available in `src/languages.js`
 ### External Services
 - [Soniox](https://soniox.com/) — Speech-to-text & translation
 - [Groq](https://console.groq.com/) — Question detection
-- [ChatGPT](https://chatgpt.com/) — Q&A answering
 
 ## Notes
 
 - Audio capture is **Windows-only** (uses WASAPI)
-- ChatGPT window opens in **incognito mode**
 - Content protection requires explicit enablement
 - Context supports both JSON object and plain text formats
 
@@ -220,8 +214,8 @@ Full list available in `src/languages.js`
 2. Verify `GROQ_API_KEY` is set correctly in `.env`
 
 ### ChatGPT not responding
-1. Ensure ChatGPT window opened successfully
-2. Verify ChatGPT session is active (may require login)
+1. Verify internet connectivity
+2. Check runtime logs for ChatGPT bridge command failures
 
 ## Contributing
 

@@ -13,8 +13,15 @@ use tauri::Manager;
 use crate::types::AudioDevice;
 use crate::soniox::SonioxTempKey;
 
+#[derive(Default)]
+struct ChatgptBridgeState {
+    initialized: bool,
+    last_prompt: Option<String>,
+}
+
 pub struct AppState {
     captures: Mutex<HashMap<String, audio::CaptureHandle>>,
+    chatgpt_bridge: Mutex<ChatgptBridgeState>,
 }
 
 impl Default for AppState {
@@ -22,8 +29,31 @@ impl Default for AppState {
     fn default() -> Self {
         Self {
             captures: Mutex::new(HashMap::new()),
+            chatgpt_bridge: Mutex::new(ChatgptBridgeState::default()),
         }
     }
+}
+
+fn build_chatgpt_prompt(me_input_language: &str, context: &str, conversation: &str) -> String {
+    let template = r#"Bạn là một AI hỗ trợ trả lời câu hỏi. Hãy tuân thủ mạnh mẽ những điều sau:
+    - giao tiếp bằng ngôn ngữ (ngôn ngữ input của ME)
+    - trả lời câu hỏi cuối cùng (mới nhất từ dưới lên) của đoạn hội thoại phía dưới
+    - dùng từ ngữ ngắn gọn, đúng trọng tâm, không lời lẽ thừa thãi
+    - tìm kiếm internet khi cần thiết
+    - nếu câu hỏi về code, nếu có thể hãy hiển thị code mẫu bằng python
+    ví dụ về câu trả lời đầy đủ:
+    Câu hỏi: 長所と短所を教えてください。
+    Dịch: Hãy cho biết điểm mạnh và điểm yếu của bạn.
+    Trả lời:
+    Điểm mạnh: Có trách nhiệm, làm việc đến cùng, có kinh nghiệm làm leader dự án.
+    Điểm yếu: Hơi quá cẩn thận, nhưng đang cải thiện bằng cách đặt ưu tiên và hành động nhanh hơn.
+    context là: (context)
+    đoạn hội thoại là: (đoạn hội thoại)"#;
+
+    template
+        .replace("(ngôn ngữ input của ME)", me_input_language.trim())
+        .replace("(context)", context.trim())
+        .replace("(đoạn hội thoại)", conversation.trim())
 }
 
 #[tauri::command]
@@ -80,11 +110,7 @@ fn set_main_window_content_protected(app: AppHandle, enabled: bool) -> Result<()
 
 #[tauri::command]
 // toggle content protection for chatgpt window
-fn set_chatgpt_window_content_protected(app: AppHandle, enabled: bool) -> Result<(), String> {
-    let win = app.get_webview_window("chatgpt-anon");
-    if let Some(win) = win {
-        win.set_content_protected(enabled).map_err(|e| e.to_string())?;
-    }
+fn set_chatgpt_window_content_protected(_app: AppHandle, _enabled: bool) -> Result<(), String> {
     Ok(())
 }
 
@@ -99,49 +125,32 @@ async fn groq_check_question(content: String) -> Result<String, String> {
 }
 
 #[tauri::command]
-fn chatgpt_init(app: AppHandle) -> Result<(), String> {
-    let win = app
-        .get_webview_window("chatgpt-anon")
-        .ok_or_else(|| "chatgpt window not found".to_string())?;
-
-    let common = include_str!("chatgpt_inject_common.js");
-    let init = include_str!("chatgpt_inject_init.js");
-    let js = format!("{common}\n{init}", common = common, init = init);
-    win.eval(&js).map_err(|e| e.to_string())
+fn chatgpt_init(state: State<AppState>) -> Result<(), String> {
+    let mut guard = state
+        .chatgpt_bridge
+        .lock()
+        .map_err(|_| "state poisoned".to_string())?;
+    guard.initialized = true;
+    Ok(())
 }
 
 #[tauri::command]
-fn chatgpt_send_message(app: AppHandle, me_input_language: String, context: String, conversation: String) -> Result<(), String> {
-    let win = app
-        .get_webview_window("chatgpt-anon")
-        .ok_or_else(|| "chatgpt window not found".to_string())?;
-
-    let template = r#"Bạn là một AI hỗ trợ trả lời câu hỏi. Hãy tuân thủ mạnh mẽ những điều sau:
-    - giao tiếp bằng ngôn ngữ (ngôn ngữ input của ME)
-    - trả lời câu hỏi cuối cùng (mới nhất từ dưới lên) của đoạn hội thoại phía dưới
-    - dùng từ ngữ ngắn gọn, đúng trọng tâm, không lời lẽ thừa thãi
-    - tìm kiếm internet khi cần thiết
-    - nếu câu hỏi về code, nếu có thể hãy hiển thị code mẫu bằng python
-    ví dụ về câu trả lời đầy đủ:
-    Câu hỏi: 長所と短所を教えてください。
-    Dịch: Hãy cho biết điểm mạnh và điểm yếu của bạn.
-    Trả lời:
-    Điểm mạnh: Có trách nhiệm, làm việc đến cùng, có kinh nghiệm làm leader dự án.
-    Điểm yếu: Hơi quá cẩn thận, nhưng đang cải thiện bằng cách đặt ưu tiên và hành động nhanh hơn.
-    context là: (context)
-    đoạn hội thoại là: (đoạn hội thoại)"#;
-
-    let text = template
-        .replace("(ngôn ngữ input của ME)", me_input_language.trim())
-        .replace("(context)", context.trim())
-        .replace("(đoạn hội thoại)", conversation.trim());
-
-    let text_js = serde_json::to_string(&text).map_err(|e| e.to_string())?;
-    let common = include_str!("chatgpt_inject_common.js");
-    let send = include_str!("chatgpt_inject_send.js").replace("__TEXT_JSON__", &text_js);
-    let js = format!("{common}\n{send}", common = common, send = send);
-
-    win.eval(&js).map_err(|e| e.to_string())
+fn chatgpt_send_message(
+    state: State<AppState>,
+    me_input_language: String,
+    context: String,
+    conversation: String,
+) -> Result<(), String> {
+    let prompt = build_chatgpt_prompt(&me_input_language, &context, &conversation);
+    let mut guard = state
+        .chatgpt_bridge
+        .lock()
+        .map_err(|_| "state poisoned".to_string())?;
+    if !guard.initialized {
+        guard.initialized = true;
+    }
+    guard.last_prompt = Some(prompt);
+    Ok(())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -168,16 +177,6 @@ pub fn run() {
             }
             Ok(())
         })
-        .on_window_event(|window, event| {
-            if window.label() != "main" {
-                return;
-            }
-            if let tauri::WindowEvent::CloseRequested { .. } = event {
-                if let Some(chat) = window.app_handle().get_webview_window("chatgpt-anon") {
-                    let _ = chat.close();
-                }
-            }
-        })
         .invoke_handler(tauri::generate_handler![
             list_audio_devices,
             start_audio_capture,
@@ -194,4 +193,19 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::build_chatgpt_prompt;
+
+    #[test]
+    fn build_chatgpt_prompt_replaces_all_placeholders() {
+        let out = build_chatgpt_prompt(" vi ", " weather ", " hello ");
+        assert!(out.contains("giao tiếp bằng ngôn ngữ vi"));
+        assert!(out.contains("context là: weather"));
+        assert!(out.contains("đoạn hội thoại là: hello"));
+        assert!(!out.contains("(context)"));
+        assert!(!out.contains("(đoạn hội thoại)"));
+    }
 }
