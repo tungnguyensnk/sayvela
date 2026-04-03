@@ -5,6 +5,7 @@ import "./App.css";
 import { useTranscript } from "./transcript/useTranscript";
 import { AudioControlPanel } from "./components/AudioControlPanel";
 import { TranscriptPanel } from "./components/TranscriptPanel";
+import { AIChatPanel } from "./components/AIChatPanel";
 import { useMicTranslationTts } from "./tts/useMicTranslationTts";
 import { TitleBar } from "./components/TitleBar";
 import { useAI } from "./hooks/useAI";
@@ -295,6 +296,16 @@ function App() {
           <TranscriptPanel
             transcriptGroups={mergedGroups}
             running={running}
+          />
+
+          <AIChatPanel
+            messages={chatgpt.chatMessages}
+            input={chatgpt.chatInput}
+            onChangeInput={chatgpt.setChatInput}
+            onSend={chatgpt.sendManual}
+            onCancel={chatgpt.cancel}
+            onClear={chatgpt.clearChat}
+            isStreaming={chatgpt.isStreaming}
           />
         </main>
       </div>

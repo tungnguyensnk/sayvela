@@ -27,7 +27,7 @@ export function useSpeakerCheck({ running, loopbackGroups, micGroups, chatgpt })
         const recent = buildRecentConversationText(loopbackGroups, micGroups, 2000);
         if (recent) {
           try {
-            await chatgpt.sendMessage(recent);
+            await chatgpt.sendAutoFromTranscript({ recentConversation: recent, questionDelta: delta });
           } catch (e) {
             console.error("useSpeakerCheck sendMessage failed:", e);
           }

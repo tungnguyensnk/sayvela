@@ -11,9 +11,9 @@ export function setAIProvider(provider) {
   currentProvider = provider;
 }
 
-export async function sendMessage(message, history = [], onEvent) {
+export async function sendMessage(message, history = [], onEvent, options = {}) {
   if (currentProvider === aiProviders.GPTFREE) {
-    return sendStreamMessage(message, history, onEvent);
+    return sendStreamMessage(message, history, onEvent, options);
   }
   throw new Error(`Unsupported AI provider: ${currentProvider}`);
 }
