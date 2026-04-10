@@ -92,7 +92,7 @@ describe("SiteHeader", () => {
     expect(screen.getAllByText("Sắp có").length).toBeGreaterThan(0);
 
     expect(screen.getByText(/Free · 10\/60 phút/)).not.toBeNull();
-    expect(screen.getByRole("link", { name: "Nâng cấp" })).not.toBeNull();
+    expect(screen.queryByRole("link", { name: "Nâng cấp" })).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "user@example.com" }));
     expect(screen.getByText("Đăng xuất")).not.toBeNull();

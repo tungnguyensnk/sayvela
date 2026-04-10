@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEntitlement } from "@/lib/entitlement";
 
 type PlanStatusProps = {
@@ -43,25 +42,11 @@ export function PlanStatus({ compact = false }: PlanStatusProps) {
     ? `${entitlement.minutesUsed}/${entitlement.minutesPerMonth} phút`
     : `${entitlement.minutesUsed}/${entitlement.minutesPerMonth} phút`;
 
-  const showUpgrade =
-    entitlement.plan === "free" ||
-    (entitlement.plan === "lite" && entitlement.upgradeRecommendation === "pro");
-
-  const upgradeLabel =
-    entitlement.plan === "lite" && entitlement.upgradeRecommendation === "pro"
-      ? "Upgrade Pro"
-      : "Nâng cấp";
-
   return (
     <div className={`flex ${compact ? "flex-col items-stretch" : "flex-wrap items-center"} gap-2`}>
       <div className="glass-chip text-center text-sm text-white/80">
         {planLabel} · {usageLabel}
       </div>
-      {showUpgrade ? (
-        <Link href="/pricing" className="primary-button min-h-[2.75rem] px-5 text-sm">
-          {upgradeLabel}
-        </Link>
-      ) : null}
     </div>
   );
 }
