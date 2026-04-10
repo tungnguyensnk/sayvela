@@ -25,15 +25,17 @@ interface AuthPageProps {
 export default async function AuthPage({ searchParams }: AuthPageProps) {
   const session = await getServerSession(authOptions);
 
-  if (session) {
-    redirect("/");
-  }
-
   const params = searchParams ? await searchParams : {};
   const mode = normalizeAuthMode(
     Array.isArray(params.mode) ? params.mode[0] : params.mode,
   );
   const callbackUrl = Array.isArray(params.callbackUrl) ? params.callbackUrl[0] : params.callbackUrl;
+
+  if (session) {
+    const safe = callbackUrl?.trim();
+    const destination = safe && !safe.startsWith("/auth") ? safe : "/";
+    redirect(destination);
+  }
 
   return (
     <main className="relative flex min-h-screen flex-1 items-center justify-center overflow-hidden px-6 py-10 sm:px-8">

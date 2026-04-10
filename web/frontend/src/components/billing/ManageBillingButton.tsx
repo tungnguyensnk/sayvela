@@ -1,8 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { getPublicApiUrl } from "@/lib/api";
 
 type Props = {
   className?: string;
@@ -13,31 +12,21 @@ export function ManageBillingButton({
   className,
   label = "Quản lý",
 }: Props) {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const accessToken = useMemo(() => {
-    const value = (session as unknown as { accessToken?: string } | null)?.accessToken;
-    return value ?? null;
-  }, [session]);
 
   async function handleClick() {
     setError(null);
 
-    if (!accessToken || status !== "authenticated") {
+    if (status !== "authenticated") {
       window.location.href = "/auth?mode=login";
       return;
     }
 
     setIsLoading(true);
     try {
-      const res = await fetch(getPublicApiUrl("/api/backend/billing/portal"), {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      });
+      const res = await fetch("/api/proxy/billing/portal", { method: "POST" });
 
       if (!res.ok) {
         const message = await res.text().catch(() => "");

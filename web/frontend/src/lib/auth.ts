@@ -1,4 +1,4 @@
-import type { NextAuthOptions, DefaultUser, DefaultSession } from "next-auth";
+import type { NextAuthOptions, DefaultUser } from "next-auth";
 import type { JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 
@@ -49,14 +49,14 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    // keep accessToken in jwt (server-side only, httpOnly cookie) but never expose it in session
     async jwt({ token, user }) {
       if (user) {
         (token as JWT & { accessToken?: string }).accessToken = (user as CustomUser).accessToken;
       }
       return token;
     },
-    async session({ session, token }) {
-      (session as DefaultSession & { accessToken?: string }).accessToken = (token as JWT & { accessToken?: string }).accessToken;
+    async session({ session }) {
       return session;
     },
   },

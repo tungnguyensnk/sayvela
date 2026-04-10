@@ -31,8 +31,8 @@ function CustomPill() {
 }
 
 export function renderValue(value: Value) {
-  if (value.kind === "yes") return <CheckIcon />;
-  if (value.kind === "no") return <XIcon />;
-  if (value.kind === "custom") return <CustomPill />;
+  if (value.kind === "yes") return <div className="flex justify-center"><CheckIcon /></div>;
+  if (value.kind === "no") return <div className="flex justify-center"><XIcon /></div>;
+  if (value.kind === "custom") return <div className="flex justify-center"><CustomPill /></div>;
   return <span className="text-sm text-white/80">{value.text}</span>;
 }

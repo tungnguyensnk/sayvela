@@ -216,6 +216,8 @@ export class BillingService {
   async handleStripeWebhookEvent(event: Stripe.Event) {
     if (await this.repo.hasProcessedStripeEvent(event.id)) return;
 
+    await this.processStripeEvent(event);
+
     const stripeCreatedAt = event.created
       ? new Date(event.created * 1000)
       : null;
@@ -224,7 +226,10 @@ export class BillingService {
       event.type,
       stripeCreatedAt,
     );
+  }
 
+  // process the stripe event payload; throws on failure so the event is not marked processed
+  private async processStripeEvent(event: Stripe.Event) {
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object;
       const subscriptionId =

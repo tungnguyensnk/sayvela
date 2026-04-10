@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next";
 import "./globals.css";
 import { AppProviders } from "./providers";
 import { authOptions } from "@/lib/auth";
+import { getSessionToken, BACKEND_URL } from "@/lib/server-token";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXTAUTH_URL ?? "http://localhost"),
@@ -33,16 +34,12 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await getServerSession(authOptions);
-  const accessToken =
-    (session as unknown as { accessToken?: string } | null)?.accessToken ?? null;
+  const accessToken = await getSessionToken();
   let initialEntitlement: { plan: "free" | "lite" | "pro" } | null = null;
 
   if (accessToken) {
-    const apiBase =
-      process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
-
     try {
-      const res = await fetch(new URL("/api/backend/billing/entitlement", apiBase), {
+      const res = await fetch(new URL("/api/backend/billing/entitlement", BACKEND_URL), {
         headers: {
           Authorization: `Bearer ${accessToken}`,
         },

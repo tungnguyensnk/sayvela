@@ -1,7 +1,6 @@
-import { redirect } from "next/navigation";
 import { LandingHeader } from "@/components/landing/LandingHeader";
 import { BillingSuccessGate } from "@/components/billing/BillingSuccessGate";
-import { buildPathWithQuery, getLoginUrl, requireAuth } from "@/lib/auth-guard";
+import { buildPathWithQuery, requireAuth } from "@/lib/auth-guard";
 
 interface BillingSuccessPageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
@@ -10,11 +9,7 @@ interface BillingSuccessPageProps {
 export default async function BillingSuccessPage({ searchParams }: BillingSuccessPageProps) {
   const params = searchParams ? await searchParams : {};
   const callbackUrl = buildPathWithQuery("/billing/success", params);
-  const session = await requireAuth(callbackUrl);
-  const accessToken = (session as unknown as { accessToken?: string } | null)?.accessToken ?? null;
-  if (!accessToken) {
-    redirect(getLoginUrl(callbackUrl));
-  }
+  await requireAuth(callbackUrl);
 
   return (
     <main className="relative flex-1">
@@ -26,7 +21,7 @@ export default async function BillingSuccessPage({ searchParams }: BillingSucces
 
         <section className="mx-auto w-full max-w-6xl px-6 pb-16 pt-14 sm:px-8 lg:pt-20">
           <div className="glass-panel p-10">
-            <BillingSuccessGate accessToken={accessToken} />
+            <BillingSuccessGate />
           </div>
         </section>
       </div>

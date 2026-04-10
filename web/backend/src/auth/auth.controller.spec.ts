@@ -39,7 +39,7 @@ describe('AuthController', () => {
         password: 'Admin@1234!',
       }),
     ).rejects.toEqual(
-      new HttpException('email already exists', HttpStatus.BAD_REQUEST),
+      new HttpException('invalid credentials', HttpStatus.BAD_REQUEST),
     );
   });
 

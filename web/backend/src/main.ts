@@ -6,8 +6,16 @@ import { runMigrations } from './db';
 async function bootstrap() {
   await runMigrations();
   const app = await NestFactory.create(AppModule, { rawBody: true });
+  const allowedOrigins = process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
+    : process.env.NEXTAUTH_URL
+      ? [process.env.NEXTAUTH_URL]
+      : ['*'];
   app.enableCors({
-    origin: '*',
+    origin:
+      allowedOrigins.length === 1 && allowedOrigins[0] === '*'
+        ? '*'
+        : allowedOrigins,
     credentials: false,
   });
   app.useGlobalPipes(

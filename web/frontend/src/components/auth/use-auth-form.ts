@@ -87,7 +87,8 @@ export function useAuthForm({
         return;
       }
 
-      router.push(result.url ?? "/");
+      const destination = safeCallbackUrl !== "/" ? safeCallbackUrl : (result.url ?? "/");
+      router.push(destination);
       router.refresh();
     } catch (error) {
       setLoginErrors({

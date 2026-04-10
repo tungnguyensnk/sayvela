@@ -283,7 +283,10 @@ mod tests {
     #[test]
     fn output_labels_support_common_languages() {
         assert_eq!(output_labels("en"), ("Question", "Translation", "Answer"));
-        assert_eq!(output_labels("en-US"), ("Question", "Translation", "Answer"));
+        assert_eq!(
+            output_labels("en-US"),
+            ("Question", "Translation", "Answer")
+        );
         assert_eq!(output_labels("vi"), ("Câu hỏi", "Dịch", "Trả lời"));
         assert_eq!(output_labels("ja-JP"), ("質問", "翻訳", "回答"));
         assert_eq!(output_labels("Korean"), ("질문", "번역", "답변"));

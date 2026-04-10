@@ -12,7 +12,11 @@ import { JwtStrategy } from './jwt.strategy';
     PassportModule.register({ defaultStrategy: 'jwt' }),
     JwtModule.register({
       global: true,
-      secret: process.env.JWT_SECRET ?? 'dev-secret',
+      secret: (() => {
+        const secret = process.env.JWT_SECRET;
+        if (!secret) throw new Error('JWT_SECRET env variable is not set');
+        return secret;
+      })(),
       signOptions: { expiresIn: '7d' },
     }),
   ],

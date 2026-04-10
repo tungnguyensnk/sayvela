@@ -22,7 +22,7 @@ describe("BillingSuccessGate", () => {
   it("renders error when session_id is missing", () => {
     useSearchParams.mockReturnValue({ get: () => null });
 
-    render(<BillingSuccessGate accessToken="t1" />);
+    render(<BillingSuccessGate />);
 
     expect(screen.getByText("Thiếu session_id")).not.toBeNull();
   });
@@ -36,17 +36,12 @@ describe("BillingSuccessGate", () => {
       json: async () => ({ state: "paid" }),
     } as Response);
 
-    render(<BillingSuccessGate accessToken="t1" />);
+    render(<BillingSuccessGate />);
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining("/api/backend/billing/checkout-session/verify"),
-        expect.objectContaining({
-          method: "GET",
-          headers: expect.objectContaining({
-            Authorization: "Bearer t1",
-          }),
-        }),
+        "/api/proxy/billing/checkout-session/verify?session_id=cs_test_1",
+        expect.objectContaining({ method: "GET" }),
       );
       expect(screen.getByText("Gói của bạn đã sẵn sàng")).not.toBeNull();
       expect(screen.getByText("5")).not.toBeNull();
@@ -68,7 +63,7 @@ describe("BillingSuccessGate", () => {
       json: async () => ({ state: "paid" }),
     } as Response);
 
-    render(<BillingSuccessGate accessToken="t1" />);
+    render(<BillingSuccessGate />);
 
     await waitFor(() => {
       expect(screen.getByText("Thanh toán chưa hoàn tất")).not.toBeNull();

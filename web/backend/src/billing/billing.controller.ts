@@ -14,6 +14,7 @@ import {
 import { SkipThrottle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import type { RawBodyRequest } from '@nestjs/common';
+import type Stripe from 'stripe';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateCheckoutSessionDto } from './dto/create-checkout-session.dto';
 import { BillingService } from './billing.service';
@@ -180,16 +181,14 @@ export class BillingController {
       throw new HttpException('missing raw body', HttpStatus.BAD_REQUEST);
     }
 
+    let event: Stripe.Event;
     try {
-      const event = stripe.webhooks.constructEvent(
-        rawBody,
-        signature,
-        webhookSecret,
-      );
-      await this.billing.handleStripeWebhookEvent(event);
-      return { received: true };
+      event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
     } catch {
       throw new HttpException('invalid signature', HttpStatus.BAD_REQUEST);
     }
+
+    await this.billing.handleStripeWebhookEvent(event);
+    return { received: true };
   }
 }

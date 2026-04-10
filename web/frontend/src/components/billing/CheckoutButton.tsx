@@ -1,8 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { getPublicApiUrl } from "@/lib/api";
 
 type Props = {
   plan: "lite" | "pro";
@@ -17,31 +16,23 @@ export function CheckoutButton({
   className,
   label = plan === "pro" ? "Nâng cấp Pro" : "Nâng cấp Lite",
 }: Props) {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const accessToken = useMemo(() => {
-    const value = (session as unknown as { accessToken?: string } | null)?.accessToken;
-    return value ?? null;
-  }, [session]);
 
   async function handleClick() {
     setError(null);
 
-    if (!accessToken || status !== "authenticated") {
+    if (status !== "authenticated") {
       window.location.href = "/auth?mode=login";
       return;
     }
 
     setIsLoading(true);
     try {
-      const res = await fetch(getPublicApiUrl("/api/backend/billing/checkout-session"), {
+      const res = await fetch("/api/proxy/billing/checkout-session", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan, interval }),
       });
 

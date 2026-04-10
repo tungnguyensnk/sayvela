@@ -7,6 +7,15 @@ use std::time::{Duration, Instant};
 use reqwest::Client;
 use tauri::{AppHandle, Emitter, Manager, State};
 
+// build a shared http client with reasonable timeouts
+fn make_client() -> Result<Client, String> {
+    Client::builder()
+        .timeout(Duration::from_secs(30))
+        .connect_timeout(Duration::from_secs(5))
+        .build()
+        .map_err(|e| e.to_string())
+}
+
 #[derive(Default)]
 pub struct GptfreeState {
     token: Mutex<Option<CachedToken>>,
@@ -142,7 +151,10 @@ async fn fetch_token(client: &Client) -> Result<(String, u64), String> {
 async fn get_valid_token(state: &GptfreeState) -> Result<String, String> {
     let now = Instant::now();
     {
-        let guard = state.token.lock().map_err(|_| "state poisoned".to_string())?;
+        let guard = state
+            .token
+            .lock()
+            .map_err(|_| "state poisoned".to_string())?;
         if let Some(t) = guard.as_ref() {
             if t.expires_at > now + Duration::from_secs(300) {
                 return Ok(t.id_token.clone());
@@ -150,14 +162,17 @@ async fn get_valid_token(state: &GptfreeState) -> Result<String, String> {
         }
     }
 
-    let client = Client::new();
+    let client = make_client()?;
     let (id_token, expires_in) = fetch_token(&client).await?;
     let lifetime = expires_in.min(1800);
     let cached = CachedToken {
         id_token: id_token.clone(),
         expires_at: Instant::now() + Duration::from_secs(lifetime),
     };
-    let mut guard = state.token.lock().map_err(|_| "state poisoned".to_string())?;
+    let mut guard = state
+        .token
+        .lock()
+        .map_err(|_| "state poisoned".to_string())?;
     *guard = Some(cached);
     Ok(id_token)
 }
@@ -179,7 +194,16 @@ async fn stream_agent(app: AppHandle, request_id: String, message: String, histo
         }
     };
 
-    let client = Client::new();
+    let client = match make_client() {
+        Ok(c) => c,
+        Err(e) => {
+            let _ = app.emit(
+                "gptfree_stream_event",
+                serde_json::json!({ "request_id": request_id, "type": "error", "data": e }),
+            );
+            return;
+        }
+    };
     let res = match client
         .post("https://us-central1-gptfree-2.cloudfunctions.net/agent_stream")
         .bearer_auth(token)
@@ -274,7 +298,10 @@ pub async fn gptfree_start_stream(
         return Err("missing request_id".to_string());
     }
 
-    let mut guard = state.streams.lock().map_err(|_| "state poisoned".to_string())?;
+    let mut guard = state
+        .streams
+        .lock()
+        .map_err(|_| "state poisoned".to_string())?;
     if guard.contains_key(&request_id) {
         return Err("stream already running".to_string());
     }
@@ -289,8 +316,14 @@ pub async fn gptfree_start_stream(
 }
 
 #[tauri::command]
-pub fn gptfree_cancel_stream(state: State<'_, GptfreeState>, request_id: String) -> Result<(), String> {
-    let mut guard = state.streams.lock().map_err(|_| "state poisoned".to_string())?;
+pub fn gptfree_cancel_stream(
+    state: State<'_, GptfreeState>,
+    request_id: String,
+) -> Result<(), String> {
+    let mut guard = state
+        .streams
+        .lock()
+        .map_err(|_| "state poisoned".to_string())?;
     if let Some(h) = guard.remove(request_id.trim()) {
         h.abort();
     }
@@ -333,8 +366,9 @@ mod tests {
     }
 
     #[test]
+    #[ignore = "network test — run with --include-ignored only"]
     fn fetch_token_smoke_network() {
-        let client = Client::new();
+        let client = make_client().expect("build client");
         let (token, expires_in) =
             tauri::async_runtime::block_on(fetch_token(&client)).expect("fetch_token should work");
         assert!(!token.is_empty());

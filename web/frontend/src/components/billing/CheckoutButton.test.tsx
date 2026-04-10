@@ -32,7 +32,7 @@ describe("CheckoutButton", () => {
 
   it("redirects to stripe checkout when session is created", async () => {
     useSession.mockReturnValue({
-      data: { accessToken: "t1" },
+      data: {},
       status: "authenticated",
     });
 
@@ -46,11 +46,11 @@ describe("CheckoutButton", () => {
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining("/api/backend/billing/checkout-session"),
+        "/api/proxy/billing/checkout-session",
         expect.objectContaining({
           method: "POST",
           headers: expect.objectContaining({
-            Authorization: "Bearer t1",
+            "Content-Type": "application/json",
           }),
         }),
       );

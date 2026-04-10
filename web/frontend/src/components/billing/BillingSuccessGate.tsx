@@ -3,12 +3,11 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { getPublicApiUrl } from "@/lib/api";
 import { BillingSuccessRedirect } from "@/components/billing/BillingSuccessRedirect";
 
 type ViewState = "missing" | "verifying" | "paid" | "unpaid" | "invalid";
 
-export function BillingSuccessGate({ accessToken }: { accessToken: string }) {
+export function BillingSuccessGate() {
   const searchParams = useSearchParams();
   const [viewState, setViewState] = useState<ViewState>("verifying");
   const [canRetry, setCanRetry] = useState(false);
@@ -20,22 +19,15 @@ export function BillingSuccessGate({ accessToken }: { accessToken: string }) {
   }, [searchParams]);
 
   const verify = useCallback(async () => {
-    if (!sessionId || !accessToken || inflight.current) return;
+    if (!sessionId || inflight.current) return;
     inflight.current = true;
     setCanRetry(false);
     setViewState("verifying");
 
     try {
       const res = await fetch(
-        getPublicApiUrl(
-          `/api/backend/billing/checkout-session/verify?session_id=${encodeURIComponent(sessionId)}`,
-        ),
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        },
+        `/api/proxy/billing/checkout-session/verify?session_id=${encodeURIComponent(sessionId)}`,
+        { method: "GET" },
       );
 
       if (res.ok) {
@@ -57,21 +49,16 @@ export function BillingSuccessGate({ accessToken }: { accessToken: string }) {
     } finally {
       inflight.current = false;
     }
-  }, [accessToken, sessionId]);
+  }, [sessionId]);
 
   useEffect(() => {
     if (!sessionId) {
       setViewState("missing");
       return;
     }
-    if (!accessToken) {
-      setViewState("invalid");
-      setCanRetry(false);
-      return;
-    }
 
     void verify();
-  }, [accessToken, sessionId, verify]);
+  }, [sessionId, verify]);
 
   if (viewState === "missing") {
     return (

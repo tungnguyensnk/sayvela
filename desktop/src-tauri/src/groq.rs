@@ -1,6 +1,7 @@
 use anyhow::{anyhow, Context, Result};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 #[derive(Debug, Serialize)]
 struct GroqMessage<'a> {
@@ -57,7 +58,11 @@ pub async fn check_question(content: String) -> Result<String> {
     reasoning_effort: "medium",
   };
 
-    let client = Client::new();
+    let client = Client::builder()
+        .timeout(Duration::from_secs(30))
+        .connect_timeout(Duration::from_secs(5))
+        .build()
+        .context("build http client")?;
     let res = client
         .post("https://api.groq.com/openai/v1/chat/completions")
         .bearer_auth(api_key)

@@ -308,12 +308,9 @@ fn capture_thread(
 
             in_f32.clear();
             in_f32.reserve(total_frames * in_ch);
-            for _ in 0..(total_frames * in_ch) {
-                let mut b = [0u8; 4];
-                for byte in &mut b {
-                    *byte = raw_bytes.pop_front().unwrap_or(0);
-                }
-                in_f32.push(f32::from_le_bytes(b));
+            let contiguous: Vec<u8> = raw_bytes.drain(..total_frames * frame_bytes).collect();
+            for chunk in contiguous.chunks_exact(4) {
+                in_f32.push(f32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]));
             }
 
             mono.clear();
@@ -339,10 +336,7 @@ fn capture_thread(
 
             pcm_buf.extend(out_i16_bytes.drain(..));
             while pcm_buf.len() >= chunk_bytes {
-                let mut chunk = Vec::with_capacity(chunk_bytes);
-                for _ in 0..chunk_bytes {
-                    chunk.push(pcm_buf.pop_front().unwrap_or(0));
-                }
+                let chunk: Vec<u8> = pcm_buf.drain(..chunk_bytes).collect();
                 let _ = app.emit(&event_data, chunk);
             }
         }

@@ -19,7 +19,7 @@ export class AuthController {
   async register(@Body() body: RegisterDto) {
     const res = await this.auth.register(body.email, body.password);
     if (!res) {
-      throw new HttpException('email already exists', HttpStatus.BAD_REQUEST);
+      throw new HttpException('invalid credentials', HttpStatus.BAD_REQUEST);
     }
     return res;
   }

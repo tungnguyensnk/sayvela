@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
+use std::time::Duration;
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -17,7 +18,11 @@ struct SonioxTempKeyResponse {
 
 // request a temporary backend key from soniox for speech-to-text
 pub async fn get_temp_key() -> Result<SonioxTempKey> {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .connect_timeout(Duration::from_secs(5))
+        .build()
+        .context("build http client")?;
     let resp = client
         .post("https://soniox.com/api/speech-to-text")
         .header("accept", "*/*")

@@ -122,10 +122,10 @@ export function PricingComparisonTable() {
             <thead>
               <tr className="text-left text-xs font-medium uppercase tracking-wide text-white/55">
                 <th className="px-4 py-3">Tính năng</th>
-                <th className="px-4 py-3">Free</th>
-                <th className="px-4 py-3">Lite</th>
-                <th className="px-4 py-3">Pro</th>
-                <th className="px-4 py-3">Enterprise</th>
+                <th className="px-4 py-3 text-center">Free</th>
+                <th className="px-4 py-3 text-center">Lite</th>
+                <th className="px-4 py-3 text-center">Pro</th>
+                <th className="px-4 py-3 text-center">Enterprise</th>
               </tr>
             </thead>
             <tbody>
@@ -134,10 +134,10 @@ export function PricingComparisonTable() {
                   <td className="px-4 py-4 text-sm font-medium text-white/80">
                     {row.label}
                   </td>
-                  <td className="px-4 py-4">{renderValue(row.free)}</td>
-                  <td className="px-4 py-4">{renderValue(row.lite)}</td>
-                  <td className="px-4 py-4">{renderValue(row.pro)}</td>
-                  <td className="px-4 py-4">{renderValue(row.enterprise)}</td>
+                  <td className="px-4 py-4 text-center">{renderValue(row.free)}</td>
+                  <td className="px-4 py-4 text-center">{renderValue(row.lite)}</td>
+                  <td className="px-4 py-4 text-center">{renderValue(row.pro)}</td>
+                  <td className="px-4 py-4 text-center">{renderValue(row.enterprise)}</td>
                 </tr>
               ))}
             </tbody>

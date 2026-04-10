@@ -10,7 +10,6 @@ import {
   useState,
 } from "react";
 import { useSession } from "next-auth/react";
-import { getPublicApiUrl } from "@/lib/api";
 import {
   BILLING_PLAN_FEATURES,
   BILLING_PLAN_MINUTES,
@@ -77,22 +76,20 @@ export function EntitlementProvider({
   children: React.ReactNode;
   initialEntitlement?: (Partial<Entitlement> & { plan: BillingPlan }) | null;
 }) {
-  const { data: session, status } = useSession();
-
-  const accessToken = useMemo(() => {
-    const value = (session as unknown as { accessToken?: string } | null)?.accessToken;
-    return value ?? null;
-  }, [session]);
+  const { status } = useSession();
+  const isAuthenticated = status === "authenticated";
 
   const initialEntitlementRef = useRef<unknown>(initialEntitlement ?? null);
-  const tokenRef = useRef<string | null>(null);
+  const prevAuthenticatedRef = useRef<boolean>(false);
   const inFlightRef = useRef(false);
+  const isReadyRef = useRef(false);
   const [state, setState] = useState<EntitlementState>(() => {
-    if (status === "authenticated" && accessToken && initialEntitlementRef.current) {
+    if (status === "authenticated" && initialEntitlementRef.current) {
+      isReadyRef.current = true;
       return { kind: "ready", entitlement: normalizeEntitlement(initialEntitlementRef.current) };
     }
 
-    if (status === "authenticated" && accessToken) {
+    if (status === "authenticated") {
       return { kind: "loading" };
     }
 
@@ -104,17 +101,12 @@ export function EntitlementProvider({
   });
 
   const load = useCallback(async () => {
-    if (!accessToken || inFlightRef.current) return;
+    if (inFlightRef.current) return;
 
     inFlightRef.current = true;
     setState({ kind: "loading" });
     try {
-      const res = await fetch(getPublicApiUrl("/api/backend/billing/entitlement"), {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        cache: "no-store",
-      });
+      const res = await fetch("/api/proxy/billing/entitlement", { cache: "no-store" });
 
       if (!res.ok) {
         setState({ kind: "error", message: "Không thể kiểm tra subscription." });
@@ -122,32 +114,32 @@ export function EntitlementProvider({
       }
 
       const data = (await res.json()) as Entitlement;
+      isReadyRef.current = true;
       setState({ kind: "ready", entitlement: normalizeEntitlement(data) });
     } catch {
       setState({ kind: "error", message: "Không thể kiểm tra subscription." });
     } finally {
       inFlightRef.current = false;
     }
-  }, [accessToken]);
+  }, []);
 
   useEffect(() => {
     if (status === "loading") {
-      if (state.kind !== "ready") {
-        setState({ kind: "loading" });
-      }
       return;
     }
 
-    if (status !== "authenticated" || !accessToken) {
-      tokenRef.current = null;
+    if (status !== "authenticated") {
+      prevAuthenticatedRef.current = false;
       initialEntitlementRef.current = null;
+      isReadyRef.current = false;
       setState({ kind: "unauthenticated" });
       return;
     }
 
-    if (tokenRef.current !== accessToken) {
-      tokenRef.current = accessToken;
+    if (!prevAuthenticatedRef.current) {
+      prevAuthenticatedRef.current = true;
       if (initialEntitlementRef.current) {
+        isReadyRef.current = true;
         setState({
           kind: "ready",
           entitlement: normalizeEntitlement(initialEntitlementRef.current),
@@ -157,15 +149,16 @@ export function EntitlementProvider({
       }
     }
 
-    if (state.kind !== "ready") {
+    if (!isReadyRef.current) {
       load();
     }
-  }, [accessToken, load, state.kind, status]);
+  }, [isAuthenticated, load, status]);
 
   const refresh = useCallback(() => {
-    if (status !== "authenticated" || !accessToken) return;
+    if (status !== "authenticated") return;
+    isReadyRef.current = false;
     load();
-  }, [accessToken, load, status]);
+  }, [load, status]);
 
   const value = useMemo<EntitlementContextValue>(() => ({ state, refresh }), [refresh, state]);
 
