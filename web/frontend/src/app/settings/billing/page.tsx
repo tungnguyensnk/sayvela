@@ -9,7 +9,7 @@ export default async function BillingSettingsPage() {
     <main className="relative flex-1">
       <LandingHeader />
 
-      <div className="relative overflow-x-hidden">
+      <div className="relative overflow-hidden">
         <div className="page-glow page-glow-top" />
         <div className="page-glow page-glow-bottom" />
 
