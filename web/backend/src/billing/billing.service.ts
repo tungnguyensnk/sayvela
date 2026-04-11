@@ -55,6 +55,10 @@ export class BillingService {
     ];
   }
 
+  async recordUsage(userId: string, minutes: number) {
+    await this.repo.incrementMinutesUsed(userId, minutes);
+  }
+
   async createCheckoutSession(params: {
     userId: string;
     email: string;

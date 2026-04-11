@@ -102,6 +102,24 @@ export class BillingController {
     return await this.billing.getEntitlement(userId);
   }
 
+  @Post('usage')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(200)
+  async recordUsage(
+    @Req() req: RequestWithUser,
+    @Body() body: { minutes: number },
+  ) {
+    const userId = req.user?.userId;
+    if (!userId)
+      throw new HttpException('unauthorized', HttpStatus.UNAUTHORIZED);
+    const minutes = Number(body.minutes);
+    if (!Number.isFinite(minutes) || minutes <= 0) {
+      throw new HttpException('invalid minutes', HttpStatus.BAD_REQUEST);
+    }
+    await this.billing.recordUsage(userId, minutes);
+    return { ok: true };
+  }
+
   @Get('checkout-session/verify')
   @UseGuards(JwtAuthGuard)
   async verifyCheckoutSession(

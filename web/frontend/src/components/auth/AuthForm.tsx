@@ -9,9 +9,11 @@ import { useAuthForm } from "@/components/auth/use-auth-form";
 interface AuthFormProps {
   initialMode?: string;
   callbackUrl?: string;
+  desktop?: boolean;
+  desktopCode?: string;
 }
 
-export function AuthForm({ initialMode, callbackUrl }: AuthFormProps) {
+export function AuthForm({ initialMode, callbackUrl, desktop, desktopCode }: AuthFormProps) {
   const router = useRouter();
   const {
     mode,
@@ -32,6 +34,8 @@ export function AuthForm({ initialMode, callbackUrl }: AuthFormProps) {
   } = useAuthForm({
     initialMode,
     callbackUrl,
+    desktop,
+    desktopCode,
     router: {
       push: (href) => router.push(href),
       replace: (href) => router.replace(href),
@@ -41,6 +45,11 @@ export function AuthForm({ initialMode, callbackUrl }: AuthFormProps) {
 
   return (
     <div className="glass-panel w-full max-w-xl p-7 sm:p-8">
+      {desktop ? (
+        <div className="mb-5 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-200">
+          Đăng nhập từ ứng dụng desktop Sayvela. Sau khi đăng nhập bạn sẽ tự động quay lại app.
+        </div>
+      ) : null}
       <div className="inline-flex rounded-full border border-white/10 bg-white/6 p-1">
         <button
           type="button"

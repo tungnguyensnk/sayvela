@@ -32,10 +32,14 @@ const defaultRegisterValues: RegisterValues = {
 export function useAuthForm({
   initialMode,
   callbackUrl,
+  desktop,
+  desktopCode,
   router,
 }: {
   initialMode?: string;
   callbackUrl?: string;
+  desktop?: boolean;
+  desktopCode?: string;
   router: RouterLike;
 }) {
   const [mode, setMode] = useState<AuthMode>(normalizeAuthMode(initialMode));
@@ -84,6 +88,24 @@ export function useAuthForm({
         setLoginErrors({
           form: getAuthErrorMessage(result?.error ?? "invalid credentials"),
         });
+        return;
+      }
+
+      // desktop flow: navigate to callback page, which will fetch the token itself
+      if (desktop) {
+        if (desktopCode) {
+          // post token to backend under the code, desktop will poll for it
+          try {
+            await fetch("/api/proxy/auth/pending-token", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ code: desktopCode }),
+            });
+          } catch {}
+          router.push(`/auth/desktop-callback?code=${encodeURIComponent(desktopCode)}`);
+        } else {
+          router.push("/auth/desktop-callback");
+        }
         return;
       }
 

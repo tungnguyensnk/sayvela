@@ -164,6 +164,17 @@ export class BillingRepository {
     return id;
   }
 
+  async incrementMinutesUsed(
+    userId: string,
+    minutes: number,
+    now = new Date(),
+  ) {
+    const cycle = await this.getActiveUsageCycleByUserId(userId, now);
+    if (!cycle) return;
+    const newUsed = Math.min(cycle.minutesLimit, cycle.minutesUsed + minutes);
+    await this.updateUsageCycle(cycle.id, { minutesUsed: newUsed });
+  }
+
   async updateUsageCycle(
     id: string,
     patch: Partial<{

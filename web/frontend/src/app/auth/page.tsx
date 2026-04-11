@@ -30,8 +30,14 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
     Array.isArray(params.mode) ? params.mode[0] : params.mode,
   );
   const callbackUrl = Array.isArray(params.callbackUrl) ? params.callbackUrl[0] : params.callbackUrl;
+  const desktop = params.desktop === "1" || params.desktop === "true";
+  const desktopCode = Array.isArray(params.code) ? params.code[0] : (params.code ?? "");
 
   if (session) {
+    if (desktop) {
+      // if already logged in with a code, go straight to desktop-callback
+      redirect(`/auth/desktop-callback?code=${encodeURIComponent(desktopCode)}`);
+    }
     const safe = callbackUrl?.trim();
     const destination = safe && !safe.startsWith("/auth") ? safe : "/";
     redirect(destination);
@@ -44,7 +50,7 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
 
       <div className="mx-auto flex w-full max-w-6xl justify-center">
         <section className="flex items-center justify-center">
-          <AuthForm initialMode={mode} callbackUrl={callbackUrl} />
+          <AuthForm initialMode={mode} callbackUrl={callbackUrl} desktop={desktop} desktopCode={desktopCode} />
         </section>
       </div>
     </main>

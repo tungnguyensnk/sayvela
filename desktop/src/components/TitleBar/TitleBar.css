@@ -76,6 +76,52 @@
   vector-effect: non-scaling-stroke;
 }
 
+.tb-usage-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
+}
+
+.tb-sync-badge {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.tb-sync-badge.syncing { color: #9fb0c0; background: rgba(255,255,255,0.05); }
+.tb-sync-badge.synced { color: #4ade80; background: rgba(74,222,128,0.08); }
+.tb-sync-badge.failed { color: #ff9a9a; background: rgba(255,92,92,0.08); }
+
+.tb-user {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+}
+
+.tb-user-email {
+  font-size: 10px;
+  color: #9fb0c0;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tb-text-btn {
+  font-size: 10px;
+  width: auto;
+  padding: 0 8px;
+  color: #4ea1ff;
+  letter-spacing: 0.04em;
+}
+
+
 .tb-icon-min {
   width: 14px;
 }

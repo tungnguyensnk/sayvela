@@ -9,6 +9,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import {
   BILLING_PLAN_FEATURES,
@@ -76,6 +77,7 @@ export function EntitlementProvider({
   children: React.ReactNode;
   initialEntitlement?: (Partial<Entitlement> & { plan: BillingPlan }) | null;
 }) {
+  const pathname = usePathname();
   const { status } = useSession();
   const isAuthenticated = status === "authenticated";
 
@@ -83,33 +85,35 @@ export function EntitlementProvider({
   const prevAuthenticatedRef = useRef<boolean>(false);
   const inFlightRef = useRef(false);
   const isReadyRef = useRef(false);
+  const didInitRouteRefreshRef = useRef(false);
+  const lastRouteRefreshAtRef = useRef(0);
   const [state, setState] = useState<EntitlementState>(() => {
-    if (status === "authenticated" && initialEntitlementRef.current) {
+    if (initialEntitlementRef.current) {
       isReadyRef.current = true;
       return { kind: "ready", entitlement: normalizeEntitlement(initialEntitlementRef.current) };
     }
 
-    if (status === "authenticated") {
-      return { kind: "loading" };
+    if (status === "unauthenticated") {
+      return { kind: "unauthenticated" };
     }
 
-    if (status === "loading") {
-      return { kind: "loading" };
-    }
-
-    return { kind: "unauthenticated" };
+    return { kind: "loading" };
   });
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (options?: { keepPrevious?: boolean }) => {
     if (inFlightRef.current) return;
 
     inFlightRef.current = true;
-    setState({ kind: "loading" });
+    if (!options?.keepPrevious) {
+      setState({ kind: "loading" });
+    }
     try {
       const res = await fetch("/api/proxy/billing/entitlement", { cache: "no-store" });
 
       if (!res.ok) {
-        setState({ kind: "error", message: "Không thể kiểm tra subscription." });
+        if (!options?.keepPrevious) {
+          setState({ kind: "error", message: "Không thể kiểm tra subscription." });
+        }
         return;
       }
 
@@ -117,18 +121,19 @@ export function EntitlementProvider({
       isReadyRef.current = true;
       setState({ kind: "ready", entitlement: normalizeEntitlement(data) });
     } catch {
-      setState({ kind: "error", message: "Không thể kiểm tra subscription." });
+      if (!options?.keepPrevious) {
+        setState({ kind: "error", message: "Không thể kiểm tra subscription." });
+      }
     } finally {
       inFlightRef.current = false;
     }
   }, []);
 
   useEffect(() => {
-    if (status === "loading") {
-      return;
-    }
+    if (status === "loading") return;
 
     if (status !== "authenticated") {
+      if (isReadyRef.current) return;
       prevAuthenticatedRef.current = false;
       initialEntitlementRef.current = null;
       isReadyRef.current = false;
@@ -136,23 +141,38 @@ export function EntitlementProvider({
       return;
     }
 
-    if (!prevAuthenticatedRef.current) {
-      prevAuthenticatedRef.current = true;
-      if (initialEntitlementRef.current) {
-        isReadyRef.current = true;
-        setState({
-          kind: "ready",
-          entitlement: normalizeEntitlement(initialEntitlementRef.current),
-        });
-        initialEntitlementRef.current = null;
-        return;
-      }
+    prevAuthenticatedRef.current = true;
+
+    if (isReadyRef.current) return;
+
+    if (initialEntitlementRef.current) {
+      isReadyRef.current = true;
+      setState({
+        kind: "ready",
+        entitlement: normalizeEntitlement(initialEntitlementRef.current),
+      });
+      initialEntitlementRef.current = null;
+      return;
     }
 
-    if (!isReadyRef.current) {
-      load();
-    }
+    load();
   }, [isAuthenticated, load, status]);
+
+  useEffect(() => {
+    if (!didInitRouteRefreshRef.current) {
+      didInitRouteRefreshRef.current = true;
+      return;
+    }
+
+    if (status !== "authenticated") return;
+    if (!isReadyRef.current) return;
+
+    const now = Date.now();
+    if (now - lastRouteRefreshAtRef.current < 15_000) return;
+
+    lastRouteRefreshAtRef.current = now;
+    load({ keepPrevious: true });
+  }, [load, pathname, status]);
 
   const refresh = useCallback(() => {
     if (status !== "authenticated") return;

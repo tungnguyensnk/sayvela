@@ -52,14 +52,14 @@ export const appPrimaryNavItems = [
     label: "Dashboard",
     href: "/app",
     kind: "internal",
-    availability: "soon",
+    availability: "available",
     requiresAuth: true,
   },
   {
     label: "Sessions",
     href: "/sessions",
     kind: "internal",
-    availability: "soon",
+    availability: "available",
     requiresAuth: true,
   },
   {

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import "./App.css";
@@ -8,12 +8,26 @@ import { TranscriptPanel } from "./components/TranscriptPanel";
 import { AIChatPanel } from "./components/AIChatPanel";
 import { useMicTranslationTts } from "./tts/useMicTranslationTts";
 import { TitleBar } from "./components/TitleBar";
+import { LoginPanel } from "./components/LoginPanel";
+import { QuotaExceededModal } from "./components/QuotaExceededModal";
 import { useAI } from "./hooks/useAI";
+import { useAuth } from "./hooks/useAuth";
 import { useSpeakerCheck } from "./hooks/useSpeakerCheck";
 import { byteSize } from "./transcript/transcriptUtils";
+import { fetchEntitlement, recordUsage } from "./services/entitlementService";
+import { createSession, finalizeSession, uploadSegments } from "./services/sessionSyncService";
+import { toPlainText, toSrt, toJson, groupsToSegments } from "./transcript/exportUtils";
 
 // main application component that manages audio capture, transcription, and translation state
 function App() {
+  const { auth, user, isAuthenticated, loading: authLoading, error: authError, login, logout } = useAuth();
+  const [showLogin, setShowLogin] = useState(false);
+  const [entitlement, setEntitlement] = useState(null);
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
+  const [syncStatus, setSyncStatus] = useState(null); // null | 'syncing' | 'synced' | 'failed'
+  const sessionIdRef = useRef(null);
+  const sessionStartRef = useRef(null);
+
   const [devices, setDevices] = useState([]);
   const [devicesError, setDevicesError] = useState("");
   const [running, setRunning] = useState(false);
@@ -67,6 +81,12 @@ function App() {
     micGroups: micTranscript.groups, 
     chatgpt 
   });
+
+  // fetches entitlement when authenticated
+  useEffect(() => {
+    if (!isAuthenticated) { setEntitlement(null); return; }
+    fetchEntitlement().then(setEntitlement);
+  }, [isAuthenticated, auth]);
 
   useEffect(() => {
     try {
@@ -174,11 +194,36 @@ function App() {
     }
   }, [running, micCaptureState, micInputLangs, micOutputLang, micDeviceId, loopbackContext]);
 
+  // checks quota and returns false if exceeded (shows modal)
+  async function checkQuota() {
+    if (!isAuthenticated) return true; // guest mode — allow
+    const ent = await fetchEntitlement();
+    setEntitlement(ent);
+    if (!ent) return true; // can't check — allow
+    if (ent.minutesUsed >= ent.minutesPerMonth) {
+      setQuotaExceeded(true);
+      return false;
+    }
+    return true;
+  }
+
   // starts the audio capture and transcription process
   async function start() {
+    const allowed = await checkQuota();
+    if (!allowed) return;
+
     setLoopbackBytes(0);
     setMicBytes(0);
     setRunning(true);
+    sessionStartRef.current = Date.now();
+
+    // create session on backend if authenticated
+    if (isAuthenticated) {
+      const lang = loopbackInputLangs[0] || micInputLangs[0] || "en";
+      const sid = await createSession({ title: null, language: lang });
+      sessionIdRef.current = sid;
+      setSyncStatus(null);
+    }
 
     try {
       await chatgpt.resetChatGPTWindow();
@@ -200,7 +245,7 @@ function App() {
     }
   }
 
-  // stops all active audio captures and transcriptions
+  // stops all active audio captures and syncs session to backend
   async function stop() {
     try {
       if (loopbackDeviceId) await invoke("stop_audio_capture", { kind: "loopback" });
@@ -210,19 +255,68 @@ function App() {
     } catch {}
     
     setRunning(false);
-    try {
-      await loopbackTranscript.stop();
-    } catch {}
-    try {
-      await micTranscript.stop();
-    } catch {}
+    try { await loopbackTranscript.stop(); } catch {}
+    try { await micTranscript.stop(); } catch {}
+
+    // sync session and record usage
+    if (isAuthenticated && sessionIdRef.current) {
+      const durationMs = sessionStartRef.current ? Date.now() - sessionStartRef.current : 0;
+      const durationSeconds = Math.round(durationMs / 1000);
+      const minutes = Math.ceil(durationSeconds / 60);
+      setSyncStatus("syncing");
+      try {
+        const allGroups = [...loopbackTranscript.groups, ...micTranscript.groups].sort(
+          (a, b) => (a.createdAt || 0) - (b.createdAt || 0)
+        );
+        const segs = groupsToSegments(allGroups);
+        await Promise.all([
+          finalizeSession(sessionIdRef.current, { durationSeconds, status: "completed" }),
+          uploadSegments(sessionIdRef.current, segs),
+          recordUsage(minutes),
+        ]);
+        setSyncStatus("synced");
+      } catch {
+        setSyncStatus("failed");
+      }
+      sessionIdRef.current = null;
+    }
   }
+
+  // exports transcript in the specified format (txt, srt, json)
+  const handleExport = useCallback(async (format) => {
+    const allGroups = [...loopbackTranscript.groups, ...micTranscript.groups].sort(
+      (a, b) => (a.createdAt || 0) - (b.createdAt || 0)
+    );
+    if (allGroups.length === 0) return;
+
+    let content, ext, filters;
+    if (format === "srt") {
+      content = toSrt(allGroups);
+      ext = "srt";
+      filters = [{ name: "SubRip", extensions: ["srt"] }];
+    } else if (format === "json") {
+      content = toJson(allGroups);
+      ext = "json";
+      filters = [{ name: "JSON", extensions: ["json"] }];
+    } else {
+      content = toPlainText(allGroups);
+      ext = "txt";
+      filters = [{ name: "Text", extensions: ["txt"] }];
+    }
+
+    try {
+      const path = await invoke("save_file_dialog", {
+        defaultName: `transcript.${ext}`,
+        content,
+      });
+      if (!path) return; // user cancelled
+    } catch {}
+  }, [loopbackTranscript.groups, micTranscript.groups]);
 
   // Merge Transcripts
   const mergedGroups = useMemo(() => {
     const sys = loopbackTranscript.groups.map(g => ({ ...g, sessionId: 'sys' }));
     const mic = micTranscript.groups.map(g => ({ ...g, sessionId: 'mic' }));
-    // Sort by createdAt
     return [...sys, ...mic].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
   }, [loopbackTranscript.groups, micTranscript.groups]);
 
@@ -239,10 +333,46 @@ function App() {
     queueMode: "add",
   });
 
+  // shows login panel overlay when user clicks sign in
+  if (showLogin && !isAuthenticated) {
+    return (
+      <div className="window">
+        <div className="app">
+          <TitleBar
+            title="Sayvela"
+            user={user}
+            onLoginClick={() => setShowLogin(true)}
+            onLogoutClick={logout}
+          />
+          <main className="main">
+            <LoginPanel
+              onLogin={login}
+              loading={authLoading}
+              error={authError}
+            />
+          </main>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="window">
       <div className="app">
-        <TitleBar title="Sayvela" />
+        <TitleBar
+          title="Sayvela"
+          user={user}
+          entitlement={entitlement}
+          syncStatus={syncStatus}
+          onLoginClick={() => setShowLogin(true)}
+          onLogoutClick={logout}
+        />
+        {quotaExceeded && (
+          <QuotaExceededModal
+            entitlement={entitlement}
+            onDismiss={() => setQuotaExceeded(false)}
+          />
+        )}
         <main className="main">
           <AudioControlPanel
             devices={devices}
@@ -296,6 +426,7 @@ function App() {
           <TranscriptPanel
             transcriptGroups={mergedGroups}
             running={running}
+            onExport={handleExport}
           />
 
           <AIChatPanel

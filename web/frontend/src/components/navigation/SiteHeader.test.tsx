@@ -87,9 +87,10 @@ describe("SiteHeader", () => {
 
     render(<SiteHeader />);
 
-    const dashboardButton = screen.getByRole("button", { name: /Dashboard/i });
-    expect(dashboardButton.getAttribute("aria-disabled")).toBe("true");
-    expect(screen.getAllByText("Sắp có").length).toBeGreaterThan(0);
+    const dashboardLink = screen.getByRole("link", { name: "Dashboard" });
+    expect(dashboardLink.getAttribute("href")).toBe("/app");
+    const billingLink = screen.getByRole("link", { name: "Billing & usage" });
+    expect(billingLink.getAttribute("href")).toBe("/settings/billing");
 
     expect(screen.getByText(/Free · 10\/60 phút/)).not.toBeNull();
     expect(screen.queryByRole("link", { name: "Nâng cấp" })).toBeNull();

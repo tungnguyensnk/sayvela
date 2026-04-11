@@ -7,8 +7,9 @@ mod types;
 
 use std::collections::HashMap;
 use std::sync::Mutex;
+use std::time::{SystemTime, UNIX_EPOCH};
 
-use tauri::{AppHandle, Manager, PhysicalPosition, State};
+use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, State};
 
 use crate::soniox::SonioxTempKey;
 use crate::types::AudioDevice;
@@ -213,6 +214,50 @@ fn build_prompt(me_input_language: String, context: String, conversation: String
     build_prompt_impl(&me_input_language, &context, &conversation)
 }
 
+#[tauri::command]
+async fn auth_poll_pending_token(code: String, api_url: Option<String>) -> Result<Option<String>, String> {
+    let base = api_url.unwrap_or_else(|| "http://localhost:80/api".to_string());
+    let base = base.trim_end_matches('/');
+    let ts = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|e| e.to_string())?
+        .as_millis();
+    let url = format!("{}/backend/auth/pending-token/{}?t={}", base, code, ts);
+
+    let res = reqwest::Client::new()
+        .get(url)
+        .header("Cache-Control", "no-cache")
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if !res.status().is_success() {
+        return Ok(None);
+    }
+
+    let value: serde_json::Value = res.json().await.map_err(|e| e.to_string())?;
+    let token = value
+        .get("token")
+        .and_then(|t| t.as_str())
+        .filter(|t| !t.is_empty())
+        .map(|t| t.to_string());
+    Ok(token)
+}
+
+// opens a native save-file dialog and writes content to the chosen path; returns the path or null
+#[tauri::command]
+fn save_file_dialog(default_name: String, content: String) -> Result<Option<String>, String> {
+    let path = rfd::FileDialog::new()
+        .set_file_name(&default_name)
+        .save_file();
+    if let Some(p) = path {
+        std::fs::write(&p, content.as_bytes()).map_err(|e| e.to_string())?;
+        Ok(Some(p.to_string_lossy().to_string()))
+    } else {
+        Ok(None)
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 // setup and run the tauri application with window positioning and event handlers
 pub fn run() {
@@ -222,6 +267,17 @@ pub fn run() {
         .manage(gptfree::GptfreeState::default())
         .manage(tts_native::TtsState::default())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_deep_link::init())
+        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+            // when a second instance is launched, check if any arg is a deep link URL
+            if let Some(url) = argv.iter().find(|a| a.starts_with("sayvela://")) {
+                let url = url.clone();
+                if let Some(win) = app.get_webview_window("main") {
+                    let _ = win.emit("deep-link-url", url);
+                    let _ = win.set_focus();
+                }
+            }
+        }))
         .setup(|app| {
             if let Some(win) = app.get_webview_window("main") {
                 let monitor = win
@@ -248,11 +304,13 @@ pub fn run() {
             soniox_get_temp_key,
             groq_check_question,
             build_prompt,
+            auth_poll_pending_token,
             gptfree::gptfree_start_stream,
             gptfree::gptfree_cancel_stream,
             tts_native::tts_list_voices,
             tts_native::tts_speak,
-            tts_native::tts_stop
+            tts_native::tts_stop,
+            save_file_dialog
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
