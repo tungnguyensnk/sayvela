@@ -8,6 +8,8 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD } from '@nestjs/core';
 import { BillingModule } from './billing/billing.module';
 import { SessionsModule } from './sessions/sessions.module';
+import { SettingsModule } from './settings/settings.module';
+import { ContextsModule } from './contexts/contexts.module';
 
 @Module({
   imports: [
@@ -17,6 +19,8 @@ import { SessionsModule } from './sessions/sessions.module';
     ProtectedModule,
     BillingModule,
     SessionsModule,
+    SettingsModule,
+    ContextsModule,
   ],
   controllers: [AppController],
   providers: [

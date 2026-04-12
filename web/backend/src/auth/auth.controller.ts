@@ -42,8 +42,16 @@ export class AuthController {
   // returns a short-lived token for the desktop app to use after browser login
   @Get('desktop-token')
   @UseGuards(AuthGuard('jwt'))
-  async desktopToken(@Request() req: { user: { userId: string; email: string } }) {
+  async desktopToken(
+    @Request() req: { user: { userId: string; email: string } },
+  ) {
     return this.auth.desktopToken(req.user.userId, req.user.email);
+  }
+
+  @Get('me')
+  @UseGuards(AuthGuard('jwt'))
+  me(@Request() req: { user: { userId: string; email: string } }) {
+    return { userId: req.user.userId, email: req.user.email };
   }
 
   // store a desktop jwt under a one-time code — called by web frontend after login
@@ -57,7 +65,10 @@ export class AuthController {
     if (!code || code.length < 8) {
       throw new HttpException('invalid code', HttpStatus.BAD_REQUEST);
     }
-    const { token } = await this.auth.desktopToken(req.user.userId, req.user.email);
+    const { token } = await this.auth.desktopToken(
+      req.user.userId,
+      req.user.email,
+    );
     this.auth.storePendingToken(code, token);
     return { ok: true };
   }
@@ -65,7 +76,7 @@ export class AuthController {
   // poll endpoint for desktop — returns token once and deletes it
   @Get('pending-token/:code')
   @Throttle({ default: { limit: 60, ttl: 60_000 } })
-  async consumePendingToken(@Param('code') code: string) {
+  consumePendingToken(@Param('code') code: string) {
     const token = this.auth.consumePendingToken(code);
     if (!token) return { token: null };
     return { token };

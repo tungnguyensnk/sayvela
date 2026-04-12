@@ -1,4 +1,5 @@
 mod audio;
+mod api;
 mod gptfree;
 mod groq;
 mod soniox;
@@ -310,7 +311,19 @@ pub fn run() {
             tts_native::tts_list_voices,
             tts_native::tts_speak,
             tts_native::tts_stop,
-            save_file_dialog
+            save_file_dialog,
+            api::api_get_settings,
+            api::api_update_settings,
+            api::api_list_contexts,
+            api::api_create_context,
+            api::api_update_context,
+            api::api_delete_context,
+            api::api_get_entitlement,
+            api::api_record_usage,
+            api::api_create_session,
+            api::api_finalize_session,
+            api::api_upload_segments,
+            api::api_get_me,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

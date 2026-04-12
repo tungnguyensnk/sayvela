@@ -1,16 +1,12 @@
-// entitlement service — checks quota and usage from the backend
-import { getAuthHeader } from "./authService";
-
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:80/api";
+// entitlement service — checks quota and usage via rust api commands
+import { getEntitlement, recordUsage as apiRecordUsage } from "./apiClient";
+import { getStoredAuth } from "./authService";
 
 // fetches current entitlement for the authenticated user; returns null if not authenticated
 export async function fetchEntitlement() {
-  const headers = getAuthHeader();
-  if (!headers.Authorization) return null;
+  if (!getStoredAuth()?.token) return null;
   try {
-    const res = await fetch(`${API_BASE}/backend/billing/entitlement`, { headers });
-    if (!res.ok) return null;
-    return await res.json();
+    return await getEntitlement();
   } catch {
     return null;
   }
@@ -18,13 +14,8 @@ export async function fetchEntitlement() {
 
 // records minutes used after a session ends; silently fails if not authenticated
 export async function recordUsage(minutes) {
-  const headers = getAuthHeader();
-  if (!headers.Authorization || minutes <= 0) return;
+  if (!getStoredAuth()?.token || minutes <= 0) return;
   try {
-    await fetch(`${API_BASE}/backend/billing/usage`, {
-      method: "POST",
-      headers: { ...headers, "Content-Type": "application/json" },
-      body: JSON.stringify({ minutes }),
-    });
+    await apiRecordUsage(minutes);
   } catch {}
 }

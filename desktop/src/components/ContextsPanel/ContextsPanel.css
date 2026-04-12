@@ -1,0 +1,100 @@
+.ctxp-body {
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  max-height: 300px;
+}
+
+.ctxp-empty {
+  text-align: center;
+  padding: 20px;
+}
+
+.ctxp-add-btn {
+  height: 30px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.ctxp-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #243041;
+  border-radius: 10px;
+  background: rgba(11, 15, 20, 0.35);
+  cursor: pointer;
+  transition: border-color 120ms, background 120ms;
+}
+
+.ctxp-item:hover {
+  border-color: rgba(78, 161, 255, 0.4);
+  background: rgba(78, 161, 255, 0.06);
+}
+
+.ctxp-item-active {
+  border-color: rgba(78, 161, 255, 0.7) !important;
+  background: rgba(78, 161, 255, 0.12) !important;
+}
+
+.ctxp-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ctxp-item-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e6edf3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ctxp-item-desc {
+  font-size: 11px;
+  color: #9fb0c0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ctxp-item-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.ctxp-tag {
+  font-size: 10px;
+  padding: 0 6px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: rgba(78, 161, 255, 0.12);
+  border: 1px solid rgba(78, 161, 255, 0.3);
+  color: #9fc9ff;
+}
+
+.ctxp-item-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.ctxp-tiny-btn {
+  height: 26px;
+  padding: 0 8px;
+  font-size: 11px;
+  border-radius: 7px;
+}

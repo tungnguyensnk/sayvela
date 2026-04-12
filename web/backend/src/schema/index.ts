@@ -5,3 +5,5 @@ export * from './stripe-events';
 export * from './billing-usage-cycles';
 export * from './sessions';
 export * from './session-segments';
+export * from './user-settings';
+export * from './contexts';

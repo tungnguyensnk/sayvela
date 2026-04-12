@@ -19,7 +19,7 @@ function UsageBadge({ entitlement }) {
 }
 
 // custom title bar component with window controls (minimize, maximize, close)
-export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, onLoginClick, onLogoutClick }) {
+export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, onLoginClick, onLogoutClick, onContextsClick, showContexts }) {
   const appWindow = useMemo(() => getCurrentWindow(), []);
   const [isMaximized, setIsMaximized] = useState(false);
 
@@ -95,6 +95,15 @@ export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, onL
         {user ? (
           <div className="tb-user">
             <span className="tb-user-email">{user.email}</span>
+            {onContextsClick && (
+              <button
+                type="button"
+                className={`tb-btn tb-text-btn${showContexts ? " tb-btn-active" : ""}`}
+                onClick={onContextsClick}
+              >
+                contexts
+              </button>
+            )}
             <button type="button" className="tb-btn tb-text-btn" onClick={onLogoutClick}>
               sign out
             </button>

@@ -11,6 +11,9 @@ export function AudioControlPanel({
   onChangeLoopbackDeviceId,
   loopbackContext,
   onChangeLoopbackContext,
+  loopbackContextId,
+  onChangeLoopbackContextId,
+  contexts = [],
   micDeviceId,
   onChangeMicDeviceId,
   contentProtectionEnabled,
@@ -116,14 +119,38 @@ export function AudioControlPanel({
             onChangeOutputLang={onChangeLoopbackOutputLang}
           >
             <div className="acp-subLabel">Context</div>
-            <textarea
-              className="input acp-contextTextarea"
-              value={loopbackContext || ""}
-              disabled={running}
-              onChange={(e) => onChangeLoopbackContext?.(e.target.value)}
-              placeholder='{"general":[{"domain":"...","topic":"..."}],"terms":["..."]}'
-            />
-            <div className="hint">json object or plain text</div>
+            <div className="row">
+              <select
+                className="select"
+                value={loopbackContextId || ""}
+                disabled={running}
+                onChange={(e) => onChangeLoopbackContextId?.(e.target.value || null)}
+              >
+                <option value="">— none —</option>
+                {contexts.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+              <button
+                className="btn"
+                type="button"
+                disabled={running}
+                onClick={() => onChangeLoopbackContext?.()}
+                title="Manage Contexts"
+              >
+                Manage
+              </button>
+            </div>
+            {loopbackContext && (
+              <div className="hint">
+                {[
+                  loopbackContext.general && "general",
+                  loopbackContext.text && "text",
+                  loopbackContext.terms?.length && `${loopbackContext.terms.length} terms`,
+                  loopbackContext.translation_terms?.length && `${loopbackContext.translation_terms.length} translation_terms`,
+                ].filter(Boolean).join(" · ")}
+              </div>
+            )}
           </SourceSection>
 
           {/* Mic Section */}
