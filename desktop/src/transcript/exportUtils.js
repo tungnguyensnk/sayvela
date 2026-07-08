@@ -51,7 +51,7 @@ export function toJson(groups) {
   );
 }
 
-// maps groups from transcript state into flat segment objects for API upload
+// maps groups from transcript state into flat segment objects for api upload; includes translation metadata
 export function groupsToSegments(groups) {
   return groups
     .filter((g) => g.finalText || g.text)
@@ -61,5 +61,8 @@ export function groupsToSegments(groups) {
       text: g.finalText || g.text || "",
       startMs: g.startMs ?? 0,
       endMs: g.endMs ?? 0,
+      language: g.language ?? undefined,
+      translationStatus: g.translationStatus ?? undefined,
+      originId: g.originId ?? undefined,
     }));
 }

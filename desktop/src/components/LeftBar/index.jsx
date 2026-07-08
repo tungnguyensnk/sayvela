@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { IconSettings, IconContexts, IconStats, IconChevronLeft, IconChevronRight, IconClose } from "../Icons";
+import { IconSettings, IconContexts, IconStats, IconSessions, IconChevronLeft, IconChevronRight, IconClose } from "../Icons";
 import "./LeftBar.css";
 
 const TABS = [
-  { id: "settings", icon: IconSettings, label: "Settings" },
-  { id: "contexts", icon: IconContexts, label: "Contexts" },
-  { id: "stats",    icon: IconStats,    label: "Stats" },
+  { id: "settings",  icon: IconSettings,  label: "Settings" },
+  { id: "contexts",  icon: IconContexts,  label: "Contexts" },
+  { id: "sessions",  icon: IconSessions,  label: "Sessions" },
+  { id: "stats",     icon: IconStats,     label: "Stats" },
 ];
 
 // collapsible left sidebar — icon rail + optional expanded panel

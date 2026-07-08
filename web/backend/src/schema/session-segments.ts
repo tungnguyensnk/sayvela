@@ -17,6 +17,10 @@ export const sessionSegments = pgTable(
       .notNull()
       .references(() => sessions.id, { onDelete: 'cascade' }),
     speaker: varchar('speaker', { length: 64 }),
+    source: varchar('source', { length: 32 }),
+    language: varchar('language', { length: 16 }),
+    translationStatus: varchar('translation_status', { length: 16 }),
+    originId: uuid('origin_id'),
     text: text('text').notNull(),
     startMs: integer('start_ms').notNull().default(0),
     endMs: integer('end_ms').notNull().default(0),

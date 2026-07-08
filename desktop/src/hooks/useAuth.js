@@ -34,6 +34,16 @@ export function useAuth() {
     };
   }, []);
 
+  // listen for 401 auth expired events dispatched by apiClient and auto-logout
+  useEffect(() => {
+    const handle = () => {
+      logoutService();
+      setAuth(null);
+    };
+    window.addEventListener("auth:expired", handle);
+    return () => window.removeEventListener("auth:expired", handle);
+  }, []);
+
   const login = useCallback(async () => {
     setLoading(true);
     setError("");

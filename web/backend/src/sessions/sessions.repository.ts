@@ -20,6 +20,10 @@ type UpdateInput = Partial<{
 type SegmentInput = {
   id: string;
   speaker?: string;
+  source?: string;
+  language?: string;
+  translationStatus?: string;
+  originId?: string;
   text: string;
   startMs: number;
   endMs: number;
@@ -66,11 +70,16 @@ export class SessionsRepository {
 
   async insertSegments(sessionId: string, segments: SegmentInput[]) {
     if (segments.length === 0) return;
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     await db.insert(sessionSegments).values(
       segments.map((s) => ({
-        id: s.id,
+        id: UUID_RE.test(s.id) ? s.id : crypto.randomUUID(),
         sessionId,
         speaker: s.speaker ?? null,
+        source: s.source ?? null,
+        language: s.language ?? null,
+        translationStatus: s.translationStatus ?? null,
+        originId: s.originId ?? null,
         text: s.text,
         startMs: s.startMs,
         endMs: s.endMs,

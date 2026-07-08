@@ -36,6 +36,27 @@
       "when": 1775902514183,
       "tag": "0004_settings_contexts",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1775990000000,
+      "tag": "0005_session_segments_source",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1776060000000,
+      "tag": "0006_session_segments_language",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1776120000000,
+      "tag": "0007_session_segments_origin_id",
+      "breakpoints": true
     }
   ]
 }

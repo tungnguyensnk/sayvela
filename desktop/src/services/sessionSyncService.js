@@ -17,11 +17,11 @@ export async function createSession({ title, language }) {
   }
 }
 
-// updates session metadata (duration, status) when session ends
-export async function finalizeSession(sessionId, { durationSeconds, status = "completed" }) {
+// updates session metadata (duration, status, title) when session ends
+export async function finalizeSession(sessionId, { durationSeconds, status = "completed", title }) {
   if (!getStoredAuth()?.token || !sessionId) return;
   try {
-    await apiFinalize(sessionId, { durationSeconds, status });
+    await apiFinalize(sessionId, { durationSeconds, status, title });
   } catch {}
 }
 

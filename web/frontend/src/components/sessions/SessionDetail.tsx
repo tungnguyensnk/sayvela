@@ -9,7 +9,20 @@ function msToTime(ms: number) {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
-// renders session detail page with full transcript and metadata
+// maps speaker identifier to a display label and color class
+function speakerMeta(speaker?: string | null, source?: string | null) {
+  if (!speaker || speaker === "me" || source === "mic") {
+    return { label: "Bạn", color: "text-emerald-400/90" };
+  }
+  const num = parseInt(speaker, 10);
+  if (!isNaN(num)) {
+    const colors = ["text-sky-400/90", "text-violet-400/90", "text-amber-400/90", "text-rose-400/90"];
+    return { label: `Speaker ${num + 1}`, color: colors[num % colors.length] };
+  }
+  return { label: speaker, color: "text-cyan-400/80" };
+}
+
+// renders session detail page with full transcript grouped by speaker
 export function SessionDetail({ id }: { id: string }) {
   const { session, loading, error } = useSessionDetail(id);
 
@@ -71,27 +84,29 @@ export function SessionDetail({ id }: { id: string }) {
           <p className="text-white/35 text-sm text-center py-8">No transcript segments.</p>
         ) : (
           <div className="flex flex-col gap-1 max-h-[60vh] overflow-y-auto pr-1">
-            {session.segments.map((seg) => (
-              <div
-                key={seg.id}
-                className="flex gap-3 rounded-lg px-3 py-2 hover:bg-white/4 transition-colors"
-              >
-                <span className="shrink-0 text-[10px] text-white/30 pt-0.5 font-mono w-10">
-                  {msToTime(seg.startMs)}
-                </span>
-                <div className="flex flex-col gap-0.5 flex-1">
-                  {seg.speaker && (
-                    <span className="text-[10px] font-semibold text-cyan-400/80 uppercase tracking-wider">
-                      {seg.speaker}
+            {session.segments.map((seg) => {
+              const meta = speakerMeta(seg.speaker, (seg as Record<string, unknown>).source as string);
+              return (
+                <div
+                  key={seg.id}
+                  className="flex gap-3 rounded-lg px-3 py-2 hover:bg-white/4 transition-colors"
+                >
+                  <span className="shrink-0 text-[10px] text-white/30 pt-0.5 font-mono w-10">
+                    {msToTime(seg.startMs)}
+                  </span>
+                  <div className="flex flex-col gap-0.5 flex-1">
+                    <span className={`text-[10px] font-semibold uppercase tracking-wider ${meta.color}`}>
+                      {meta.label}
                     </span>
-                  )}
-                  <p className="text-sm text-white/80 leading-relaxed">{seg.text}</p>
+                    <p className="text-sm text-white/80 leading-relaxed">{seg.text}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
     </div>
   );
 }
+

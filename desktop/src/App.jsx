@@ -11,16 +11,20 @@ import { TitleBar } from "./components/TitleBar";
 import { LoginPanel } from "./components/LoginPanel";
 import { QuotaExceededModal } from "./components/QuotaExceededModal";
 import { ContextsPanel } from "./components/ContextsPanel";
+import { SessionsPanel } from "./components/SessionsPanel";
 import { LeftBar } from "./components/LeftBar";
 import { IconSettings, IconContexts, IconStats, IconPlay, IconStop } from "./components/Icons";
 import { useAI } from "./hooks/useAI";
 import { useAuth } from "./hooks/useAuth";
 import { useSettings } from "./hooks/useSettings";
 import { useContexts } from "./hooks/useContexts";
+import { useSessions } from "./hooks/useSessions";
 import { useSpeakerCheck } from "./hooks/useSpeakerCheck";
 import { byteSize } from "./transcript/transcriptUtils";
 import { fetchEntitlement, recordUsage } from "./services/entitlementService";
-import { createSession, finalizeSession, uploadSegments } from "./services/sessionSyncService";
+import { createSession, finalizeSession } from "./services/sessionSyncService";
+import { getStoredAuth } from "./services/authService";
+import * as segmentWs from "./services/segmentWsService";
 import { toPlainText, toSrt, toJson, groupsToSegments } from "./transcript/exportUtils";
 
 // main application component that manages audio capture, transcription, and translation state
@@ -29,12 +33,18 @@ function App() {
   const { settings, update: updateSetting, loaded: settingsLoaded } = useSettings(isAuthenticated);
   const { contexts, loading: contextsLoading, add: addCtx, edit: editCtx, remove: removeCtx } = useContexts(isAuthenticated);
 
+  const [sessionsRefreshKey, setSessionsRefreshKey] = useState(0);
+  const { sessions, loading: sessionsLoading, error: sessionsError, refresh: refreshSessions, remove: removeSession } = useSessions(isAuthenticated, sessionsRefreshKey);
+
   const [activeTab, setActiveTab] = useState(null);
   const [entitlement, setEntitlement] = useState(null);
   const [quotaExceeded, setQuotaExceeded] = useState(false);
   const [syncStatus, setSyncStatus] = useState(null);
+  const [sessionElapsed, setSessionElapsed] = useState(0);
   const sessionIdRef = useRef(null);
   const sessionStartRef = useRef(null);
+  const elapsedTimerRef = useRef(null);
+  const sentSegmentIdsRef = useRef(new Set());
 
   const [devices, setDevices] = useState([]);
   const [devicesError, setDevicesError] = useState("");
@@ -157,6 +167,10 @@ function App() {
         enableTranslation: Boolean(loopbackOutputLang),
         audioEventName: "audio_chunk_loopback",
         context: activeContextJson,
+        onTurnEnd: (seg) => {
+          sentSegmentIdsRef.current.add(seg.id);
+          segmentWs.sendSegment({ ...seg, source: "loopback" });
+        },
       }).catch(() => {});
     }
   }, [running, loopbackCaptureState, loopbackInputLangs, loopbackOutputLang, loopbackDeviceId, activeContextJson]);
@@ -175,6 +189,11 @@ function App() {
         speakerOverride: "me",
         splitTurnsOnLanguage: false,
         enableSpeakerDiarization: false,
+        onTurnEnd: (seg) => {
+          sentSegmentIdsRef.current.add(seg.id);
+          const speaker = seg.translationStatus === "original" ? "me" : seg.speaker;
+          segmentWs.sendSegment({ ...seg, source: "mic", speaker });
+        },
       }).catch(() => {});
     }
   }, [running, micCaptureState, micInputLangs, micOutputLang, micDeviceId, activeContextJson]);
@@ -194,12 +213,23 @@ function App() {
     setLoopbackBytes(0);
     setMicBytes(0);
     setRunning(true);
+    setSessionElapsed(0);
     sessionStartRef.current = Date.now();
+    elapsedTimerRef.current = setInterval(() => {
+      setSessionElapsed(Math.floor((Date.now() - sessionStartRef.current) / 1000));
+    }, 1000);
     if (isAuthenticated) {
       const lang = loopbackInputLangs[0] || micInputLangs[0] || "en";
-      const sid = await createSession({ title: null, language: lang });
+      const autoTitle = `Session ${new Date().toLocaleString("vi-VN")}`;
+      const sid = await createSession({ title: autoTitle, language: lang });
       sessionIdRef.current = sid;
       setSyncStatus(null);
+      if (sid) {
+          const { token } = getStoredAuth() ?? {};
+          const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:80/api";
+          sentSegmentIdsRef.current = new Set();
+          segmentWs.connect(sid, token, apiUrl).catch(() => {});
+        }
     }
     try {
       await chatgpt.resetChatGPTWindow();
@@ -216,29 +246,42 @@ function App() {
   }
 
   async function stop() {
+    clearInterval(elapsedTimerRef.current);
     try { if (loopbackDeviceId) await invoke("stop_audio_capture", { kind: "loopback" }); } catch {}
     try { if (micDeviceId) await invoke("stop_audio_capture", { kind: "microphone" }); } catch {}
     setRunning(false);
     try { await loopbackTranscript.stop(); } catch {}
     try { await micTranscript.stop(); } catch {}
+    // allow soniox to send finished event and onTurnEnd to fire before flushing ws
+    await new Promise((r) => setTimeout(r, 300));
     if (isAuthenticated && sessionIdRef.current) {
       const durationMs = sessionStartRef.current ? Date.now() - sessionStartRef.current : 0;
       const minutes = Math.ceil(durationMs / 60000);
       setSyncStatus("syncing");
       try {
-        const allGroups = [...loopbackTranscript.groups, ...micTranscript.groups].sort(
-          (a, b) => (a.createdAt || 0) - (b.createdAt || 0)
-        );
+        // flush any segments not yet sent; tag with source for both original and translation
+        const alreadySent = sentSegmentIdsRef.current;
+        const loopbackSegs = groupsToSegments(loopbackTranscript.groups)
+          .map((s) => ({ ...s, source: "loopback" }))
+          .filter((s) => !alreadySent.has(s.id));
+        const micSegs = groupsToSegments(micTranscript.groups)
+          .map((s) => ({ ...s, source: "mic", speaker: s.translationStatus === "original" ? (s.speaker ?? "me") : s.speaker }))
+          .filter((s) => !alreadySent.has(s.id));
+        const remainingSegs = [...loopbackSegs, ...micSegs].sort((a, b) => (a.startMs || 0) - (b.startMs || 0));
+        await segmentWs.flushAndDisconnect(remainingSegs);
         await Promise.all([
           finalizeSession(sessionIdRef.current, { durationSeconds: Math.round(durationMs / 1000), status: "completed" }),
-          uploadSegments(sessionIdRef.current, groupsToSegments(allGroups)),
           recordUsage(minutes),
         ]);
         setSyncStatus("synced");
       } catch {
+        segmentWs.disconnect();
         setSyncStatus("failed");
       }
       sessionIdRef.current = null;
+      setSessionsRefreshKey((k) => k + 1);
+    } else {
+      segmentWs.disconnect();
     }
   }
 
@@ -347,6 +390,16 @@ function App() {
         );
       case "stats":
         return <StatsPanel entitlement={entitlement} />;
+      case "sessions":
+        return (
+          <SessionsPanel
+            sessions={sessions}
+            loading={sessionsLoading}
+            error={sessionsError}
+            onDelete={removeSession}
+            onRefresh={refreshSessions}
+          />
+        );
       default:
         return null;
     }
@@ -390,6 +443,7 @@ function App() {
               running={running}
               onStart={start}
               onStop={stop}
+              elapsed={sessionElapsed}
               loopbackStatus={loopbackTranscript.status}
               micStatus={micTranscript.status}
               activeContextName={contexts.find((c) => c.id === loopbackContextId)?.name}
@@ -419,13 +473,26 @@ function App() {
   );
 }
 
+// formats seconds into MM:SS or HH:MM:SS display string
+function formatElapsed(sec) {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  const mm = String(m).padStart(2, "0");
+  const ss = String(s).padStart(2, "0");
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+}
+
 // minimal center card showing connection status + quick start/stop action
-function StartStopCard({ running, onStart, onStop, loopbackStatus, micStatus, activeContextName, onOpenTab }) {
+function StartStopCard({ running, onStart, onStop, elapsed, loopbackStatus, micStatus, activeContextName, onOpenTab }) {
   return (
     <div className="ssc">
       <div className="ssc-status-row">
         <span className={`ssc-dot${running ? " ssc-dot--running" : ""}`} />
         <span className="ssc-state">{running ? "Recording…" : "Idle"}</span>
+        {running && elapsed > 0 && (
+          <span className="ssc-timer">{formatElapsed(elapsed)}</span>
+        )}
         {activeContextName && (
           <span className="ssc-ctx-badge" onClick={() => onOpenTab("contexts")} title="Active context">
             🗂️ {activeContextName}

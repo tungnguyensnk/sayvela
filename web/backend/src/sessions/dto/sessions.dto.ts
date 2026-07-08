@@ -34,12 +34,10 @@ export class UpdateSessionDto {
 }
 
 export class BulkInsertSegmentsDto {
-  @IsString({ each: true })
-  ids!: string[];
-
   segments!: {
     id: string;
     speaker?: string;
+    source?: string;
     text: string;
     startMs: number;
     endMs: number;

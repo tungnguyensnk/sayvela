@@ -267,6 +267,11 @@ pub fn run() {
         .manage(AppState::default())
         .manage(gptfree::GptfreeState::default())
         .manage(tts_native::TtsState::default())
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .level(log::LevelFilter::Debug)
+                .build(),
+        )
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
@@ -323,6 +328,8 @@ pub fn run() {
             api::api_create_session,
             api::api_finalize_session,
             api::api_upload_segments,
+            api::api_list_sessions,
+            api::api_delete_session,
             api::api_get_me,
         ])
         .run(tauri::generate_context!())

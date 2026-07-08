@@ -12,66 +12,88 @@ function getInvokeArgs() {
   return { apiUrl: API_URL, token };
 }
 
+// wraps invoke calls to detect 401 responses and dispatch an auth expiry event
+async function safeInvoke(cmd, args) {
+  try {
+    return await invoke(cmd, args);
+  } catch (e) {
+    const msg = String(e);
+    if (msg.includes("http 401") || msg.includes("401")) {
+      window.dispatchEvent(new CustomEvent("auth:expired"));
+    }
+    throw e;
+  }
+}
+
 // ── settings ──────────────────────────────────────────────────────────────────
 
 export async function getSettings() {
-  return invoke("api_get_settings", getInvokeArgs());
+  return safeInvoke("api_get_settings", getInvokeArgs());
 }
 
 export async function updateSettings(settingsJson) {
-  return invoke("api_update_settings", { ...getInvokeArgs(), settingsJson });
+  return safeInvoke("api_update_settings", { ...getInvokeArgs(), settingsJson });
 }
 
 // ── contexts ──────────────────────────────────────────────────────────────────
 
 export async function listContexts() {
-  return invoke("api_list_contexts", getInvokeArgs());
+  return safeInvoke("api_list_contexts", getInvokeArgs());
 }
 
 export async function createContext(payload) {
-  return invoke("api_create_context", { ...getInvokeArgs(), payload });
+  return safeInvoke("api_create_context", { ...getInvokeArgs(), payload });
 }
 
 export async function updateContext(id, payload) {
-  return invoke("api_update_context", { ...getInvokeArgs(), id, payload });
+  return safeInvoke("api_update_context", { ...getInvokeArgs(), id, payload });
 }
 
 export async function deleteContext(id) {
-  return invoke("api_delete_context", { ...getInvokeArgs(), id });
+  return safeInvoke("api_delete_context", { ...getInvokeArgs(), id });
 }
 
 // ── billing ───────────────────────────────────────────────────────────────────
 
 export async function getEntitlement() {
-  return invoke("api_get_entitlement", getInvokeArgs());
+  return safeInvoke("api_get_entitlement", getInvokeArgs());
 }
 
 export async function recordUsage(minutes) {
   if (minutes <= 0) return;
-  return invoke("api_record_usage", { ...getInvokeArgs(), minutes });
+  return safeInvoke("api_record_usage", { ...getInvokeArgs(), minutes });
 }
 
 // ── sessions ──────────────────────────────────────────────────────────────────
 
 export async function createSession({ title, language }) {
-  return invoke("api_create_session", { ...getInvokeArgs(), title: title ?? null, language });
+  return safeInvoke("api_create_session", { ...getInvokeArgs(), title: title ?? null, language });
 }
 
-export async function finalizeSession(sessionId, { durationSeconds, status = "completed" }) {
-  return invoke("api_finalize_session", {
+export async function finalizeSession(sessionId, { durationSeconds, status = "completed", title }) {
+  return safeInvoke("api_finalize_session", {
     ...getInvokeArgs(),
     sessionId,
     durationSeconds,
     status,
+    title: title ?? null,
   });
 }
 
 export async function uploadSegments(sessionId, segments) {
-  return invoke("api_upload_segments", { ...getInvokeArgs(), sessionId, segments });
+  return safeInvoke("api_upload_segments", { ...getInvokeArgs(), sessionId, segments });
+}
+
+export async function listSessions(page = 1, limit = 20) {
+  return safeInvoke("api_list_sessions", { ...getInvokeArgs(), page, limit });
+}
+
+export async function deleteSession(sessionId) {
+  return safeInvoke("api_delete_session", { ...getInvokeArgs(), sessionId });
 }
 
 // ── auth ──────────────────────────────────────────────────────────────────────
 
 export async function getMe() {
-  return invoke("api_get_me", getInvokeArgs());
+  return safeInvoke("api_get_me", getInvokeArgs());
 }

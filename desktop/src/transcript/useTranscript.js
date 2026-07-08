@@ -31,6 +31,7 @@ export function useTranscript() {
           setPartialText(t.partialText || "");
           setGroups(Array.isArray(t.groups) ? t.groups : []);
         },
+        onTurnEnd: opts.onTurnEnd,
       });
       sessionRef.current = session;
     } catch (e) {

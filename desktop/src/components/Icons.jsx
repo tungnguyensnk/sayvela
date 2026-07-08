@@ -70,3 +70,13 @@ export function IconStop({ size = 18, className = "" }) {
     </svg>
   );
 }
+
+export function IconSessions({ size = 20, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="4" rx="1" />
+      <rect x="3" y="11" width="18" height="4" rx="1" />
+      <rect x="3" y="18" width="11" height="3" rx="1" />
+    </svg>
+  );
+}

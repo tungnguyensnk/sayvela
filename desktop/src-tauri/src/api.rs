@@ -1,7 +1,9 @@
+use log::{debug, warn};
 use serde_json::Value;
 
 // issues a GET request with bearer auth; returns parsed json value or error string
 async fn get(url: &str, token: &str) -> Result<Value, String> {
+    debug!("[api] GET {}", url);
     let res = reqwest::Client::new()
         .get(url)
         .bearer_auth(token)
@@ -12,8 +14,10 @@ async fn get(url: &str, token: &str) -> Result<Value, String> {
     let status = res.status();
     if !status.is_success() {
         let text = res.text().await.unwrap_or_default();
+        warn!("[api] GET {} → {} {}", url, status.as_u16(), text);
         return Err(format!("http {} — {}", status.as_u16(), text));
     }
+    debug!("[api] GET {} → {}", url, status.as_u16());
     res.json::<Value>().await.map_err(|e| e.to_string())
 }
 
@@ -24,6 +28,7 @@ async fn request_with_body(
     token: &str,
     body: Value,
 ) -> Result<Value, String> {
+    debug!("[api] {} {} body={}", method, url, body);
     let builder = match method {
         "POST" => reqwest::Client::new().post(url),
         "PUT" => reqwest::Client::new().put(url),
@@ -41,8 +46,10 @@ async fn request_with_body(
     let status = res.status();
     if !status.is_success() {
         let text = res.text().await.unwrap_or_default();
+        warn!("[api] {} {} → {} {}", method, url, status.as_u16(), text);
         return Err(format!("http {} — {}", status.as_u16(), text));
     }
+    debug!("[api] {} {} → {}", method, url, status.as_u16());
 
     // 204 no content — return empty object
     if status.as_u16() == 204 {
@@ -53,6 +60,7 @@ async fn request_with_body(
 
 // issues a DELETE request with bearer auth
 async fn delete(url: &str, token: &str) -> Result<(), String> {
+    debug!("[api] DELETE {}", url);
     let res = reqwest::Client::new()
         .delete(url)
         .bearer_auth(token)
@@ -63,8 +71,10 @@ async fn delete(url: &str, token: &str) -> Result<(), String> {
     let status = res.status();
     if !status.is_success() && status.as_u16() != 204 {
         let text = res.text().await.unwrap_or_default();
+        warn!("[api] DELETE {} → {} {}", url, status.as_u16(), text);
         return Err(format!("http {} — {}", status.as_u16(), text));
     }
+    debug!("[api] DELETE {} → {}", url, status.as_u16());
     Ok(())
 }
 
@@ -173,7 +183,7 @@ pub async fn api_create_session(
     .await
 }
 
-// updates session metadata after it finishes (duration, status)
+// updates session metadata after it finishes (duration, status, title)
 #[tauri::command]
 pub async fn api_finalize_session(
     api_url: String,
@@ -181,13 +191,14 @@ pub async fn api_finalize_session(
     session_id: String,
     duration_seconds: u32,
     status: String,
+    title: Option<String>,
 ) -> Result<(), String> {
     let url = format!("{}/backend/sessions/{}", api_url.trim_end_matches('/'), session_id);
     request_with_body(
         "PUT",
         &url,
         &token,
-        serde_json::json!({ "durationSeconds": duration_seconds, "status": status }),
+        serde_json::json!({ "durationSeconds": duration_seconds, "status": status, "title": title }),
     )
     .await
     .map(|_| ())
@@ -209,6 +220,38 @@ pub async fn api_upload_segments(
     request_with_body("POST", &url, &token, serde_json::json!({ "segments": segments }))
         .await
         .map(|_| ())
+}
+
+// ── sessions list / delete ──────────────────────────────────────────────────
+
+// returns all sessions owned by the authenticated user
+#[tauri::command]
+pub async fn api_list_sessions(
+    api_url: String,
+    token: String,
+    page: Option<u32>,
+    limit: Option<u32>,
+) -> Result<Value, String> {
+    let p = page.unwrap_or(1);
+    let l = limit.unwrap_or(50);
+    let url = format!(
+        "{}/backend/sessions?page={}&limit={}",
+        api_url.trim_end_matches('/'),
+        p,
+        l
+    );
+    get(&url, &token).await
+}
+
+// deletes a session by id; returns nothing on success
+#[tauri::command]
+pub async fn api_delete_session(
+    api_url: String,
+    token: String,
+    session_id: String,
+) -> Result<(), String> {
+    let url = format!("{}/backend/sessions/{}", api_url.trim_end_matches('/'), session_id);
+    delete(&url, &token).await
 }
 
 // ── auth ──────────────────────────────────────────────────────────────────────

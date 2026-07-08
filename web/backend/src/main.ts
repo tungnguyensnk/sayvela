@@ -1,11 +1,13 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { WsAdapter } from '@nestjs/platform-ws';
 import { runMigrations } from './db';
 
 async function bootstrap() {
   await runMigrations();
   const app = await NestFactory.create(AppModule, { rawBody: true });
+  app.useWebSocketAdapter(new WsAdapter(app));
   const allowedOrigins = process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())
     : process.env.NEXTAUTH_URL

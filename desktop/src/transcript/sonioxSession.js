@@ -3,7 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 
 const WS_URL = "wss://stt-rt.soniox.com/transcribe-websocket";
 
-// extracts metadata like speaker, language, and finalization status from a transcript token
+// extracts metadata like speaker, language, timing and finalization status from a transcript token
 function tokenMeta(t) {
   const speaker = String(t?.speaker ?? "0");
   const language = typeof t?.language === "string" ? t.language : "";
@@ -15,7 +15,9 @@ function tokenMeta(t) {
         : "original";
   const text = typeof t?.text === "string" ? t.text : "";
   const isFinal = Boolean(t?.is_final ?? t?.isFinal);
-  return { speaker, language, translationStatus, text, isFinal };
+  const startMs = typeof t?.start_ms === "number" ? t.start_ms : null;
+  const endMs = typeof t?.end_ms === "number" ? t.end_ms : null;
+  return { speaker, language, translationStatus, text, isFinal, startMs, endMs };
 }
 
 // formats an internal segment state into a unified view object for rendering
@@ -32,6 +34,9 @@ function toGroupView(seg) {
     partialText,
     text: `${finalText}${partialText}`,
     isFinal: partialText.length === 0,
+    startMs: seg.startMs ?? 0,
+    endMs: seg.endMs ?? 0,
+    originId: seg.originId ?? null,
   };
 }
 
@@ -120,12 +125,15 @@ export async function startSonioxSession({
   onText,
   onResult,
   onState,
+  onTurnEnd,
 } = {}) {
   let nextSeq = 1;
   const lastTurnSeqBySpeaker = new Map();
   let lastOriginalRunKey = "";
   const allSegments = [];
   const streamByStatus = new Map();
+  // maps turnSeq → id of the "original" segment, so translation segments can reference it
+  const originIdByTurnSeq = new Map();
   const getStream = (translationStatus) => {
     const k = String(translationStatus ?? "original");
     let s = streamByStatus.get(k);
@@ -206,20 +214,29 @@ export async function startSonioxSession({
       }
       const runKey = `${turnSeq}|${m.speaker}|${m.language}|${m.translationStatus}`;
       if (!stream.current || stream.current.runKey !== runKey) {
-        if (stream.current && (stream.current.finalText || stream.current.partialText)) {
-          allSegments.push(toGroupView(stream.current));
+          if (stream.current && (stream.current.finalText || stream.current.partialText)) {
+            const finishedGroup = toGroupView(stream.current);
+            allSegments.push(finishedGroup);
+            onTurnEnd?.(finishedGroup);
+          }
+        const newId = crypto.randomUUID();
+        if (m.translationStatus === "original" || m.translationStatus == null) {
+          originIdByTurnSeq.set(turnSeq, newId);
         }
         stream.current = {
-          id: `${streamKey}-${stream.nextId++}`,
+          id: newId,
           seq: turnSeq,
           runKey,
           speaker: m.speaker,
           language: m.language,
           translationStatus: m.translationStatus,
+          originId: m.translationStatus === "translation" ? (originIdByTurnSeq.get(turnSeq) ?? null) : null,
           finalText: "",
           partialText: "",
           finalRaw: "",
           partialRaw: "",
+          startMs: m.startMs ?? 0,
+          endMs: m.endMs ?? 0,
           createdAt: Date.now(),
         };
       }
@@ -234,12 +251,21 @@ export async function startSonioxSession({
         if (delta) stream.current.partialText += delta;
         stream.current.partialRaw = String(m.text || "");
       }
+      // track timing: keep earliest startMs and latest endMs across all tokens in this turn
+      if (m.startMs !== null && (stream.current.startMs === 0 || m.startMs < stream.current.startMs)) {
+        stream.current.startMs = m.startMs;
+      }
+      if (m.endMs !== null && m.endMs > stream.current.endMs) {
+        stream.current.endMs = m.endMs;
+      }
     }
 
     if (Boolean(msg?.finished)) {
       for (const s of streamByStatus.values()) {
         if (s.current && (s.current.finalText || s.current.partialText)) {
-          allSegments.push(toGroupView(s.current));
+          const finishedGroup = toGroupView(s.current);
+          allSegments.push(finishedGroup);
+          onTurnEnd?.(finishedGroup);
         }
         s.current = null;
       }
