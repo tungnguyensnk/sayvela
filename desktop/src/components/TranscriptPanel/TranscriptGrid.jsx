@@ -29,7 +29,7 @@ export function TranscriptGrid({ transcriptGroups, langLabelFn }) {
 
   if (turns.length === 0) {
     return (
-      <div className="empty" style={{ gridColumn: "1 / -1" }}>
+      <div className="empty transcript-empty">
         -
       </div>
     );

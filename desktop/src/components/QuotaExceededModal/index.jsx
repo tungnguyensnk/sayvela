@@ -1,4 +1,4 @@
-// quota exceeded modal shown when user has used all their minutes
+import { ActionButton } from "../astryx/AstryxControls";
 import "./QuotaExceededModal.css";
 
 export function QuotaExceededModal({ entitlement, onDismiss }) {
@@ -27,9 +27,9 @@ export function QuotaExceededModal({ entitlement, onDismiss }) {
           </a>{" "}
           to continue.
         </p>
-        <button className="btn btn-secondary" onClick={onDismiss}>
+        <ActionButton onClick={onDismiss}>
           Continue anyway
-        </button>
+        </ActionButton>
       </div>
     </div>
   );

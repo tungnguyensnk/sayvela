@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { ActionButton, ActionIconButton } from "../astryx/AstryxControls";
 import { IconMinimize, IconMaximize, IconRestore, IconClose } from "./Icons";
 import "./TitleBar.css";
 
@@ -10,9 +11,9 @@ function UsageBadge({ entitlement }) {
   const total = entitlement.minutesPerMonth ?? 300;
   const remaining = Math.max(0, total - used);
   const pct = used / total;
-  const color = pct >= 0.9 ? "#ff6b6b" : pct >= 0.7 ? "#ffc96b" : "#4ade80";
+  const status = pct >= 0.9 ? "danger" : pct >= 0.7 ? "warning" : "success";
   return (
-    <span className="tb-usage-badge" style={{ color }}>
+    <span className={`tb-usage-badge tb-usage-badge--${status}`}>
       {remaining}m left
     </span>
   );
@@ -96,50 +97,46 @@ export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, onL
           <div className="tb-user">
             <span className="tb-user-email">{user.email}</span>
             {onContextsClick && (
-              <button
+              <ActionButton
                 type="button"
                 className={`tb-btn tb-text-btn${showContexts ? " tb-btn-active" : ""}`}
                 onClick={onContextsClick}
+                size="sm"
+                variant="ghost"
               >
                 contexts
-              </button>
+              </ActionButton>
             )}
-            <button type="button" className="tb-btn tb-text-btn" onClick={onLogoutClick}>
+            <ActionButton type="button" className="tb-btn tb-text-btn" onClick={onLogoutClick} size="sm" variant="ghost">
               sign out
-            </button>
+            </ActionButton>
           </div>
         ) : (
-          <button type="button" className="tb-btn tb-text-btn" onClick={onLoginClick}>
+          <ActionButton type="button" className="tb-btn tb-text-btn" onClick={onLoginClick} size="sm" variant="ghost">
             sign in
-          </button>
+          </ActionButton>
         )}
-        <button
-          type="button"
+        <ActionIconButton
           className="tb-btn"
-          aria-label="minimize"
           data-tauri-drag-region="false"
+          icon={<IconMinimize />}
+          label="minimize"
           onClick={minimize}
-        >
-          <IconMinimize />
-        </button>
-        <button
-          type="button"
+        />
+        <ActionIconButton
           className="tb-btn"
-          aria-label={isMaximized ? "restore" : "maximize"}
           data-tauri-drag-region="false"
+          icon={isMaximized ? <IconRestore /> : <IconMaximize />}
+          label={isMaximized ? "restore" : "maximize"}
           onClick={toggleMaximize}
-        >
-          {isMaximized ? <IconRestore /> : <IconMaximize />}
-        </button>
-        <button
-          type="button"
+        />
+        <ActionIconButton
           className="tb-btn tb-btn-close"
-          aria-label="close"
           data-tauri-drag-region="false"
+          icon={<IconClose />}
+          label="close"
           onClick={close}
-        >
-          <IconClose />
-        </button>
+        />
       </div>
     </header>
   );

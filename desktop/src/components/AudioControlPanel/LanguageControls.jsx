@@ -1,4 +1,5 @@
 import { LANGUAGES } from "../../languages";
+import { ActionButton } from "../astryx/AstryxControls";
 
 export function LanguagePills({ selected, onChange, disabled }) {
   const toggle = (code) => {
@@ -12,15 +13,17 @@ export function LanguagePills({ selected, onChange, disabled }) {
   return (
     <div className="chips acp-pills">
       {LANGUAGES.map((l) => (
-        <button
+        <ActionButton
           key={l.code}
           type="button"
           className={`chip ${selected.includes(l.code) ? "chip-active" : ""}`}
           disabled={disabled}
           onClick={() => toggle(l.code)}
+          size="sm"
+          variant="ghost"
         >
           {l.label}
-        </button>
+        </ActionButton>
       ))}
     </div>
   );

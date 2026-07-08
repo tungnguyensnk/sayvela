@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ttsGetVoices } from "../../tts/ttsApi";
+import { ActionButton } from "../astryx/AstryxControls";
 import { SourceSection } from "./SourceSection";
 import { TtsSection } from "./TtsSection";
 import "./AudioControlPanel.css";
@@ -97,7 +98,6 @@ export function AudioControlPanel({
       <div className="panel-header">
         <div>
           <div className="panel-title">Audio Configuration</div>
-          <div className="panel-sub">Select sources and languages</div>
         </div>
       </div>
       <div className="acp-body">
@@ -131,15 +131,16 @@ export function AudioControlPanel({
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
-              <button
-                className="btn"
+              <ActionButton
+                className="acp-manage-btn"
                 type="button"
                 disabled={running}
                 onClick={() => onChangeLoopbackContext?.()}
                 title="Manage Contexts"
+                size="sm"
               >
                 Manage
-              </button>
+              </ActionButton>
             </div>
             {loopbackContext && (
               <div className="hint">
@@ -202,28 +203,29 @@ export function AudioControlPanel({
             hide app in screen share/recording
           </label>
           <div className="actions">
-            <button
-              className="btn btn-secondary"
+            <ActionButton
+              className="acp-footer-btn"
               type="button"
               disabled={running}
               onClick={onRefreshDevices}
             >
               Refresh Devices
-            </button>
+            </ActionButton>
 
             {!running ? (
-              <button
-                className="btn btn-primary"
+              <ActionButton
+                className="acp-footer-btn"
                 type="button"
                 disabled={!loopbackDeviceId && !micDeviceId}
                 onClick={onStart}
+                variant="primary"
               >
                 Start Transcription
-              </button>
+              </ActionButton>
             ) : (
-              <button className="btn btn-danger" type="button" onClick={onStop}>
+              <ActionButton className="acp-footer-btn" type="button" onClick={onStop} variant="destructive">
                 Stop All
-              </button>
+              </ActionButton>
             )}
           </div>
         </div>

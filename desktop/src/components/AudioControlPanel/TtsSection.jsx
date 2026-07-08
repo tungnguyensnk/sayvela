@@ -1,4 +1,5 @@
 import { ttsGetTestSentence, ttsSpeak } from "../../tts/ttsApi";
+import { ActionButton } from "../astryx/AstryxControls";
 
 // provides controls for configuring text-to-speech output settings and testing the voice
 export function TtsSection({
@@ -52,7 +53,7 @@ export function TtsSection({
         </select>
 
         <select
-          className="select acp-select"
+          className="select acp-select acp-ttsVoiceSelect"
           value={micTtsVoiceId || ""}
           disabled={!micTtsEnabled}
           onChange={(e) => onChangeMicTtsVoiceId?.(e.target.value)}
@@ -120,8 +121,8 @@ export function TtsSection({
             </div>
           </div>
 
-          <button
-            className="btn btn-secondary acp-ttsTestBtn"
+          <ActionButton
+            className="acp-ttsTestBtn"
             type="button"
             disabled={!micTtsEnabled}
             onClick={() => {
@@ -138,7 +139,7 @@ export function TtsSection({
             }}
           >
             test
-          </button>
+          </ActionButton>
         </div>
       </div>
 

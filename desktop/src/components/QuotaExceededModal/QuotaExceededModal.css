@@ -2,7 +2,7 @@
   position: fixed;
   inset: 0;
   z-index: 1000;
-  background: rgba(11, 15, 20, 0.85);
+  background: color-mix(in srgb, var(--app-bg) 85%, transparent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -10,8 +10,8 @@
 }
 
 .quota-modal {
-  background: #121824;
-  border: 1px solid rgba(255, 159, 64, 0.4);
+  background: var(--app-surface);
+  border: 1px solid color-mix(in srgb, var(--app-warning) 40%, transparent);
   border-radius: 16px;
   padding: 28px 24px;
   max-width: 360px;
@@ -20,7 +20,7 @@
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5);
+  box-shadow: var(--app-shadow);
 }
 
 .quota-icon {
@@ -31,13 +31,13 @@
 .quota-title {
   font-size: 16px;
   font-weight: 700;
-  color: #ffc96b;
+  color: var(--app-warning);
   margin: 0;
 }
 
 .quota-body {
   font-size: 13px;
-  color: #9fb0c0;
+  color: var(--app-muted);
   margin: 0;
   text-align: center;
   line-height: 1.6;

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ActionButton } from "../astryx/AstryxControls";
 import { ContextModal } from "../ContextModal";
 import "./ContextsPanel.css";
 
@@ -24,7 +25,7 @@ export function ContextsPanel({ contexts, loading, onAdd, onEdit, onRemove, sele
     <div className="ctxp panel">
       <div className="panel-header">
         <span className="panel-title">Contexts</span>
-        <button className="btn btn-primary ctxp-add-btn" onClick={openNew}>+ New</button>
+        <ActionButton className="ctxp-add-btn" onClick={openNew} size="sm" variant="primary">+ New</ActionButton>
       </div>
 
       <div className="ctxp-body">
@@ -59,13 +60,13 @@ export function ContextsPanel({ contexts, loading, onAdd, onEdit, onRemove, sele
             <div className="ctxp-item-actions" onClick={(e) => e.stopPropagation()}>
               {confirmDeleteId === ctx.id ? (
                 <>
-                  <button className="btn btn-danger ctxp-tiny-btn" onClick={() => handleDelete(ctx.id)}>Confirm</button>
-                  <button className="btn ctxp-tiny-btn" onClick={() => setConfirmDeleteId(null)}>Cancel</button>
+                  <ActionButton className="ctxp-tiny-btn" onClick={() => handleDelete(ctx.id)} size="sm" variant="destructive">Confirm</ActionButton>
+                  <ActionButton className="ctxp-tiny-btn" onClick={() => setConfirmDeleteId(null)} size="sm">Cancel</ActionButton>
                 </>
               ) : (
                 <>
-                  <button className="btn ctxp-tiny-btn" onClick={() => openEdit(ctx)}>Edit</button>
-                  <button className="btn btn-danger ctxp-tiny-btn" onClick={() => setConfirmDeleteId(ctx.id)}>Del</button>
+                  <ActionButton className="ctxp-tiny-btn" onClick={() => openEdit(ctx)} size="sm">Edit</ActionButton>
+                  <ActionButton className="ctxp-tiny-btn" onClick={() => setConfirmDeleteId(ctx.id)} size="sm" variant="destructive">Del</ActionButton>
                 </>
               )}
             </div>

@@ -80,20 +80,10 @@ export async function finalizeSession(sessionId, { durationSeconds, status = "co
   });
 }
 
-export async function uploadSegments(sessionId, segments) {
-  return safeInvoke("api_upload_segments", { ...getInvokeArgs(), sessionId, segments });
-}
-
 export async function listSessions(page = 1, limit = 20) {
   return safeInvoke("api_list_sessions", { ...getInvokeArgs(), page, limit });
 }
 
 export async function deleteSession(sessionId) {
   return safeInvoke("api_delete_session", { ...getInvokeArgs(), sessionId });
-}
-
-// ── auth ──────────────────────────────────────────────────────────────────────
-
-export async function getMe() {
-  return safeInvoke("api_get_me", getInvokeArgs());
 }

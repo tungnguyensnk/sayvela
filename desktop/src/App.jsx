@@ -1,31 +1,31 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import "./App.css";
 import { useTranscript } from "./transcript/useTranscript";
-import { AudioControlPanel } from "./components/AudioControlPanel";
 import { TranscriptPanel } from "./components/TranscriptPanel";
 import { AIChatPanel } from "./components/AIChatPanel";
 import { useMicTranslationTts } from "./tts/useMicTranslationTts";
 import { TitleBar } from "./components/TitleBar";
 import { LoginPanel } from "./components/LoginPanel";
 import { QuotaExceededModal } from "./components/QuotaExceededModal";
-import { ContextsPanel } from "./components/ContextsPanel";
-import { SessionsPanel } from "./components/SessionsPanel";
 import { LeftBar } from "./components/LeftBar";
-import { IconSettings, IconContexts, IconStats, IconPlay, IconStop } from "./components/Icons";
+import { StartStopCard } from "./components/StartStopCard";
+import { AppLeftContent } from "./components/AppLeftContent";
 import { useAI } from "./hooks/useAI";
 import { useAuth } from "./hooks/useAuth";
 import { useSettings } from "./hooks/useSettings";
 import { useContexts } from "./hooks/useContexts";
 import { useSessions } from "./hooks/useSessions";
 import { useSpeakerCheck } from "./hooks/useSpeakerCheck";
+import { useMergedTranscriptGroups } from "./hooks/useMergedTranscriptGroups";
+import { useTranscriptExport } from "./hooks/useTranscriptExport";
 import { byteSize } from "./transcript/transcriptUtils";
 import { fetchEntitlement, recordUsage } from "./services/entitlementService";
 import { createSession, finalizeSession } from "./services/sessionSyncService";
 import { getStoredAuth } from "./services/authService";
 import * as segmentWs from "./services/segmentWsService";
-import { toPlainText, toSrt, toJson, groupsToSegments } from "./transcript/exportUtils";
+import { groupsToSegments } from "./transcript/exportUtils";
 
 // main application component that manages audio capture, transcription, and translation state
 function App() {
@@ -285,23 +285,8 @@ function App() {
     }
   }
 
-  const handleExport = useCallback(async (format) => {
-    const allGroups = [...loopbackTranscript.groups, ...micTranscript.groups].sort(
-      (a, b) => (a.createdAt || 0) - (b.createdAt || 0)
-    );
-    if (allGroups.length === 0) return;
-    let content, ext;
-    if (format === "srt") { content = toSrt(allGroups); ext = "srt"; }
-    else if (format === "json") { content = toJson(allGroups); ext = "json"; }
-    else { content = toPlainText(allGroups); ext = "txt"; }
-    try { await invoke("save_file_dialog", { defaultName: `transcript.${ext}`, content }); } catch {}
-  }, [loopbackTranscript.groups, micTranscript.groups]);
-
-  const mergedGroups = useMemo(() => {
-    const sys = loopbackTranscript.groups.map((g) => ({ ...g, sessionId: "sys" }));
-    const mic = micTranscript.groups.map((g) => ({ ...g, sessionId: "mic" }));
-    return [...sys, ...mic].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-  }, [loopbackTranscript.groups, micTranscript.groups]);
+  const handleExport = useTranscriptExport(loopbackTranscript.groups, micTranscript.groups);
+  const mergedGroups = useMergedTranscriptGroups(loopbackTranscript.groups, micTranscript.groups);
 
   useMicTranslationTts({
     enabled: micTtsEnabled,
@@ -316,94 +301,71 @@ function App() {
     queueMode: "add",
   });
 
-  // resolves content to show inside the left panel based on active tab
-  function renderLeftContent() {
-    switch (activeTab) {
-      case "settings":
-        return (
-          <AudioControlPanel
-            devices={devices}
-            loopbackDeviceId={loopbackDeviceId}
-            onChangeLoopbackDeviceId={setAndSave("loopbackDeviceId", setLoopbackDeviceId)}
-            loopbackContext={activeContextJson}
-            onChangeLoopbackContext={() => setActiveTab("contexts")}
-            loopbackContextId={loopbackContextId}
-            onChangeLoopbackContextId={(id) => {
-              setLoopbackContextId(id);
-              updateSetting({ loopbackContextId: id });
-            }}
-            contexts={contexts}
-            contentProtectionEnabled={contentProtectionEnabled}
-            onChangeContentProtectionEnabled={setAndSave("contentProtectionEnabled", setContentProtectionEnabled)}
-            loopbackBytes={loopbackBytes}
-            loopbackCaptureState={loopbackCaptureState}
-            loopbackInputLangs={loopbackInputLangs}
-            onChangeLoopbackInputLangs={setAndSave("loopbackInputLangs", setLoopbackInputLangs)}
-            loopbackOutputLang={loopbackOutputLang}
-            onChangeLoopbackOutputLang={setAndSave("loopbackOutputLang", setLoopbackOutputLang)}
-            micDeviceId={micDeviceId}
-            onChangeMicDeviceId={setAndSave("micDeviceId", setMicDeviceId)}
-            micBytes={micBytes}
-            micCaptureState={micCaptureState}
-            micInputLangs={micInputLangs}
-            onChangeMicInputLangs={setAndSave("micInputLangs", setMicInputLangs)}
-            micOutputLang={micOutputLang}
-            onChangeMicOutputLang={setAndSave("micOutputLang", setMicOutputLang)}
-            micTtsEnabled={micTtsEnabled}
-            onChangeMicTtsEnabled={setAndSave("micTtsEnabled", setMicTtsEnabled)}
-            micTtsVoiceId={micTtsVoiceId}
-            onChangeMicTtsVoiceId={setAndSave("micTtsVoiceId", setMicTtsVoiceId)}
-            micTtsRate={micTtsRate}
-            onChangeMicTtsRate={setAndSave("micTtsRate", setMicTtsRate)}
-            micTtsPitch={micTtsPitch}
-            onChangeMicTtsPitch={setAndSave("micTtsPitch", setMicTtsPitch)}
-            micTtsVolume={micTtsVolume}
-            onChangeMicTtsVolume={setAndSave("micTtsVolume", setMicTtsVolume)}
-            micTtsOutputDeviceId={micTtsOutputDeviceId}
-            onChangeMicTtsOutputDeviceId={setAndSave("micTtsOutputDeviceId", setMicTtsOutputDeviceId)}
-            loopbackStatus={loopbackTranscript.status}
-            loopbackError={loopbackTranscript.error}
-            micStatus={micTranscript.status}
-            micError={micTranscript.error}
-            running={running}
-            onRefreshDevices={refreshDevices}
-            devicesError={devicesError}
-            onStart={start}
-            onStop={stop}
-            inRightBar
-          />
-        );
-      case "contexts":
-        return (
-          <ContextsPanel
-            contexts={contexts}
-            loading={contextsLoading}
-            onAdd={addCtx}
-            onEdit={editCtx}
-            onRemove={removeCtx}
-            selectedId={loopbackContextId}
-            onSelect={(id) => {
-              setLoopbackContextId(id);
-              updateSetting({ loopbackContextId: id });
-            }}
-          />
-        );
-      case "stats":
-        return <StatsPanel entitlement={entitlement} />;
-      case "sessions":
-        return (
-          <SessionsPanel
-            sessions={sessions}
-            loading={sessionsLoading}
-            error={sessionsError}
-            onDelete={removeSession}
-            onRefresh={refreshSessions}
-          />
-        );
-      default:
-        return null;
-    }
-  }
+  const audioProps = {
+    devices,
+    loopbackDeviceId,
+    onChangeLoopbackDeviceId: setAndSave("loopbackDeviceId", setLoopbackDeviceId),
+    loopbackContext: activeContextJson,
+    onChangeLoopbackContext: () => setActiveTab("contexts"),
+    loopbackContextId,
+    onChangeLoopbackContextId: setAndSave("loopbackContextId", setLoopbackContextId),
+    contexts,
+    micDeviceId,
+    onChangeMicDeviceId: setAndSave("micDeviceId", setMicDeviceId),
+    contentProtectionEnabled,
+    onChangeContentProtectionEnabled: setContentProtectionEnabled,
+    running,
+    onRefreshDevices: refreshDevices,
+    devicesError,
+    loopbackBytes,
+    micBytes,
+    loopbackCaptureState,
+    micCaptureState,
+    loopbackInputLangs,
+    onChangeLoopbackInputLangs: setAndSave("loopbackInputLangs", setLoopbackInputLangs),
+    loopbackOutputLang,
+    onChangeLoopbackOutputLang: setAndSave("loopbackOutputLang", setLoopbackOutputLang),
+    micInputLangs,
+    onChangeMicInputLangs: setAndSave("micInputLangs", setMicInputLangs),
+    micOutputLang,
+    onChangeMicOutputLang: setAndSave("micOutputLang", setMicOutputLang),
+    micTtsEnabled,
+    onChangeMicTtsEnabled: setAndSave("micTtsEnabled", setMicTtsEnabled),
+    micTtsVoiceId,
+    onChangeMicTtsVoiceId: setAndSave("micTtsVoiceId", setMicTtsVoiceId),
+    micTtsRate,
+    onChangeMicTtsRate: setAndSave("micTtsRate", setMicTtsRate),
+    micTtsPitch,
+    onChangeMicTtsPitch: setAndSave("micTtsPitch", setMicTtsPitch),
+    micTtsVolume,
+    onChangeMicTtsVolume: setAndSave("micTtsVolume", setMicTtsVolume),
+    micTtsOutputDeviceId,
+    onChangeMicTtsOutputDeviceId: setAndSave("micTtsOutputDeviceId", setMicTtsOutputDeviceId),
+    loopbackStatus: loopbackTranscript.status,
+    loopbackError: loopbackTranscript.error,
+    micStatus: micTranscript.status,
+    micError: micTranscript.error,
+    onStart: start,
+    onStop: stop,
+  };
+
+  const contextsState = {
+    contexts,
+    loading: contextsLoading,
+    onAdd: addCtx,
+    onEdit: editCtx,
+    onRemove: removeCtx,
+    selectedId: loopbackContextId,
+    onSelect: setAndSave("loopbackContextId", setLoopbackContextId),
+  };
+
+  const sessionsState = {
+    sessions,
+    loading: sessionsLoading,
+    error: sessionsError,
+    onDelete: removeSession,
+    onRefresh: refreshSessions,
+  };
 
   if (!isAuthenticated) {
     return (
@@ -435,7 +397,13 @@ function App() {
 
         <div className="app-body">
           <LeftBar activeTab={activeTab} onTabChange={setActiveTab}>
-            {renderLeftContent()}
+            <AppLeftContent
+              activeTab={activeTab}
+              audio={audioProps}
+              contextsState={contextsState}
+              sessionsState={sessionsState}
+              stats={{ entitlement }}
+            />
           </LeftBar>
 
           <main className="main main--center">
@@ -469,83 +437,6 @@ function App() {
           </main>
         </div>
       </div>
-    </div>
-  );
-}
-
-// formats seconds into MM:SS or HH:MM:SS display string
-function formatElapsed(sec) {
-  const h = Math.floor(sec / 3600);
-  const m = Math.floor((sec % 3600) / 60);
-  const s = sec % 60;
-  const mm = String(m).padStart(2, "0");
-  const ss = String(s).padStart(2, "0");
-  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
-}
-
-// minimal center card showing connection status + quick start/stop action
-function StartStopCard({ running, onStart, onStop, elapsed, loopbackStatus, micStatus, activeContextName, onOpenTab }) {
-  return (
-    <div className="ssc">
-      <div className="ssc-status-row">
-        <span className={`ssc-dot${running ? " ssc-dot--running" : ""}`} />
-        <span className="ssc-state">{running ? "Recording…" : "Idle"}</span>
-        {running && elapsed > 0 && (
-          <span className="ssc-timer">{formatElapsed(elapsed)}</span>
-        )}
-        {activeContextName && (
-          <span className="ssc-ctx-badge" onClick={() => onOpenTab("contexts")} title="Active context">
-            🗂️ {activeContextName}
-          </span>
-        )}
-      </div>
-
-      <div className="ssc-actions">
-        {!running ? (
-          <button className="btn btn-primary ssc-btn" onClick={onStart}>
-            <IconPlay size={16} /> Start
-          </button>
-        ) : (
-          <button className="btn btn-danger ssc-btn" onClick={onStop}>
-            <IconStop size={16} /> Stop
-          </button>
-        )}
-      </div>
-
-      <div className="ssc-quick-row">
-        <button className="ssc-quick-btn" onClick={() => onOpenTab("settings")}>
-          <IconSettings size={15} /> Settings
-        </button>
-        <button className="ssc-quick-btn" onClick={() => onOpenTab("contexts")}>
-          <IconContexts size={15} /> Contexts
-        </button>
-        <button className="ssc-quick-btn" onClick={() => onOpenTab("stats")}>
-          <IconStats size={15} /> Stats
-        </button>
-      </div>
-
-      <div className="ssc-sub-row">
-        {loopbackStatus && <span className="ssc-badge">Sys: {loopbackStatus}</span>}
-        {micStatus && <span className="ssc-badge">Mic: {micStatus}</span>}
-      </div>
-    </div>
-  );
-}
-
-// simple stats panel showing usage entitlement
-function StatsPanel({ entitlement }) {
-  if (!entitlement) return <div className="lb-empty">No usage data</div>;
-  const pct = Math.min(100, Math.round((entitlement.minutesUsed / entitlement.minutesPerMonth) * 100));
-  return (
-    <div className="stats-panel">
-      <div className="stats-row">
-        <span className="stats-label">Minutes used</span>
-        <span className="stats-value">{entitlement.minutesUsed} / {entitlement.minutesPerMonth}</span>
-      </div>
-      <div className="stats-bar-track">
-        <div className="stats-bar-fill" style={{ width: `${pct}%` }} />
-      </div>
-      <div className="stats-pct">{pct}%</div>
     </div>
   );
 }

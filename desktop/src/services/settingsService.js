@@ -20,13 +20,6 @@ export function cacheSettings(settingsJson) {
   } catch {}
 }
 
-// clears cached settings on logout
-export function clearCachedSettings() {
-  try {
-    localStorage.removeItem(CACHE_KEY);
-  } catch {}
-}
-
 // fetches settings from backend via rust command; falls back to localStorage cache
 export async function fetchSettings() {
   try {

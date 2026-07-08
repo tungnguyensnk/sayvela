@@ -24,21 +24,21 @@
   justify-content: space-between;
   gap: 8px;
   padding: 10px 12px;
-  border: 1px solid #243041;
-  border-radius: 10px;
-  background: rgba(11, 15, 20, 0.35);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: color-mix(in srgb, var(--app-bg) 35%, transparent);
   cursor: pointer;
   transition: border-color 120ms, background 120ms;
 }
 
 .ctxp-item:hover {
-  border-color: rgba(78, 161, 255, 0.4);
-  background: rgba(78, 161, 255, 0.06);
+  border-color: color-mix(in srgb, var(--app-accent) 40%, transparent);
+  background: color-mix(in srgb, var(--app-accent) 8%, transparent);
 }
 
 .ctxp-item-active {
-  border-color: rgba(78, 161, 255, 0.7) !important;
-  background: rgba(78, 161, 255, 0.12) !important;
+  border-color: color-mix(in srgb, var(--app-accent) 70%, transparent) !important;
+  background: color-mix(in srgb, var(--app-accent) 12%, transparent) !important;
 }
 
 .ctxp-item-content {
@@ -52,7 +52,7 @@
 .ctxp-item-name {
   font-size: 13px;
   font-weight: 600;
-  color: #e6edf3;
+  color: var(--app-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -60,7 +60,7 @@
 
 .ctxp-item-desc {
   font-size: 11px;
-  color: #9fb0c0;
+  color: var(--app-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -80,9 +80,9 @@
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  background: rgba(78, 161, 255, 0.12);
-  border: 1px solid rgba(78, 161, 255, 0.3);
-  color: #9fc9ff;
+  background: color-mix(in srgb, var(--app-accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--app-accent) 30%, transparent);
+  color: var(--app-accent);
 }
 
 .ctxp-item-actions {

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ActionButton } from "../astryx/AstryxControls";
 import "./SessionsPanel.css";
 
 // formats duration in seconds to readable string (e.g. "5m 30s")
@@ -35,7 +36,7 @@ export function SessionsPanel({ sessions, loading, error, onDelete, onRefresh })
     <div className="sesp panel">
       <div className="panel-header">
         <span className="panel-title">Sessions</span>
-        <button className="btn sesp-refresh-btn" onClick={onRefresh} title="Refresh">↻</button>
+        <ActionButton className="sesp-refresh-btn" onClick={onRefresh} title="Refresh">↻</ActionButton>
       </div>
 
       <div className="sesp-body">
@@ -57,11 +58,11 @@ export function SessionsPanel({ sessions, loading, error, onDelete, onRefresh })
             <div className="sesp-item-actions" onClick={(e) => e.stopPropagation()}>
               {confirmId === s.id ? (
                 <>
-                  <button className="btn btn-danger sesp-tiny-btn" onClick={() => handleDelete(s.id)}>Confirm</button>
-                  <button className="btn sesp-tiny-btn" onClick={() => setConfirmId(null)}>Cancel</button>
+                  <ActionButton className="sesp-tiny-btn" onClick={() => handleDelete(s.id)} size="sm" variant="destructive">Confirm</ActionButton>
+                  <ActionButton className="sesp-tiny-btn" onClick={() => setConfirmId(null)} size="sm">Cancel</ActionButton>
                 </>
               ) : (
-                <button className="btn btn-danger sesp-tiny-btn" onClick={() => setConfirmId(s.id)}>Del</button>
+                <ActionButton className="sesp-tiny-btn" onClick={() => setConfirmId(s.id)} size="sm" variant="destructive">Del</ActionButton>
               )}
             </div>
           </div>

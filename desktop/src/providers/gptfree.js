@@ -1,4 +1,5 @@
-import { isTauri } from "@tauri-apps/api/core";
+import { invoke, isTauri } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 
 function isTauriRuntime() {
   try {
@@ -16,9 +17,6 @@ export async function sendStreamMessage(message, history = [], onEvent, options 
   if (!isTauriRuntime()) {
     throw new Error("gptfree provider requires tauri runtime");
   }
-
-  const { invoke } = await import("@tauri-apps/api/core");
-  const { listen } = await import("@tauri-apps/api/event");
 
   const requestId = options?.requestId;
   if (!requestId) {

@@ -78,10 +78,3 @@ export function startPolling(code, onToken, onError) {
 export function logout() {
   clearAuth();
 }
-
-// returns auth header object or empty object if not authenticated
-export function getAuthHeader() {
-  const auth = getStoredAuth();
-  if (!auth?.token) return {};
-  return { Authorization: `Bearer ${auth.token}` };
-}

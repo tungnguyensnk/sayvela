@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { IconSettings, IconContexts, IconStats, IconSessions, IconChevronLeft, IconChevronRight, IconClose } from "../Icons";
+import { IconSettings, IconContexts, IconStats, IconSessions, IconClose } from "../Icons";
+import { ActionIconButton } from "../astryx/AstryxControls";
 import "./LeftBar.css";
 
 const TABS = [
@@ -9,62 +9,45 @@ const TABS = [
   { id: "stats",     icon: IconStats,     label: "Stats" },
 ];
 
-// collapsible left sidebar — icon rail + optional expanded panel
+// left sidebar with icon rail and overlay panel
 export function LeftBar({ activeTab, onTabChange, children }) {
-  const [expanded, setExpanded] = useState(true);
+  const panelOpen = Boolean(activeTab);
 
   function handleTabClick(id) {
-    if (!expanded) {
-      setExpanded(true);
-      onTabChange(id);
-    } else {
-      onTabChange(activeTab === id ? null : id);
-    }
+    onTabChange(activeTab === id ? null : id);
   }
 
   return (
-    <aside className={`lb-root${expanded ? " lb-root--open" : ""}`}>
+    <aside className="lb-root">
       <nav className="lb-rail">
         <div className="lb-rail-tabs">
           {TABS.map((t) => {
             const Icon = t.icon;
-            const active = activeTab === t.id && expanded;
+            const active = activeTab === t.id;
             return (
-              <button
+              <ActionIconButton
                 key={t.id}
+                label={t.label}
                 className={`lb-icon-btn${active ? " lb-icon-btn--active" : ""}`}
+                icon={<Icon size={22} />}
                 onClick={() => handleTabClick(t.id)}
                 title={t.label}
+                tooltip={null}
               >
-                <Icon size={22} />
                 <span className="lb-icon-label">{t.label}</span>
-              </button>
+              </ActionIconButton>
             );
           })}
         </div>
 
-        <button
-          className="lb-toggle-btn"
-          onClick={() => setExpanded((v) => !v)}
-          title={expanded ? "Collapse" : "Expand"}
-        >
-          {expanded ? <IconChevronLeft size={16} /> : <IconChevronRight size={16} />}
-        </button>
       </nav>
 
-      {activeTab && expanded && (
-        <div className="lb-panel">
-          <div className="lb-panel-header">
-            <span className="lb-panel-title">
-              {TABS.find((t) => t.id === activeTab)?.label}
-            </span>
-            <button className="lb-close-btn" onClick={() => onTabChange(null)} title="Close">
-              <IconClose size={14} />
-            </button>
-          </div>
+      <div className={`lb-panel${panelOpen ? " lb-panel--open" : ""}`} aria-hidden={!panelOpen}>
+        {activeTab !== "settings" && activeTab !== "stats" && (
+          <ActionIconButton className="lb-close-btn" icon={<IconClose size={14} />} label="Close" onClick={() => onTabChange(null)} title="Close" />
+        )}
           <div className="lb-panel-body">{children}</div>
         </div>
-      )}
     </aside>
   );
 }

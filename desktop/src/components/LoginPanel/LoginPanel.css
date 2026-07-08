@@ -19,19 +19,19 @@
   width: 40px;
   height: 40px;
   margin-bottom: 8px;
-  filter: drop-shadow(0 6px 16px rgba(34, 211, 238, 0.28));
+  filter: drop-shadow(0 6px 16px color-mix(in srgb, var(--app-accent) 28%, transparent));
 }
 
 .login-title {
   font-size: 18px;
   font-weight: 700;
-  color: #e6edf3;
+  color: var(--app-text);
   margin: 0;
 }
 
 .login-sub {
   font-size: 13px;
-  color: #9fb0c0;
+  color: var(--app-muted);
   margin: 0 0 16px;
   text-align: center;
 }
@@ -45,12 +45,12 @@
 
 .login-error {
   font-size: 12px;
-  color: #ff9a9a;
+  color: var(--app-danger);
   margin: 0;
   padding: 8px 10px;
-  border: 1px solid rgba(255, 92, 92, 0.35);
+  border: 1px solid color-mix(in srgb, var(--app-danger) 35%, transparent);
   border-radius: 8px;
-  background: rgba(255, 92, 92, 0.08);
+  background: color-mix(in srgb, var(--app-danger) 8%, transparent);
 }
 
 .login-btn {
@@ -60,13 +60,13 @@
 
 .login-hint {
   font-size: 12px;
-  color: #9fb0c0;
+  color: var(--app-muted);
   margin: 12px 0 0;
   text-align: center;
 }
 
 .login-link {
-  color: #4ea1ff;
+  color: var(--app-accent);
   text-decoration: none;
 }
 

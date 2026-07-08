@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { ActionButton, ActionIconButton } from "../astryx/AstryxControls";
+import { IconClose } from "../Icons";
 import "./ContextModal.css";
 
 const EMPTY_FORM = {
@@ -124,7 +126,7 @@ export function ContextModal({ open, initial, onClose, onSave }) {
           <span className="ctx-modal-title">
             {initial ? "Edit Context" : "New Context"}
           </span>
-          <button className="ctx-close-btn" onClick={onClose}>✕</button>
+          <ActionIconButton className="ctx-close-btn" icon={<IconClose size={14} />} label="Close" onClick={onClose} />
         </div>
         <div className="ctx-modal-body">
           <div className="field">
@@ -190,10 +192,10 @@ export function ContextModal({ open, initial, onClose, onSave }) {
         </div>
 
         <div className="ctx-modal-footer">
-          <button className="btn" onClick={onClose} disabled={saving}>Cancel</button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
+          <ActionButton onClick={onClose} disabled={saving}>Cancel</ActionButton>
+          <ActionButton onClick={handleSave} disabled={saving} variant="primary">
             {saving ? "Saving…" : "Save"}
-          </button>
+          </ActionButton>
         </div>
       </div>
     </div>

@@ -25,12 +25,12 @@
 .acp-sourceTitle {
   font-size: 13px;
   font-weight: 700;
-  color: #e6edf3;
+  color: var(--app-text);
 }
 
 .acp-sourceMeta {
   font-size: 12px;
-  color: #9fb0c0;
+  color: var(--app-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -41,7 +41,7 @@
 .acp-subsection {
   margin-top: 2px;
   padding-left: 10px;
-  border-left: 2px solid #243041;
+  border-left: 2px solid var(--app-border);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -49,7 +49,7 @@
 
 .acp-subLabel {
   font-size: 11px;
-  color: rgba(159, 176, 192, 0.9);
+  color: color-mix(in srgb, var(--app-muted) 90%, transparent);
 }
 
 .acp-pills {
@@ -89,7 +89,7 @@
 .acp-ttsSection {
   margin-top: 10px;
   padding-top: 10px;
-  border-top: 1px solid rgba(36, 48, 65, 0.7);
+  border-top: 1px solid color-mix(in srgb, var(--app-border) 70%, transparent);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -104,9 +104,13 @@
 
 .acp-ttsSelectRow {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) minmax(280px, 1.2fr);
+  grid-template-columns: minmax(180px, 0.8fr) minmax(180px, 1fr);
   gap: 8px;
   align-items: center;
+}
+
+.acp-ttsVoiceSelect {
+  max-width: 220px;
 }
 
 .acp-ttsControls {
@@ -138,7 +142,7 @@
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #9fb0c0;
+  color: var(--app-muted);
 }
 
 .acp-sliderRow {
@@ -150,19 +154,19 @@
 
 .acp-sliderLabel {
   font-size: 12px;
-  color: #9fb0c0;
+  color: var(--app-muted);
 }
 
 .acp-sliderValue {
   font-size: 12px;
-  color: #9fb0c0;
+  color: var(--app-muted);
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
 .acp-range {
   width: 100%;
-  accent-color: #4ea1ff;
+  accent-color: var(--app-accent);
 }
 
 .acp-error {
@@ -172,7 +176,7 @@
 .acp-footer {
   margin-top: 16px;
   padding-top: 12px;
-  border-top: 1px solid #243041;
+  border-top: 1px solid var(--app-border);
   display: flex;
   align-items: center;
   justify-content: flex-start;

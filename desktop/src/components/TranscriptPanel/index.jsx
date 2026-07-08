@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { LANGUAGE_LABEL_BY_CODE } from "../../languages";
+import { ActionButton } from "../astryx/AstryxControls";
 import { TranscriptGrid } from "./TranscriptGrid";
 
 // main component for displaying transcript segments and managing auto-scroll behavior
@@ -41,49 +42,48 @@ export function TranscriptPanel({
   }
 
   return (
-    <section className="panel transcript-panel" style={{ marginTop: 16 }}>
-      <div className="panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+    <section className="panel transcript-panel">
+      <div className="panel-header transcript-panel-header">
         <div>
           <div className="panel-title">Transcript</div>
           <div className="panel-sub">Real-time conversation</div>
         </div>
-        <div style={{ display: "flex", gap: 6, alignItems: "center", position: "relative" }}>
+        <div className="transcript-actions">
           {onExport && transcriptGroups.length > 0 && (
-            <div style={{ position: "relative" }}>
-              <button
+            <div className="export-wrap">
+              <ActionButton
                 type="button"
-                className="btn btn-secondary"
+                className="transcript-action-btn"
                 onClick={() => setShowExportMenu((v) => !v)}
-                style={{ fontSize: 11, padding: "4px 8px" }}
+                size="sm"
               >
                 export ▾
-              </button>
+              </ActionButton>
               {showExportMenu && (
                 <div className="export-menu">
-                  <button onClick={() => handleExport("txt")}>Plain Text (.txt)</button>
-                  <button onClick={() => handleExport("srt")}>Subtitles (.srt)</button>
-                  <button onClick={() => handleExport("json")}>JSON (.json)</button>
+                  <ActionButton className="export-menu-item" onClick={() => handleExport("txt")} size="sm" variant="ghost">Plain Text (.txt)</ActionButton>
+                  <ActionButton className="export-menu-item" onClick={() => handleExport("srt")} size="sm" variant="ghost">Subtitles (.srt)</ActionButton>
+                  <ActionButton className="export-menu-item" onClick={() => handleExport("json")} size="sm" variant="ghost">JSON (.json)</ActionButton>
                 </div>
               )}
             </div>
           )}
-          <button
+          <ActionButton
             type="button"
-            className={`btn btn-secondary ${autoScroll ? "chip-active" : ""}`}
+            className={`transcript-action-btn ${autoScroll ? "chip-active" : ""}`}
             onClick={() => {
               setAutoScroll((v) => !v);
               if (!autoScroll) requestAnimationFrame(scrollToBottom);
             }}
-            style={{ fontSize: 11, padding: "4px 8px" }}
+            size="sm"
           >
             auto scroll: {autoScroll ? "on" : "off"}
-          </button>
+          </ActionButton>
         </div>
       </div>
-      <div className="transcript-panel-body" style={{ padding: 12 }}>
+      <div className="transcript-panel-body">
         <div
           className="transcript-scroll"
-          style={{ marginTop: 0 }}
           ref={scrollRef}
           onScroll={() => {
             if (autoScrollingRef.current) return;

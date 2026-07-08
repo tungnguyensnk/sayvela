@@ -29,20 +29,20 @@
 }
 
 .ai-msg {
-  border: 1px solid #243041;
-  background: rgba(11, 15, 20, 0.35);
-  border-radius: 12px;
+  border: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-bg) 35%, transparent);
+  border-radius: var(--app-radius-sm);
   padding: 10px 12px;
 }
 
 .ai-msg-user {
-  border-color: rgba(63, 185, 80, 0.28);
-  background: rgba(63, 185, 80, 0.06);
+  border-color: color-mix(in srgb, var(--app-success) 28%, transparent);
+  background: color-mix(in srgb, var(--app-success) 8%, transparent);
 }
 
 .ai-msg-assistant {
-  border-color: rgba(78, 161, 255, 0.25);
-  background: rgba(78, 161, 255, 0.06);
+  border-color: color-mix(in srgb, var(--app-accent) 25%, transparent);
+  background: color-mix(in srgb, var(--app-accent) 8%, transparent);
 }
 
 .ai-msg-meta {
@@ -58,24 +58,24 @@
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #9fb0c0;
+  color: var(--app-muted);
 }
 
 .ai-msg-source,
 .ai-msg-status,
 .ai-msg-time {
   font-size: 11px;
-  color: rgba(159, 176, 192, 0.9);
-  border: 1px solid rgba(36, 48, 65, 0.9);
+  color: color-mix(in srgb, var(--app-muted) 90%, transparent);
+  border: 1px solid color-mix(in srgb, var(--app-border) 90%, transparent);
   border-radius: 999px;
   padding: 1px 8px;
-  background: rgba(18, 24, 36, 0.55);
+  background: color-mix(in srgb, var(--app-surface-muted) 55%, transparent);
 }
 
 .ai-msg-text {
   white-space: pre-wrap;
   line-height: 20px;
-  color: #e6edf3;
+  color: var(--app-text);
 }
 
 .ai-chat-input-row {
@@ -83,27 +83,26 @@
   gap: 10px;
   align-items: flex-end;
   padding: 12px;
-  border-top: 1px solid #243041;
+  border-top: 1px solid var(--app-border);
 }
 
 .ai-chat-input {
   flex: 1;
   resize: none;
-  border-radius: 12px;
-  border: 1px solid #243041;
-  background: rgba(11, 15, 20, 0.45);
-  color: #e6edf3;
+  border-radius: var(--app-radius-sm);
+  border: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-bg) 45%, transparent);
+  color: var(--app-text);
   padding: 10px 12px;
   outline: none;
   min-height: 44px;
 }
 
 .ai-chat-input:focus {
-  border-color: rgba(78, 161, 255, 0.55);
-  box-shadow: 0 0 0 3px rgba(78, 161, 255, 0.12);
+  border-color: color-mix(in srgb, var(--app-accent) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-accent) 12%, transparent);
 }
 
 .ai-chat-send {
   height: 44px;
 }
-

@@ -1,4 +1,4 @@
-// login panel — opens system browser for authentication via deep link callback
+import { ActionButton } from "../astryx/AstryxControls";
 import "./LoginPanel.css";
 
 export function LoginPanel({ onLogin, loading, error }) {
@@ -11,14 +11,15 @@ export function LoginPanel({ onLogin, loading, error }) {
           Sign in to sync sessions and track usage. Your browser will open for secure authentication.
         </p>
         {error && <p className="login-error">{error}</p>}
-        <button
+        <ActionButton
           type="button"
-          className="btn btn-primary login-btn"
+          className="login-btn"
           onClick={onLogin}
           disabled={loading}
+          variant="primary"
         >
           {loading ? "Opening browser…" : "Sign in with browser"}
-        </button>
+        </ActionButton>
         <p className="login-hint">
           Don't have an account?{" "}
           <a

@@ -16,7 +16,7 @@
         "width": 1300,
         "height": 930,
         "decorations": false,
-        "transparent": true
+        "transparent": false
       }
     ],
     "security": {

@@ -10,12 +10,12 @@
 .sesp-empty {
   text-align: center;
   padding: 20px;
-  color: #9fb0c0;
+  color: var(--app-muted);
   font-size: 12px;
 }
 
 .sesp-error {
-  color: #ff6b6b;
+  color: var(--app-danger);
 }
 
 .sesp-refresh-btn {
@@ -34,15 +34,15 @@
   justify-content: space-between;
   gap: 8px;
   padding: 10px 12px;
-  border: 1px solid #243041;
-  border-radius: 10px;
-  background: rgba(11, 15, 20, 0.35);
+  border: 1px solid var(--app-border);
+  border-radius: var(--app-radius-sm);
+  background: color-mix(in srgb, var(--app-bg) 35%, transparent);
   transition: border-color 120ms, background 120ms;
 }
 
 .sesp-item:hover {
-  border-color: rgba(78, 161, 255, 0.3);
-  background: rgba(78, 161, 255, 0.05);
+  border-color: color-mix(in srgb, var(--app-accent) 30%, transparent);
+  background: color-mix(in srgb, var(--app-accent) 6%, transparent);
 }
 
 .sesp-item-content {
@@ -56,7 +56,7 @@
 .sesp-item-title {
   font-size: 12px;
   font-weight: 600;
-  color: #e6edf3;
+  color: var(--app-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -68,15 +68,15 @@
   align-items: center;
   flex-wrap: wrap;
   font-size: 10px;
-  color: #9fb0c0;
+  color: var(--app-muted);
 }
 
 .sesp-lang {
-  background: rgba(78, 161, 255, 0.12);
-  border: 1px solid rgba(78, 161, 255, 0.3);
+  background: color-mix(in srgb, var(--app-accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--app-accent) 30%, transparent);
   border-radius: 999px;
   padding: 0 5px;
-  color: #9fc9ff;
+  color: var(--app-accent);
   font-size: 9px;
   text-transform: uppercase;
 }

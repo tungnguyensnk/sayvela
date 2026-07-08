@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
+import { ActionButton } from "../astryx/AstryxControls";
 import "./AIChatPanel.css";
 
 function formatTime(ts) {
@@ -33,7 +34,7 @@ export function AIChatPanel({
   }, [input]);
 
   return (
-    <section className="panel ai-chat-panel" style={{ marginTop: 16 }}>
+    <section className="panel ai-chat-panel">
       <div className="panel-header">
         <div>
           <div className="panel-title">AI Chat</div>
@@ -41,25 +42,25 @@ export function AIChatPanel({
         </div>
 
         <div className="ai-chat-actions">
-          <button
+          <ActionButton
             type="button"
-            className="btn btn-secondary"
+            className="ai-chat-action-btn"
             onClick={onClear}
             disabled={!messages?.length}
-            style={{ fontSize: 11, padding: "4px 8px", height: 28 }}
+            size="sm"
           >
             clear
-          </button>
+          </ActionButton>
 
-          <button
+          <ActionButton
             type="button"
-            className="btn btn-secondary"
+            className="ai-chat-action-btn"
             onClick={onCancel}
             disabled={!isStreaming}
-            style={{ fontSize: 11, padding: "4px 8px", height: 28 }}
+            size="sm"
           >
             cancel
-          </button>
+          </ActionButton>
         </div>
       </div>
 
@@ -100,17 +101,17 @@ export function AIChatPanel({
             }}
             rows={2}
           />
-          <button
+          <ActionButton
             type="button"
-            className="btn btn-primary ai-chat-send"
+            className="ai-chat-send"
             onClick={onSend}
             disabled={!canSend}
+            variant="primary"
           >
             send
-          </button>
+          </ActionButton>
         </div>
       </div>
     </section>
   );
 }
-
