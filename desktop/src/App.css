@@ -240,26 +240,6 @@ body {
   color: var(--app-text);
 }
 
-.export-menu {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  z-index: 100;
-  background: var(--app-surface);
-  border: 1px solid var(--app-border);
-  border-radius: var(--app-radius-sm);
-  padding: 4px;
-  display: flex;
-  flex-direction: column;
-  min-width: 150px;
-  box-shadow: var(--app-shadow);
-}
-
-.export-menu-item {
-  justify-content: flex-start;
-  white-space: nowrap;
-}
-
 .transcript-empty {
   grid-column: 1 / -1;
 }
@@ -444,6 +424,19 @@ body {
   width: 100%;
 }
 
+.ssc--inline {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  min-width: 172px;
+  max-width: none;
+}
+
+.ssc--inline .ssc-ctx-badge {
+  display: none;
+}
+
 .ssc-dot {
   width: 10px;
   height: 10px;
@@ -503,6 +496,26 @@ body {
   gap: 7px;
 }
 
+.ssc--inline .ssc-btn {
+  height: 32px;
+  width: 118px;
+  font-size: 13px;
+  border-radius: 10px;
+}
+
+.ssc--inline .ssc-actions {
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.ssc--inline .ssc-timer {
+  width: 44px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  text-align: left;
+}
+
 .ssc-btn--preparing {
   position: relative;
   overflow: hidden;
@@ -520,6 +533,11 @@ body {
   transform: translateY(-50%);
 }
 
+.ssc--inline .ssc-actions .ssc-timer {
+  position: static;
+  transform: none;
+}
+
 .transcript-panel {
   height: min(520px, 70vh);
 }
@@ -528,12 +546,14 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: nowrap;
 }
 
 .transcript-status-row {
   display: flex;
+  align-items: center;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .status-badge {
@@ -542,7 +562,10 @@ body {
   background: color-mix(in srgb, var(--app-surface-muted) 70%, transparent);
   border: 1px solid var(--app-border);
   border-radius: 999px;
-  padding: 1px 8px;
+  min-width: 86px;
+  padding: 1px 10px;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .transcript-panel-header,
@@ -552,12 +575,12 @@ body {
   justify-content: space-between;
 }
 
-.transcript-actions {
-  gap: 6px;
-  position: relative;
+.transcript-panel-header {
+  gap: 12px;
 }
 
-.export-wrap {
+.transcript-actions {
+  gap: 6px;
   position: relative;
 }
 

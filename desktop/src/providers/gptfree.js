@@ -9,10 +9,6 @@ function isTauriRuntime() {
   }
 }
 
-export async function getValidToken() {
-  throw new Error("getValidToken is not available in tauri-only provider");
-}
-
 export async function sendStreamMessage(message, history = [], onEvent, options = {}) {
   if (!isTauriRuntime()) {
     throw new Error("gptfree provider requires tauri runtime");

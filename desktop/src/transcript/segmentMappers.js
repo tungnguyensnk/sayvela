@@ -1,4 +1,4 @@
-import { groupsToSegments } from "./exportUtils";
+import { groupsToSegments } from "./segmentUtils";
 
 export function toLoopbackSegment(segment) {
   return { ...segment, source: "loopback" };

@@ -1,5 +1,5 @@
 import { useDispatch, useSelector } from "react-redux";
-import { deleteSessionThunk, fetchSessionsThunk } from "../../store/sessionsSlice";
+import { deleteSessionThunk } from "../../store/sessionsSlice";
 import { SessionsPanel } from ".";
 
 export function SessionsPanelContainer() {
@@ -12,7 +12,6 @@ export function SessionsPanelContainer() {
       loading={loading}
       error={error}
       onDelete={(id) => dispatch(deleteSessionThunk(id)).unwrap()}
-      onRefresh={() => dispatch(fetchSessionsThunk())}
     />
   );
 }

@@ -5,7 +5,7 @@ import { SessionsPanelContainer } from "../SessionsPanel/SessionsPanelContainer"
 import { StatsPanel } from "../StatsPanel";
 import { selectActiveTab } from "../../store/selectors";
 
-export function AppLeftContent({ stats, updateSetting, audioRuntime }) {
+export function AppLeftContent({ entitlement, updateSetting, audioRuntime }) {
   const activeTab = useSelector(selectActiveTab);
 
   switch (activeTab) {
@@ -14,7 +14,7 @@ export function AppLeftContent({ stats, updateSetting, audioRuntime }) {
     case "contexts":
       return <ContextsPanelContainer updateSetting={updateSetting} />;
     case "stats":
-      return <StatsPanel entitlement={stats.entitlement} />;
+      return <StatsPanel entitlement={entitlement} />;
     case "sessions":
       return <SessionsPanelContainer />;
     default:

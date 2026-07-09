@@ -36,6 +36,7 @@ function toGroupView(seg) {
     isFinal: partialText.length === 0,
     startMs: seg.startMs ?? 0,
     endMs: seg.endMs ?? 0,
+    createdAt: seg.createdAt ?? 0,
     originId: seg.originId ?? null,
   };
 }
@@ -112,18 +113,15 @@ function deltaFrom(prev, next) {
 // initializes and manages a websocket session with the soniox backend for real-time transcription
 export async function startSonioxSession({
   sampleRate = 44100,
-  model = "stt-rt-v5",
   languageHints = ["vi", "ja"],
   enableSpeakerDiarization = true,
-  enableLanguageIdentification = true,
   targetLanguage = "ja",
-  enableTranslation = true,
   context = null,
   audioEventName = "audio_chunk",
   speakerOverride = "",
   splitTurnsOnLanguage = true,
+  splitTurnsOnSilenceMs = 0,
   onText,
-  onResult,
   onState,
   onTurnEnd,
 } = {}) {
@@ -138,7 +136,7 @@ export async function startSonioxSession({
     const k = String(translationStatus ?? "original");
     let s = streamByStatus.get(k);
     if (!s) {
-      s = { nextId: 1, current: null };
+      s = { current: null };
       streamByStatus.set(k, s);
     }
     return s;
@@ -162,17 +160,17 @@ export async function startSonioxSession({
     audio_format: "s16le",
     sample_rate: sampleRate,
     num_channels: 1,
-    model,
+    model: "stt-rt-v5",
     language_hints: languageHints,
     enable_speaker_diarization: enableSpeakerDiarization,
-    enable_language_identification: enableLanguageIdentification,
+    enable_language_identification: true,
   };
 
   const buildConfig = (apiKey) => {
     const config = { ...configBase, api_key: apiKey };
     const normalizedContext = normalizeContextInput(context);
     if (normalizedContext) config.context = normalizedContext;
-    if (enableTranslation && targetLanguage) {
+    if (targetLanguage) {
       config.translation = {
         type: "one_way",
         target_language: targetLanguage,
@@ -187,17 +185,21 @@ export async function startSonioxSession({
     const msg = safeJsonParse(ev.data);
     if (!msg) return;
 
-    onResult?.(msg);
     const tokens = Array.isArray(msg?.tokens) ? msg.tokens : [];
     const touchedStreams = new Set();
+    const allowedLanguages = new Set(languageHints);
 
     for (const t of tokens) {
       const m = tokenMeta(t);
+      if (m.translationStatus === "none") continue;
+      if (m.translationStatus === "original" && !allowedLanguages.has(m.language)) continue;
+      if (m.translationStatus === "translation" && m.language !== targetLanguage) continue;
       if (speakerOverride) m.speaker = String(speakerOverride);
       let turnSeq = lastTurnSeqBySpeaker.get(m.speaker) || 0;
       if (m.translationStatus === "original") {
         const originalRunKey = splitTurnsOnLanguage ? `${m.speaker}|${m.language}` : `${m.speaker}`;
-        if (originalRunKey !== lastOriginalRunKey) {
+        const silenceGapMs = m.startMs !== null ? m.startMs - (getStream("original").current?.endMs ?? m.startMs) : 0;
+        if (originalRunKey !== lastOriginalRunKey || (splitTurnsOnSilenceMs > 0 && silenceGapMs >= splitTurnsOnSilenceMs)) {
           lastOriginalRunKey = originalRunKey;
           turnSeq = nextSeq++;
           lastTurnSeqBySpeaker.set(m.speaker, turnSeq);

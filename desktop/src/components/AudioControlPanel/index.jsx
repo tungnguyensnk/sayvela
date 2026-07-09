@@ -55,9 +55,6 @@ export function AudioControlPanel({
   loopbackError,
   micStatus,
   micError,
-
-  onStart,
-  onStop,
 }) {
   const loopbackDevices = devices.filter((d) => d.kind === "loopback");
   const ttsOutputDevices = loopbackDevices
@@ -97,7 +94,7 @@ export function AudioControlPanel({
     <section className="panel">
       <div className="panel-header">
         <div>
-          <div className="panel-title">Audio Configuration</div>
+          <div className="panel-title">Settings</div>
         </div>
       </div>
       <div className="acp-body">
@@ -211,22 +208,6 @@ export function AudioControlPanel({
             >
               Refresh Devices
             </ActionButton>
-
-            {!running ? (
-              <ActionButton
-                className="acp-footer-btn"
-                type="button"
-                disabled={!loopbackDeviceId && !micDeviceId}
-                onClick={onStart}
-                variant="primary"
-              >
-                Start Transcription
-              </ActionButton>
-            ) : (
-              <ActionButton className="acp-footer-btn" type="button" onClick={onStop} variant="destructive">
-                Stop All
-              </ActionButton>
-            )}
           </div>
         </div>
       </div>

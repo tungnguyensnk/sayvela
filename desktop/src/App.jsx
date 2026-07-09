@@ -15,7 +15,6 @@ import { useAuth } from "./hooks/useAuth";
 import { useSettings } from "./hooks/useSettings";
 import { useSpeakerCheck } from "./hooks/useSpeakerCheck";
 import { useMergedTranscriptGroups } from "./hooks/useMergedTranscriptGroups";
-import { useTranscriptExport } from "./hooks/useTranscriptExport";
 import { useAudioCaptureController } from "./hooks/useAudioCaptureController";
 import { useContentProtection } from "./hooks/useContentProtection";
 import { useEntitlement } from "./hooks/useEntitlement";
@@ -94,7 +93,6 @@ function App() {
     chatgpt.initChatGPTWindow().catch(() => {});
   });
 
-  const handleExport = useTranscriptExport(loopbackTranscript.groups, micTranscript.groups);
   const mergedGroups = useMergedTranscriptGroups(loopbackTranscript.groups, micTranscript.groups);
   useMicTranslationTts({
     enabled: preferences.micTtsEnabled,
@@ -106,7 +104,6 @@ function App() {
     rate: preferences.micTtsRate,
     pitch: preferences.micTtsPitch,
     volume: preferences.micTtsVolume,
-    queueMode: "add",
   });
 
   const audioRuntime = {
@@ -114,8 +111,6 @@ function App() {
     loopbackError: loopbackTranscript.error,
     micStatus: micTranscript.status,
     micError: micTranscript.error,
-    onStart: recorder.start,
-    onStop: recorder.stop,
     onRefreshDevices: refreshDevices,
   };
 
@@ -150,31 +145,32 @@ function App() {
         <div className="app-body">
           <LeftBar activeTab={activeTab} onTabChange={(tab) => dispatch(setActiveTab(tab))}>
             <AppLeftContent
-              stats={{ entitlement }}
+              entitlement={entitlement}
               updateSetting={updateSetting}
               audioRuntime={audioRuntime}
             />
           </LeftBar>
 
-          <main className="main main--center">
-            <StartStopCard
-              running={running}
-              onStart={recorder.start}
-              onStop={recorder.stop}
-              elapsed={recorder.isReadyToStop ? sessionElapsed : 0}
-              preparing={recorder.isPreparing}
-              readyToStop={recorder.isReadyToStop}
-              progress={recorder.streamProgress}
-              activeContextName={activeContextName}
-            />
-
+          <main className="main main--center" onClick={() => activeTab && dispatch(setActiveTab(null))}>
             <div className="home-panels">
               <TranscriptPanel
                 transcriptGroups={mergedGroups}
                 running={running}
-                onExport={handleExport}
                 loopbackStatus={loopbackTranscript.status}
                 micStatus={micTranscript.status}
+                titleAction={(
+                  <StartStopCard
+                    running={running}
+                    onStart={recorder.start}
+                    onStop={recorder.stop}
+                    elapsed={recorder.isReadyToStop ? sessionElapsed : 0}
+                    preparing={recorder.isPreparing}
+                    readyToStop={recorder.isReadyToStop}
+                    progress={recorder.streamProgress}
+                    activeContextName={activeContextName}
+                    inline
+                  />
+                )}
               />
               <AIChatPanel
                 messages={chatgpt.chatMessages}

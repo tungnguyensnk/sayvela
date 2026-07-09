@@ -1,31 +1,22 @@
 import { LANGUAGES } from "../../languages";
-import { ActionButton } from "../astryx/AstryxControls";
+import { MultiSelector } from "@astryxdesign/core/MultiSelector";
 
-export function LanguagePills({ selected, onChange, disabled }) {
-  const toggle = (code) => {
-    if (selected.includes(code)) {
-      onChange(selected.filter((c) => c !== code));
-    } else {
-      onChange([...selected, code]);
-    }
-  };
+const LANGUAGE_OPTIONS = LANGUAGES.map((l) => ({ value: l.code, label: l.label }));
 
+export function LanguageMultiSelect({ selected, onChange, disabled }) {
   return (
-    <div className="chips acp-pills">
-      {LANGUAGES.map((l) => (
-        <ActionButton
-          key={l.code}
-          type="button"
-          className={`chip ${selected.includes(l.code) ? "chip-active" : ""}`}
-          disabled={disabled}
-          onClick={() => toggle(l.code)}
-          size="sm"
-          variant="ghost"
-        >
-          {l.label}
-        </ActionButton>
-      ))}
-    </div>
+    <MultiSelector
+      label="Input Languages (Hints)"
+      options={LANGUAGE_OPTIONS}
+      value={Array.isArray(selected) ? selected : []}
+      onChange={onChange}
+      placeholder="Select input languages"
+      size="sm"
+      triggerDisplay="badges"
+      maxBadges={2}
+      isDisabled={disabled}
+      isLabelHidden
+    />
   );
 }
 

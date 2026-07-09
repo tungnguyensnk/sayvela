@@ -25,7 +25,6 @@ export function useMicTranslationTts({
   rate,
   pitch,
   volume,
-  queueMode,
 }) {
   const lastFullRef = useRef("");
   const timerRef = useRef(null);
@@ -50,9 +49,9 @@ export function useMicTranslationTts({
       rate: Number.isFinite(rate) ? rate : 1,
       pitch: Number.isFinite(pitch) ? pitch : 1,
       volume: Number.isFinite(volume) ? volume : 1,
-      queueMode: String(queueMode || "add"),
+      queueMode: "add",
     };
-  }, [language, voiceId, outputDeviceId, rate, pitch, volume, queueMode]);
+  }, [language, voiceId, outputDeviceId, rate, pitch, volume]);
 
   // clears all pending tts queue items and timers
   function clearPending() {

@@ -1,4 +1,4 @@
-import { LanguagePills, LanguageDropdown } from "./LanguageControls";
+import { LanguageMultiSelect, LanguageDropdown } from "./LanguageControls";
 
 // renders a section for configuring a specific audio source (e.g., microphone or system audio)
 export function SourceSection({
@@ -44,18 +44,24 @@ export function SourceSection({
       </select>
 
       <div className="acp-subsection">
-        <div className="acp-subLabel">Input Languages (Hints)</div>
-        <LanguagePills 
-          selected={inputLangs} 
-          onChange={onChangeInputLangs} 
-          disabled={running} 
-        />
-        <div className="acp-subLabel">Target Translation</div>
-        <LanguageDropdown 
-          value={outputLang} 
-          onChange={onChangeOutputLang} 
-          disabled={running} 
-        />
+        <div className="acp-langRow">
+          <div className="acp-langField">
+            <div className="acp-subLabel">Input Languages (Hints)</div>
+            <LanguageMultiSelect
+              selected={inputLangs}
+              onChange={onChangeInputLangs}
+              disabled={running}
+            />
+          </div>
+          <div className="acp-langField">
+            <div className="acp-subLabel">Target Translation</div>
+            <LanguageDropdown
+              value={outputLang}
+              onChange={onChangeOutputLang}
+              disabled={running}
+            />
+          </div>
+        </div>
         {children}
       </div>
     </div>

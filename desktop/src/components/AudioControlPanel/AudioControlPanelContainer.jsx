@@ -4,7 +4,7 @@ import { setActiveTab } from "../../store/uiSlice";
 import { selectActiveContextJson, selectAudioState, selectContexts, selectPreferencesState } from "../../store/selectors";
 import { AudioControlPanel } from ".";
 
-export function AudioControlPanelContainer({ loopbackStatus, loopbackError, micStatus, micError, onStart, onStop, onRefreshDevices, updateSetting }) {
+export function AudioControlPanelContainer({ loopbackStatus, loopbackError, micStatus, micError, onRefreshDevices, updateSetting }) {
   const dispatch = useDispatch();
   const audio = useSelector(selectAudioState);
   const preferences = useSelector(selectPreferencesState);
@@ -38,8 +38,6 @@ export function AudioControlPanelContainer({ loopbackStatus, loopbackError, micS
       loopbackError={loopbackError}
       micStatus={micStatus}
       micError={micError}
-      onStart={onStart}
-      onStop={onStop}
     />
   );
 }

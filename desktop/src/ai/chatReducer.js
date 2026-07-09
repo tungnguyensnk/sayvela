@@ -108,7 +108,7 @@ export function chatReducer(state, action) {
   }
 }
 
-export function normalizeSignature(s) {
+function normalizeSignature(s) {
   return String(s || "")
     .trim()
     .replace(/\s+/g, " ")
@@ -124,4 +124,3 @@ export function shouldSkipAutoSend({ lastSig, lastAtMs, nowMs, cooldownMs }, nex
   const cd = Number(cooldownMs) || 0;
   return nowMs - lastAtMs < cd;
 }
-

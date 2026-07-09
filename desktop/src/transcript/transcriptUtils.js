@@ -7,14 +7,14 @@ export function byteSize(chunk) {
 }
 
 // generates a unique identifier key for a transcript group
-export function groupKey(g) {
+function groupKey(g) {
   if (!g) return "";
   if (g.id) return String(g.id);
   return String(`${g.createdAt || 0}-${g.seq || 0}-${g.speaker || ""}`);
 }
 
 // combines final and partial text of a transcript group into a single string
-export function groupFullText(g) {
+function groupFullText(g) {
   const finalText = typeof g?.finalText === "string" ? g.finalText : "";
   const partialText = typeof g?.partialText === "string" ? g.partialText : "";
   return `${finalText}${partialText}`;

@@ -4,7 +4,7 @@ import { getSettings, updateSettings as apiUpdateSettings } from "./apiClient";
 const CACHE_KEY = "sayvela_settings";
 
 // loads cached settings from localStorage (used when offline or not yet fetched)
-export function getCachedSettings() {
+function getCachedSettings() {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
     return raw ? JSON.parse(raw) : null;
@@ -14,7 +14,7 @@ export function getCachedSettings() {
 }
 
 // persists settings to localStorage cache
-export function cacheSettings(settingsJson) {
+function cacheSettings(settingsJson) {
   try {
     localStorage.setItem(CACHE_KEY, JSON.stringify(settingsJson));
   } catch {}

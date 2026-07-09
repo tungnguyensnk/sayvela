@@ -24,7 +24,7 @@ function formatDate(value) {
 }
 
 // displays the list of past sessions with title, duration, date and delete action
-export function SessionsPanel({ sessions, loading, error, onDelete, onRefresh }) {
+export function SessionsPanel({ sessions, loading, error, onDelete }) {
   const [confirmId, setConfirmId] = useState(null);
 
   const handleDelete = async (id) => {
@@ -36,7 +36,6 @@ export function SessionsPanel({ sessions, loading, error, onDelete, onRefresh })
     <div className="sesp panel">
       <div className="panel-header">
         <span className="panel-title">Sessions</span>
-        <ActionButton className="sesp-refresh-btn" onClick={onRefresh} title="Refresh">↻</ActionButton>
       </div>
 
       <div className="sesp-body">
