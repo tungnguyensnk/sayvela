@@ -1,18 +1,22 @@
-import { AudioControlPanel } from "../AudioControlPanel";
-import { ContextsPanel } from "../ContextsPanel";
-import { SessionsPanel } from "../SessionsPanel";
+import { useSelector } from "react-redux";
+import { AudioControlPanelContainer } from "../AudioControlPanel/AudioControlPanelContainer";
+import { ContextsPanelContainer } from "../ContextsPanel/ContextsPanelContainer";
+import { SessionsPanelContainer } from "../SessionsPanel/SessionsPanelContainer";
 import { StatsPanel } from "../StatsPanel";
+import { selectActiveTab } from "../../store/selectors";
 
-export function AppLeftContent({ activeTab, audio, contextsState, sessionsState, stats }) {
+export function AppLeftContent({ stats, updateSetting, audioRuntime }) {
+  const activeTab = useSelector(selectActiveTab);
+
   switch (activeTab) {
     case "settings":
-      return <AudioControlPanel {...audio} />;
+      return <AudioControlPanelContainer {...audioRuntime} updateSetting={updateSetting} />;
     case "contexts":
-      return <ContextsPanel {...contextsState} />;
+      return <ContextsPanelContainer updateSetting={updateSetting} />;
     case "stats":
       return <StatsPanel entitlement={stats.entitlement} />;
     case "sessions":
-      return <SessionsPanel {...sessionsState} />;
+      return <SessionsPanelContainer />;
     default:
       return null;
   }
