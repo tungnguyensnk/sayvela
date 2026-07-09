@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { LANGUAGE_LABEL_BY_CODE } from "../../languages";
 import { ActionButton } from "../astryx/AstryxControls";
 import { TranscriptGrid } from "./TranscriptGrid";
 
@@ -11,8 +10,8 @@ export function TranscriptPanel({
   micStatus,
   titleAction,
 }) {
-  // retrieves the display label for a language code
-  const langLabel = (code) => LANGUAGE_LABEL_BY_CODE.get(code) || code;
+  // retrieves compact language code for transcript pills
+  const langLabel = (code) => code || "-";
   const [autoScroll, setAutoScroll] = useState(true);
   const scrollRef = useRef(null);
   const autoScrollingRef = useRef(false);

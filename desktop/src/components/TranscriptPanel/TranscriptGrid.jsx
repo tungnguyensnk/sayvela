@@ -66,18 +66,22 @@ export function TranscriptGrid({ transcriptGroups, langLabelFn }) {
     return (
       <div key={turn.key} className="tr-row">
         <div className="tr-col">
-          <div className="speaker-label">{speakerLabel}</div>
+          <div className="speaker-line">
+            <span className="speaker-label">{speakerLabel}</span>
+            <span className="lang-pill">{oMeta.langLabel}</span>
+          </div>
           <TranscriptBubble
-            langLabel={oMeta.langLabel}
             segments={original}
             isFinal={oMeta.isFinal}
             isTranslation={false}
           />
         </div>
         <div className="tr-col">
-          <div className="speaker-label">{speakerLabel}</div>
+          <div className="speaker-line">
+            <span className="speaker-label">{speakerLabel}</span>
+            <span className="lang-pill">{tMeta.langLabel}</span>
+          </div>
           <TranscriptBubble
-            langLabel={tMeta.langLabel}
             segments={translated}
             isFinal={tMeta.isFinal}
             isTranslation={true}

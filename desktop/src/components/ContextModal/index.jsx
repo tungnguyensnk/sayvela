@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { ActionButton, ActionIconButton } from "../astryx/AstryxControls";
-import { IconClose } from "../Icons";
+import { ActionButton } from "../astryx/AstryxControls";
+import { CommonModal } from "../CommonModal";
 import "./ContextModal.css";
 
 const EMPTY_FORM = {
@@ -117,18 +117,20 @@ export function ContextModal({ open, initial, onClose, onSave }) {
     }
   };
 
-  if (!open) return null;
-
   return (
-    <div className="ctx-overlay" onClick={onClose}>
-      <div className="ctx-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="ctx-modal-header">
-          <span className="ctx-modal-title">
-            {initial ? "Edit Context" : "New Context"}
-          </span>
-          <ActionIconButton className="ctx-close-btn" icon={<IconClose size={14} />} label="Close" onClick={onClose} />
-        </div>
-        <div className="ctx-modal-body">
+    <CommonModal
+      open={open}
+      title={initial ? "Edit Context" : "New Context"}
+      onClose={onClose}
+      footer={(
+        <>
+          <ActionButton onClick={onClose} disabled={saving}>Cancel</ActionButton>
+          <ActionButton onClick={handleSave} disabled={saving} variant="primary">
+            {saving ? "Saving…" : "Save"}
+          </ActionButton>
+        </>
+      )}
+    >
           <div className="field">
             <label className="label">Name *</label>
             <input
@@ -189,15 +191,6 @@ export function ContextModal({ open, initial, onClose, onSave }) {
           />
 
           {error && <div className="ctx-error">{error}</div>}
-        </div>
-
-        <div className="ctx-modal-footer">
-          <ActionButton onClick={onClose} disabled={saving}>Cancel</ActionButton>
-          <ActionButton onClick={handleSave} disabled={saving} variant="primary">
-            {saving ? "Saving…" : "Save"}
-          </ActionButton>
-        </div>
-      </div>
-    </div>
+    </CommonModal>
   );
 }

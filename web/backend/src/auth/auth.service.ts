@@ -28,9 +28,11 @@ export class AuthService {
 
   // generate a long-lived token for desktop app (7d), stored temporarily under a one-time code
   async desktopToken(userId: string, email: string) {
-    const token = await this.jwt.signAsync(
-      { sub: userId, email, desktop: true },
-    );
+    const token = await this.jwt.signAsync({
+      sub: userId,
+      email,
+      desktop: true,
+    });
     return { token };
   }
 

@@ -72,6 +72,12 @@ function App() {
 
   const { loopbackTranscript, micTranscript } = transcripts;
 
+  // switches left tab and reloads sessions every time the sessions tab is opened
+  const handleTabChange = (tab) => {
+    dispatch(setActiveTab(tab));
+    if (tab === "sessions") dispatch(fetchSessionsThunk());
+  };
+
   useSpeakerCheck({
     running,
     loopbackGroups: loopbackTranscript.groups,
@@ -143,7 +149,7 @@ function App() {
         )}
 
         <div className="app-body">
-          <LeftBar activeTab={activeTab} onTabChange={(tab) => dispatch(setActiveTab(tab))}>
+          <LeftBar activeTab={activeTab} onTabChange={handleTabChange}>
             <AppLeftContent
               entitlement={entitlement}
               updateSetting={updateSetting}

@@ -329,6 +329,7 @@ pub fn run() {
             api::api_finalize_session,
             api::api_upload_segments,
             api::api_list_sessions,
+            api::api_get_session,
             api::api_delete_session,
             api::api_get_me,
         ]);

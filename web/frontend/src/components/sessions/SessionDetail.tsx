@@ -47,9 +47,6 @@ export function SessionDetail({ id }: { id: string }) {
           {session.title ?? "Untitled session"}
         </h1>
         <div className="flex flex-wrap items-center gap-3 text-white/45 text-xs">
-          {session.language && (
-            <span className="glass-chip uppercase">{session.language}</span>
-          )}
           <span>
             ⏱{" "}
             {session.durationSeconds >= 60
@@ -109,4 +106,3 @@ export function SessionDetail({ id }: { id: string }) {
     </div>
   );
 }
-

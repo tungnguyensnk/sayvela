@@ -33,7 +33,7 @@ export function useTranscriptStreams({ running, loopbackCaptureState, micCapture
         audioEventName: "audio_chunk_mic",
         context: activeContextJson,
         speakerOverride: "me",
-        splitTurnsOnLanguage: false,
+        splitTurnsOnLanguage: true,
         splitTurnsOnSilenceMs: 900,
         enableSpeakerDiarization: false,
         onTurnEnd: (seg) => sendSegment({ ...seg, source: "mic", speaker: seg.translationStatus === "original" ? "me" : seg.speaker }),

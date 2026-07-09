@@ -13,11 +13,7 @@ type SegmentInput = {
 export class SessionsService {
   constructor(private repo: SessionsRepository) {}
 
-  async createSession(params: {
-    userId: string;
-    title?: string;
-    language?: string;
-  }) {
+  async createSession(params: { userId: string; title?: string }) {
     const id = await this.repo.create(params);
     return { id };
   }

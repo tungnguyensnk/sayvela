@@ -5,7 +5,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export type Session = {
   id: string;
   title: string | null;
-  language: string | null;
   durationSeconds: number;
   status: string;
   summary: string | null;

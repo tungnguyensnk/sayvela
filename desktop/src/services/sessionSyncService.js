@@ -6,10 +6,10 @@ import {
 import { getStoredAuth } from "./authService";
 
 // creates a new session on the backend; returns sessionId or null on failure
-export async function createSession({ title, language }) {
+export async function createSession({ title }) {
   if (!getStoredAuth()?.token) return null;
   try {
-    const data = await apiCreate({ title, language });
+    const data = await apiCreate({ title });
     return data?.id ?? null;
   } catch {
     return null;

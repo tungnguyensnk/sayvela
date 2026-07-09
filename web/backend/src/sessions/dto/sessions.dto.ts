@@ -5,11 +5,6 @@ export class CreateSessionDto {
   @IsString()
   @MaxLength(255)
   title?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(16)
-  language?: string;
 }
 
 export class UpdateSessionDto {

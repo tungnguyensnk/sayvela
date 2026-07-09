@@ -66,8 +66,8 @@ export async function recordUsage(minutes) {
 
 // ── sessions ──────────────────────────────────────────────────────────────────
 
-export async function createSession({ title, language }) {
-  return safeInvoke("api_create_session", { ...getInvokeArgs(), title: title ?? null, language });
+export async function createSession({ title }) {
+  return safeInvoke("api_create_session", { ...getInvokeArgs(), title: title ?? null });
 }
 
 export async function finalizeSession(sessionId, { durationSeconds, status = "completed", title }) {
@@ -82,6 +82,10 @@ export async function finalizeSession(sessionId, { durationSeconds, status = "co
 
 export async function listSessions(page = 1, limit = 20) {
   return safeInvoke("api_list_sessions", { ...getInvokeArgs(), page, limit });
+}
+
+export async function getSession(sessionId) {
+  return safeInvoke("api_get_session", { ...getInvokeArgs(), sessionId });
 }
 
 export async function deleteSession(sessionId) {

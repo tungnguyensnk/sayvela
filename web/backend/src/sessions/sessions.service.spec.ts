@@ -5,7 +5,6 @@ const mockSession = {
   id: 's1',
   userId: 'u1',
   title: 'Test session',
-  language: 'en',
   durationSeconds: 0,
   status: 'active',
   summary: null,
@@ -16,7 +15,7 @@ const mockSession = {
 describe('SessionsService', () => {
   const create = jest.fn<
     Promise<string>,
-    [{ userId: string; title?: string; language?: string }]
+    [{ userId: string; title?: string }]
   >();
   const findByUser = jest.fn();
   const findById = jest.fn();
@@ -47,13 +46,11 @@ describe('SessionsService', () => {
       const res = await service.createSession({
         userId: 'u1',
         title: 'T',
-        language: 'en',
       });
       expect(res).toEqual({ id: 's1' });
       expect(create).toHaveBeenCalledWith({
         userId: 'u1',
         title: 'T',
-        language: 'en',
       });
     });
   });

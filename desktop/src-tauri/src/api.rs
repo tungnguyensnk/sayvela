@@ -171,14 +171,13 @@ pub async fn api_create_session(
     api_url: String,
     token: String,
     title: Option<String>,
-    language: String,
 ) -> Result<Value, String> {
     let url = format!("{}/backend/sessions", api_url.trim_end_matches('/'));
     request_with_body(
         "POST",
         &url,
         &token,
-        serde_json::json!({ "title": title, "language": language }),
+        serde_json::json!({ "title": title }),
     )
     .await
 }
@@ -240,6 +239,17 @@ pub async fn api_list_sessions(
         p,
         l
     );
+    get(&url, &token).await
+}
+
+// returns one session with saved transcript segments
+#[tauri::command]
+pub async fn api_get_session(
+    api_url: String,
+    token: String,
+    session_id: String,
+) -> Result<Value, String> {
+    let url = format!("{}/backend/sessions/{}", api_url.trim_end_matches('/'), session_id);
     get(&url, &token).await
 }
 

@@ -1,5 +1,5 @@
 // renders a single speech bubble containing finalized and partial transcript text
-export function TranscriptBubble({ langLabel, segments, isFinal, isTranslation }) {
+export function TranscriptBubble({ segments, isFinal, isTranslation }) {
   const content =
     Array.isArray(segments) && segments.length > 0 ? (
       segments.map((seg, i) => {
@@ -28,7 +28,6 @@ export function TranscriptBubble({ langLabel, segments, isFinal, isTranslation }
 
   return (
     <div className={`bubble ${isFinal ? "" : "partial"}`}>
-      <span className="lang-pill">{langLabel}</span>
       <span className={`bubble-text ${isTranslation ? "translation" : ""}`}>{content}</span>
     </div>
   );

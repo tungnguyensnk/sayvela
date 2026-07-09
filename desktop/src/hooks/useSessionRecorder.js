@@ -50,8 +50,7 @@ export function useSessionRecorder({ isAuthenticated, preferences, transcripts, 
 
     try {
       if (isAuthenticated) {
-        const lang = preferences.loopbackInputLangs[0] || preferences.micInputLangs[0] || "en";
-        const sid = await createSession({ title: `Session ${new Date().toLocaleString("vi-VN")}`, language: lang });
+        const sid = await createSession({ title: `Session ${new Date().toLocaleString("vi-VN")}` });
         sessionIdRef.current = sid;
         dispatch(setSyncStatus(null));
         if (sid) {

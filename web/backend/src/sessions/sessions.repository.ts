@@ -7,7 +7,6 @@ import { sessionSegments, sessions } from '../schema';
 type CreateInput = {
   userId: string;
   title?: string;
-  language?: string;
 };
 
 type UpdateInput = Partial<{
@@ -37,7 +36,6 @@ export class SessionsRepository {
       id,
       userId: input.userId,
       title: input.title ?? null,
-      language: input.language ?? null,
     });
     return id;
   }
@@ -70,7 +68,8 @@ export class SessionsRepository {
 
   async insertSegments(sessionId: string, segments: SegmentInput[]) {
     if (segments.length === 0) return;
-    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const UUID_RE =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     await db.insert(sessionSegments).values(
       segments.map((s) => ({
         id: UUID_RE.test(s.id) ? s.id : crypto.randomUUID(),

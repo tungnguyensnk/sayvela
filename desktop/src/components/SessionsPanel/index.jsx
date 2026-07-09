@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ActionButton } from "../astryx/AstryxControls";
+import { SessionDetailModal } from "./SessionDetailModal";
 import "./SessionsPanel.css";
 
 // formats duration in seconds to readable string (e.g. "5m 30s")
@@ -23,9 +24,10 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
-// displays the list of past sessions with title, duration, date and delete action
+// displays past sessions with status, timing, modal details and delete action
 export function SessionsPanel({ sessions, loading, error, onDelete }) {
   const [confirmId, setConfirmId] = useState(null);
+  const [selectedSession, setSelectedSession] = useState(null);
 
   const handleDelete = async (id) => {
     await onDelete(id);
@@ -45,14 +47,17 @@ export function SessionsPanel({ sessions, loading, error, onDelete }) {
           <div className="sesp-empty">No sessions yet.</div>
         )}
         {sessions.map((s) => (
-          <div key={s.id} className="sesp-item">
+          <button key={s.id} className="sesp-item" type="button" onClick={() => setSelectedSession(s)}>
             <div className="sesp-item-content">
-              <span className="sesp-item-title">{s.title ?? "Untitled"}</span>
+              <div className="sesp-item-topline">
+                <span className="sesp-item-title">{s.title ?? "Untitled"}</span>
+                <span className={`sesp-status sesp-status-${s.status || "unknown"}`}>{s.status || "unknown"}</span>
+              </div>
               <div className="sesp-item-meta">
                 <span>⏱ {formatDuration(s.durationSeconds)}</span>
-                {s.language && <span className="sesp-lang">{s.language}</span>}
                 <span>{formatDate(s.createdAt)}</span>
               </div>
+              {s.summary && <p className="sesp-item-summary">{s.summary}</p>}
             </div>
             <div className="sesp-item-actions" onClick={(e) => e.stopPropagation()}>
               {confirmId === s.id ? (
@@ -61,12 +66,13 @@ export function SessionsPanel({ sessions, loading, error, onDelete }) {
                   <ActionButton className="sesp-tiny-btn" onClick={() => setConfirmId(null)} size="sm">Cancel</ActionButton>
                 </>
               ) : (
-                <ActionButton className="sesp-tiny-btn" onClick={() => setConfirmId(s.id)} size="sm" variant="destructive">Del</ActionButton>
+                <ActionButton className="sesp-tiny-btn" onClick={() => setConfirmId(s.id)} size="sm" variant="destructive">Delete</ActionButton>
               )}
             </div>
-          </div>
+          </button>
         ))}
       </div>
+      <SessionDetailModal session={selectedSession} onClose={() => setSelectedSession(null)} />
     </div>
   );
 }

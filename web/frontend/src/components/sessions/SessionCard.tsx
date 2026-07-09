@@ -24,7 +24,7 @@ function formatDate(value: string | null) {
   }).format(new Date(value));
 }
 
-// renders a single session card with title, language, duration, date, and a link to detail
+// renders a single session card with title, duration, date, and a link to detail
 export function SessionCard({
   session,
   onDelete,
@@ -41,11 +41,6 @@ export function SessionCard({
         >
           {session.title ?? "Untitled session"}
         </Link>
-        {session.language && (
-          <span className="glass-chip shrink-0 text-[10px] uppercase tracking-wider">
-            {session.language}
-          </span>
-        )}
       </div>
 
       <div className="flex items-center gap-3 text-white/45 text-xs">

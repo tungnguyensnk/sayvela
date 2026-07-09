@@ -17,7 +17,6 @@ export const sessions = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     title: varchar('title', { length: 255 }),
-    language: varchar('language', { length: 16 }),
     durationSeconds: integer('duration_seconds').notNull().default(0),
     status: varchar('status', { length: 32 }).notNull().default('active'),
     summary: text('summary'),
