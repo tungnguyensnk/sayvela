@@ -1,4 +1,4 @@
-import { IconSettings, IconContexts, IconStats, IconSessions, IconClose } from "../Icons";
+import { IconSettings, IconContexts, IconStats, IconSessions } from "../Icons";
 import { ActionIconButton } from "../astryx/AstryxControls";
 import "./LeftBar.css";
 
@@ -43,9 +43,6 @@ export function LeftBar({ activeTab, onTabChange, children }) {
       </nav>
 
       <div className={`lb-panel${panelOpen ? " lb-panel--open" : ""}`} aria-hidden={!panelOpen}>
-        {activeTab !== "settings" && activeTab !== "stats" && (
-          <ActionIconButton className="lb-close-btn" icon={<IconClose size={14} />} label="Close" onClick={() => onTabChange(null)} title="Close" />
-        )}
           <div className="lb-panel-body">{children}</div>
         </div>
     </aside>

@@ -38,7 +38,6 @@ export function AIChatPanel({
       <div className="panel-header">
         <div>
           <div className="panel-title">AI Chat</div>
-          <div className="panel-sub">Manual + auto answers</div>
         </div>
 
         <div className="ai-chat-actions">

@@ -8,6 +8,8 @@ export function TranscriptPanel({
   transcriptGroups,
   running,
   onExport,
+  loopbackStatus,
+  micStatus,
 }) {
   // retrieves the display label for a language code
   const langLabel = (code) => LANGUAGE_LABEL_BY_CODE.get(code) || code;
@@ -44,9 +46,12 @@ export function TranscriptPanel({
   return (
     <section className="panel transcript-panel">
       <div className="panel-header transcript-panel-header">
-        <div>
+        <div className="transcript-title-row">
           <div className="panel-title">Transcript</div>
-          <div className="panel-sub">Real-time conversation</div>
+          <div className="transcript-status-row">
+            {loopbackStatus && <span className="status-badge">Sys: {loopbackStatus}</span>}
+            {micStatus && <span className="status-badge">Mic: {micStatus}</span>}
+          </div>
         </div>
         <div className="transcript-actions">
           {onExport && transcriptGroups.length > 0 && (

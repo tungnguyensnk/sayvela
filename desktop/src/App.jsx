@@ -287,6 +287,18 @@ function App() {
 
   const handleExport = useTranscriptExport(loopbackTranscript.groups, micTranscript.groups);
   const mergedGroups = useMergedTranscriptGroups(loopbackTranscript.groups, micTranscript.groups);
+  const sourceProgress = (status) => {
+    if (status === "streaming") return 0.5;
+    if (["connecting", "configuring", "reconnecting"].includes(status)) return 0.35;
+    if (status === "starting") return 0.2;
+    return 0;
+  };
+  const enabledSourceCount = [loopbackDeviceId, micDeviceId].filter(Boolean).length;
+  const streamProgress = enabledSourceCount
+    ? (sourceProgress(loopbackDeviceId ? loopbackTranscript.status : "idle") + sourceProgress(micDeviceId ? micTranscript.status : "idle")) / (enabledSourceCount * 0.5)
+    : 0;
+  const isPreparing = running && enabledSourceCount > 0 && streamProgress < 1;
+  const isReadyToStop = running && (enabledSourceCount === 0 || streamProgress >= 1);
 
   useMicTranslationTts({
     enabled: micTtsEnabled,
@@ -411,11 +423,11 @@ function App() {
               running={running}
               onStart={start}
               onStop={stop}
-              elapsed={sessionElapsed}
-              loopbackStatus={loopbackTranscript.status}
-              micStatus={micTranscript.status}
+              elapsed={isReadyToStop ? sessionElapsed : 0}
+              preparing={isPreparing}
+              readyToStop={isReadyToStop}
+              progress={streamProgress}
               activeContextName={contexts.find((c) => c.id === loopbackContextId)?.name}
-              onOpenTab={setActiveTab}
             />
 
             <div className="home-panels">
@@ -423,6 +435,8 @@ function App() {
                 transcriptGroups={mergedGroups}
                 running={running}
                 onExport={handleExport}
+                loopbackStatus={loopbackTranscript.status}
+                micStatus={micTranscript.status}
               />
               <AIChatPanel
                 messages={chatgpt.chatMessages}

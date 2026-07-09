@@ -1,50 +1,46 @@
-import { IconSettings, IconContexts, IconStats, IconPlay, IconStop } from "../Icons";
+import { useEffect, useState } from "react";
+import { IconPlay, IconStop } from "../Icons";
 import { ActionButton } from "../astryx/AstryxControls";
 import { formatElapsed } from "../../utils/time";
 
-export function StartStopCard({ running, onStart, onStop, elapsed, loopbackStatus, micStatus, activeContextName, onOpenTab }) {
+export function StartStopCard({ running, onStart, onStop, elapsed, activeContextName, preparing, readyToStop, progress = 0 }) {
+  const [animatedProgress, setAnimatedProgress] = useState(0);
+  const showPreparing = preparing || (readyToStop && animatedProgress < 0.995);
+  const progressStyle = { "--ssc-progress": `${animatedProgress * 100}%` };
+
+  useEffect(() => {
+    if (!preparing && !readyToStop) { setAnimatedProgress(0); return; }
+    const target = readyToStop ? 1 : Math.min(1, Math.max(0, progress));
+    const timer = setInterval(() => {
+      setAnimatedProgress((v) => {
+        if (Math.abs(target - v) < 0.01) return target;
+        return v + Math.sign(target - v) * Math.min(Math.abs(target - v), 0.014);
+      });
+    }, 16);
+    return () => clearInterval(timer);
+  }, [preparing, readyToStop, progress]);
+
   return (
     <div className="ssc">
-      <div className="ssc-status-row">
-        <span className={`ssc-dot${running ? " ssc-dot--running" : ""}`} />
-        <span className="ssc-state">{running ? "Recording…" : "Idle"}</span>
-        {running && elapsed > 0 && (
-          <span className="ssc-timer">{formatElapsed(elapsed)}</span>
-        )}
-        {activeContextName && (
-          <span className="ssc-ctx-badge" onClick={() => onOpenTab("contexts")} title="Active context">
-            🗂️ {activeContextName}
-          </span>
-        )}
-      </div>
+      {activeContextName && <span className="ssc-ctx-badge" title="Active context">🗂️ {activeContextName}</span>}
 
       <div className="ssc-actions">
-        {!running ? (
+        {!running && (
           <ActionButton className="ssc-btn" icon={<IconPlay size={16} />} onClick={onStart} variant="primary">
             Start
           </ActionButton>
-        ) : (
+        )}
+        {showPreparing && (
+          <ActionButton className="ssc-btn ssc-btn--preparing" disabled icon={<IconPlay size={16} />} style={progressStyle} variant="primary">
+            Preparing…
+          </ActionButton>
+        )}
+        {readyToStop && !showPreparing && (
           <ActionButton className="ssc-btn" icon={<IconStop size={16} />} onClick={onStop} variant="destructive">
             Stop
           </ActionButton>
         )}
-      </div>
-
-      <div className="ssc-quick-row">
-        <ActionButton className="ssc-quick-btn" icon={<IconSettings size={15} />} onClick={() => onOpenTab("settings")} size="sm" variant="ghost">
-          Settings
-        </ActionButton>
-        <ActionButton className="ssc-quick-btn" icon={<IconContexts size={15} />} onClick={() => onOpenTab("contexts")} size="sm" variant="ghost">
-          Contexts
-        </ActionButton>
-        <ActionButton className="ssc-quick-btn" icon={<IconStats size={15} />} onClick={() => onOpenTab("stats")} size="sm" variant="ghost">
-          Stats
-        </ActionButton>
-      </div>
-
-      <div className="ssc-sub-row">
-        {loopbackStatus && <span className="ssc-badge">Sys: {loopbackStatus}</span>}
-        {micStatus && <span className="ssc-badge">Mic: {micStatus}</span>}
+        {readyToStop && !showPreparing && elapsed > 0 && <span className="ssc-timer">{formatElapsed(elapsed)}</span>}
       </div>
     </div>
   );
