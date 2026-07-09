@@ -263,7 +263,7 @@ fn save_file_dialog(default_name: String, content: String) -> Result<Option<Stri
 // setup and run the tauri application with window positioning and event handlers
 pub fn run() {
     let _ = dotenvy::dotenv();
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .manage(AppState::default())
         .manage(gptfree::GptfreeState::default())
         .manage(tts_native::TtsState::default())
@@ -331,7 +331,14 @@ pub fn run() {
             api::api_list_sessions,
             api::api_delete_session,
             api::api_get_me,
-        ])
+        ]);
+
+    #[cfg(debug_assertions)]
+    {
+        builder = builder.plugin(tauri_plugin_mcp_bridge::init());
+    }
+
+    builder
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
