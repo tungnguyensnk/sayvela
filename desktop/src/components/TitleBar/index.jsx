@@ -4,6 +4,18 @@ import { ActionButton, ActionIconButton } from "../astryx/AstryxControls";
 import { IconMinimize, IconMaximize, IconRestore, IconClose } from "./Icons";
 import "./TitleBar.css";
 
+function SyncLoadingIcon() {
+  return <span className="tb-sync-spinner" aria-hidden="true" />;
+}
+
+function SyncDoneIcon() {
+  return (
+    <svg className="tb-sync-icon" viewBox="0 0 16 16" aria-hidden="true">
+      <path d="M3.5 8.2 6.6 11 12.5 5" />
+    </svg>
+  );
+}
+
 // renders remaining minutes badge — green/yellow/red based on quota
 function UsageBadge({ entitlement }) {
   if (!entitlement) return null;
@@ -87,9 +99,9 @@ export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, onL
           {title}
         </div>
         <UsageBadge entitlement={entitlement} />
-        {syncStatus === "syncing" && <span className="tb-sync-badge syncing">syncing…</span>}
-        {syncStatus === "synced" && <span className="tb-sync-badge synced">synced ✓</span>}
-        {syncStatus === "failed" && <span className="tb-sync-badge failed">sync failed</span>}
+        {syncStatus === "syncing" && <span className="tb-sync-badge syncing" title="saving"><SyncLoadingIcon /></span>}
+        {syncStatus === "synced" && <span className="tb-sync-badge synced" title="saved"><SyncDoneIcon /></span>}
+        {syncStatus === "failed" && <span className="tb-sync-badge failed" title="sync failed">!</span>}
       </div>
 
       <div className="tb-controls" data-tauri-drag-region="false">

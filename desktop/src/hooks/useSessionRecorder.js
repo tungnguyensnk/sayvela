@@ -62,7 +62,6 @@ export function useSessionRecorder({ isAuthenticated, preferences, transcripts, 
       }
       await chatgpt.resetChatGPTWindow();
       await chatgpt.initChatGPTWindow();
-      chatgpt.clearSentContext();
       if (preferences.loopbackDeviceId) await invoke("start_audio_capture", { deviceId: preferences.loopbackDeviceId, kind: "loopback" });
       if (preferences.micDeviceId) await invoke("start_audio_capture", { deviceId: preferences.micDeviceId, kind: "microphone" });
       dispatchMachine({ type: "STARTED" });
@@ -101,6 +100,7 @@ export function useSessionRecorder({ isAuthenticated, preferences, transcripts, 
           recordUsage(minutes),
         ]);
         dispatch(setSyncStatus("synced"));
+        setTimeout(() => dispatch(setSyncStatus(null)), 3000);
         dispatchMachine({ type: "SYNCED" });
       } catch (e) {
         wsClientRef.current?.disconnect();

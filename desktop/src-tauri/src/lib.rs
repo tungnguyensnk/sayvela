@@ -1,7 +1,6 @@
 mod audio;
 mod api;
-mod gptfree;
-mod groq;
+mod chatgpt;
 mod soniox;
 mod tts_native;
 mod types;
@@ -25,112 +24,6 @@ impl Default for AppState {
             captures: Mutex::new(HashMap::new()),
         }
     }
-}
-
-fn build_prompt_impl(me_input_language: &str, context: &str, conversation: &str) -> String {
-    let (question_label, translation_label, answer_label) = output_labels(me_input_language);
-    let template = r#"Bạn là trợ lý AI trả lời câu hỏi dựa trên đoạn hội thoại được cung cấp.
-
-Nguyên tắc bắt buộc:
-- chỉ dùng ngôn ngữ: {meInputLanguage}
-- chỉ trả lời câu hỏi mới nhất xuất hiện trong hội thoại (đọc từ dưới lên)
-- nếu không có câu hỏi hoàn chỉnh, trả lời: "chưa thấy câu hỏi hoàn chỉnh"
-- trả lời đúng trọng tâm câu hỏi
-- không bịa thông tin; nếu cần tra cứu internet để chắc chắn, hãy nói rõ bạn cần tra cứu gì và vì sao
-- nếu câu hỏi về code và phù hợp, đưa ví dụ code bằng Python (tối thiểu)
-
-Output format phải tuân theo cấu trúc sau (phải dùng đúng tiêu đề mục như bên dưới):
-- {questionLabel}: <trích nguyên văn câu hỏi cuối cùng>
-- (tuỳ chọn) {translationLabel}: <nếu câu hỏi không phải {meInputLanguage}, dịch sang {meInputLanguage}>
-- {answerLabel}: <ngắn gọn theo ý chính>
-
-Context: {context}
-Đoạn hội thoại (mới nhất ở dưới):
-{conversation}"#;
-
-    template
-        .replace("{meInputLanguage}", me_input_language.trim())
-        .replace("{questionLabel}", question_label)
-        .replace("{translationLabel}", translation_label)
-        .replace("{answerLabel}", answer_label)
-        .replace("{context}", context.trim())
-        .replace("{conversation}", conversation.trim())
-}
-
-fn output_labels(me_input_language: &str) -> (&'static str, &'static str, &'static str) {
-    match normalize_lang_code(me_input_language).as_str() {
-        "vi" => ("Câu hỏi", "Dịch", "Trả lời"),
-        "en" => ("Question", "Translation", "Answer"),
-        "fr" => ("Question", "Traduction", "Réponse"),
-        "de" => ("Frage", "Übersetzung", "Antwort"),
-        "es" => ("Pregunta", "Traducción", "Respuesta"),
-        "it" => ("Domanda", "Traduzione", "Risposta"),
-        "pt" => ("Pergunta", "Tradução", "Resposta"),
-        "ru" => ("Вопрос", "Перевод", "Ответ"),
-        "ja" => ("質問", "翻訳", "回答"),
-        "ko" => ("질문", "번역", "답변"),
-        "zh" => ("问题", "翻译", "回答"),
-        _ => ("Question", "Translation", "Answer"),
-    }
-}
-
-fn normalize_lang_code(me_input_language: &str) -> String {
-    let raw = me_input_language.trim().to_lowercase();
-    let first = raw
-        .split(|c: char| c == '-' || c == '_' || c.is_whitespace())
-        .next()
-        .unwrap_or("");
-
-    match first {
-        "vi" | "vn" => return "vi".to_string(),
-        "en" => return "en".to_string(),
-        "fr" => return "fr".to_string(),
-        "de" => return "de".to_string(),
-        "es" => return "es".to_string(),
-        "it" => return "it".to_string(),
-        "pt" => return "pt".to_string(),
-        "ru" => return "ru".to_string(),
-        "ja" | "jp" => return "ja".to_string(),
-        "ko" | "kr" => return "ko".to_string(),
-        "zh" => return "zh".to_string(),
-        _ => {}
-    }
-
-    if first.starts_with("viet") {
-        return "vi".to_string();
-    }
-    if first.starts_with("eng") {
-        return "en".to_string();
-    }
-    if first.starts_with("french") || first.starts_with("fran") {
-        return "fr".to_string();
-    }
-    if first.starts_with("german") || first.starts_with("deut") {
-        return "de".to_string();
-    }
-    if first.starts_with("span") {
-        return "es".to_string();
-    }
-    if first.starts_with("ital") {
-        return "it".to_string();
-    }
-    if first.starts_with("portug") {
-        return "pt".to_string();
-    }
-    if first.starts_with("russ") {
-        return "ru".to_string();
-    }
-    if first.starts_with("japan") {
-        return "ja".to_string();
-    }
-    if first.starts_with("korea") {
-        return "ko".to_string();
-    }
-    if first.starts_with("chin") {
-        return "zh".to_string();
-    }
-
-    first.chars().take(2).collect()
 }
 
 #[tauri::command]
@@ -204,18 +97,6 @@ async fn soniox_get_temp_key() -> Result<SonioxTempKey, String> {
 }
 
 #[tauri::command]
-async fn groq_check_question(content: String) -> Result<String, String> {
-    groq::check_question(content)
-        .await
-        .map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-fn build_prompt(me_input_language: String, context: String, conversation: String) -> String {
-    build_prompt_impl(&me_input_language, &context, &conversation)
-}
-
-#[tauri::command]
 async fn auth_poll_pending_token(code: String, api_url: Option<String>) -> Result<Option<String>, String> {
     let base = api_url.unwrap_or_else(|| "http://localhost:80/api".to_string());
     let base = base.trim_end_matches('/');
@@ -265,7 +146,7 @@ pub fn run() {
     let _ = dotenvy::dotenv();
     let mut builder = tauri::Builder::default()
         .manage(AppState::default())
-        .manage(gptfree::GptfreeState::default())
+        .manage(chatgpt::ChatgptState::default())
         .manage(tts_native::TtsState::default())
         .plugin(
             tauri_plugin_log::Builder::new()
@@ -308,11 +189,9 @@ pub fn run() {
             stop_audio_capture,
             set_main_window_content_protected,
             soniox_get_temp_key,
-            groq_check_question,
-            build_prompt,
             auth_poll_pending_token,
-            gptfree::gptfree_start_stream,
-            gptfree::gptfree_cancel_stream,
+            chatgpt::chatgpt_start_stream,
+            chatgpt::chatgpt_cancel_stream,
             tts_native::tts_list_voices,
             tts_native::tts_speak,
             tts_native::tts_stop,
@@ -342,39 +221,4 @@ pub fn run() {
     builder
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-}
-
-#[cfg(test)]
-mod tests {
-    use super::build_prompt_impl;
-    use super::output_labels;
-
-    #[test]
-    fn build_prompt_replaces_all_placeholders() {
-        let out = build_prompt_impl(" vi ", " weather ", " hello ");
-        assert!(out.contains("chỉ dùng ngôn ngữ: vi"));
-        assert!(out.contains("Context: weather"));
-        assert!(out.contains("hello"));
-        assert!(out.contains("- Câu hỏi:"));
-        assert!(out.contains("(tuỳ chọn) Dịch:"));
-        assert!(out.contains("- Trả lời:"));
-        assert!(!out.contains("{meInputLanguage}"));
-        assert!(!out.contains("{questionLabel}"));
-        assert!(!out.contains("{translationLabel}"));
-        assert!(!out.contains("{answerLabel}"));
-        assert!(!out.contains("{context}"));
-        assert!(!out.contains("{conversation}"));
-    }
-
-    #[test]
-    fn output_labels_support_common_languages() {
-        assert_eq!(output_labels("en"), ("Question", "Translation", "Answer"));
-        assert_eq!(
-            output_labels("en-US"),
-            ("Question", "Translation", "Answer")
-        );
-        assert_eq!(output_labels("vi"), ("Câu hỏi", "Dịch", "Trả lời"));
-        assert_eq!(output_labels("ja-JP"), ("質問", "翻訳", "回答"));
-        assert_eq!(output_labels("Korean"), ("질문", "번역", "답변"));
-    }
 }

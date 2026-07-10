@@ -99,15 +99,39 @@
 }
 
 .tb-sync-badge {
-  font-size: 10px;
-  padding: 2px 7px;
-  border-radius: 20px;
-  white-space: nowrap;
+  width: 20px;
+  height: 20px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: var(--radius-full);
 }
 
-.tb-sync-badge.syncing { color: var(--app-muted); background: color-mix(in srgb, var(--app-text) 5%, transparent); }
-.tb-sync-badge.synced { color: var(--app-success); background: color-mix(in srgb, var(--app-success) 8%, transparent); }
-.tb-sync-badge.failed { color: var(--app-danger); background: color-mix(in srgb, var(--app-danger) 8%, transparent); }
+.tb-sync-badge.syncing { color: var(--app-muted); }
+.tb-sync-badge.synced { color: var(--app-success); }
+.tb-sync-badge.failed { color: var(--app-danger); font-size: 12px; font-weight: 800; }
+
+.tb-sync-spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid color-mix(in srgb, var(--app-muted) 24%, transparent);
+  border-top-color: var(--app-muted);
+  border-radius: var(--radius-full);
+  animation: tb-sync-spin 0.8s linear infinite;
+}
+
+.tb-sync-icon {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@keyframes tb-sync-spin {
+  to { transform: rotate(360deg); }
+}
 
 .tb-user {
   display: flex;

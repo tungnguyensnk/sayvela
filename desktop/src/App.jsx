@@ -13,7 +13,6 @@ import { AppLeftContent } from "./components/AppLeftContent";
 import { useAI } from "./hooks/useAI";
 import { useAuth } from "./hooks/useAuth";
 import { useSettings } from "./hooks/useSettings";
-import { useSpeakerCheck } from "./hooks/useSpeakerCheck";
 import { useMergedTranscriptGroups } from "./hooks/useMergedTranscriptGroups";
 import { useAudioCaptureController } from "./hooks/useAudioCaptureController";
 import { useContentProtection } from "./hooks/useContentProtection";
@@ -43,7 +42,7 @@ function App() {
     dispatch(hydratePreferences(settings));
   }, [dispatch, settings, settingsLoaded]);
 
-  const chatgpt = useAI({ micInputLangs: preferences.micInputLangs, loopbackContext: activeContextJson });
+  const chatgpt = useAI();
 
   const { entitlement, checkQuota } = useEntitlement({
     isAuthenticated,
@@ -77,13 +76,6 @@ function App() {
     dispatch(setActiveTab(tab));
     if (tab === "sessions") dispatch(fetchSessionsThunk());
   };
-
-  useSpeakerCheck({
-    running,
-    loopbackGroups: loopbackTranscript.groups,
-    micGroups: micTranscript.groups,
-    chatgpt,
-  });
 
   useEffect(() => {
     if (!isAuthenticated) {

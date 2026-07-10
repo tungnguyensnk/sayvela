@@ -51,9 +51,9 @@ export function SessionsPanel({ sessions, loading, error, onDelete }) {
             <div className="sesp-item-content">
               <div className="sesp-item-topline">
                 <span className="sesp-item-title">{s.title ?? "Untitled"}</span>
-                <span className={`sesp-status sesp-status-${s.status || "unknown"}`}>{s.status || "unknown"}</span>
               </div>
               <div className="sesp-item-meta">
+                <span className={`sesp-status sesp-status-${s.status || "unknown"}`}>{s.status || "unknown"}</span>
                 <span>⏱ {formatDuration(s.durationSeconds)}</span>
                 <span>{formatDate(s.createdAt)}</span>
               </div>

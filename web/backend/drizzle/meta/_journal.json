@@ -57,6 +57,20 @@
       "when": 1776120000000,
       "tag": "0007_session_segments_origin_id",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1776180000000,
+      "tag": "0008_drop_sessions_language",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1783623108000,
+      "tag": "0009_chatgpt_access_token",
+      "breakpoints": true
     }
   ]
 }

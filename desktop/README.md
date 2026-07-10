@@ -20,7 +20,7 @@ sayvela captures audio from two simultaneous sources — system loopback and mic
 | **Intelligent Translation** | Automatic translation to your target language |
 | **Speaker Diarization** | Automatic speaker identification and separation |
 | **TTS Output** | Text-to-speech playback of mic translations |
-| **AI Integration** | Groq API for question detection, ChatGPT for answers |
+| **AI Chat** | ChatGPT backend-api integration for manual chat |
 | **Content Protection** | Screenshot/screen-share protection for privacy |
 
 ## Architecture
@@ -37,7 +37,7 @@ graph TB
         E[audio.rs] --> F[WASAPI]
         E --> G[Events]
         H[soniox.rs] --> I[Soniox API]
-        J[groq.rs] --> K[Groq API]
+        J[chatgpt.rs] --> K[ChatGPT backend-api]
         L[tts_native.rs] --> M[Windows TTS]
     end
 
@@ -73,8 +73,7 @@ sequenceDiagram
 - **OS**: Windows 10/11 (WASAPI audio capture)
 - **Rust**: Latest stable
 - **Node.js**: 18+
-- **API Keys**:
-  - `GROQ_API_KEY` — [Get from Groq Console](https://console.groq.com/)
+- **Backend**: Sayvela backend with user-scoped `chatgpt_access_token` records
 
 ## Installation
 
@@ -88,9 +87,6 @@ npm install
 
 # Create environment file
 cp .env.example .env
-
-# Add your API key to .env
-# GROQ_API_KEY=your_key_here
 
 # Start development server
 npm run tauri dev
@@ -117,8 +113,7 @@ desktop/
 │   │       ├── TranscriptGrid.jsx
 │   │       └── index.jsx
 │   ├── hooks/
-│   │   ├── useChatGPT.js
-│   │   └── useSpeakerCheck.js
+│   │   └── useAI.js
 │   ├── transcript/
 │   │   ├── sonioxSession.js
 │   │   ├── transcriptUtils.js
@@ -131,8 +126,7 @@ desktop/
 │   ├── languages.js
 │   └── main.jsx
 ├── src-tauri/
-│   │   ├── chatgpt_inject_*.js
-│   │   ├── groq.rs           # Groq API client
+│   │   ├── chatgpt.rs        # ChatGPT backend-api client
 │   │   ├── lib.rs            # Tauri command handlers
 │   │   ├── tts_native.rs     # Windows TTS
 │   │   └── types.rs
@@ -195,7 +189,7 @@ Full list available in `src/languages.js`
 
 ### External Services
 - [Soniox](https://soniox.com/) — Speech-to-text & translation
-- [Groq](https://console.groq.com/) — Question detection
+- ChatGPT backend-api — AI chat responses
 
 ## Notes
 
@@ -211,7 +205,7 @@ Full list available in `src/languages.js`
 
 ### Transcription not working
 1. Check internet connectivity
-2. Verify `GROQ_API_KEY` is set correctly in `.env`
+2. Verify Soniox backend access is available
 
 ### ChatGPT not responding
 1. Verify internet connectivity
