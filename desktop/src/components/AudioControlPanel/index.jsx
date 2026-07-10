@@ -22,10 +22,6 @@ export function AudioControlPanel({
   running,
   onRefreshDevices,
   devicesError,
-  loopbackBytes,
-  micBytes,
-  loopbackCaptureState,
-  micCaptureState,
   
   // Loopback Language Props
   loopbackInputLangs,
@@ -51,9 +47,7 @@ export function AudioControlPanel({
   micTtsOutputDeviceId,
   onChangeMicTtsOutputDeviceId,
 
-  loopbackStatus,
   loopbackError,
-  micStatus,
   micError,
 }) {
   const loopbackDevices = devices.filter((d) => d.kind === "loopback");
@@ -102,9 +96,6 @@ export function AudioControlPanel({
           {/* Loopback Section */}
           <SourceSection
             title="System Audio (Speakers)"
-            captureState={loopbackCaptureState}
-            bytes={loopbackBytes}
-            status={loopbackStatus}
             error={loopbackError}
             deviceId={loopbackDeviceId}
             devices={loopbackDevices}
@@ -154,9 +145,6 @@ export function AudioControlPanel({
           {/* Mic Section */}
           <SourceSection
             title="Microphone (Me)"
-            captureState={micCaptureState}
-            bytes={micBytes}
-            status={micStatus}
             error={micError}
             deviceId={micDeviceId}
             devices={micDevices}

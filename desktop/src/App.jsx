@@ -28,7 +28,7 @@ import { selectActiveContextJson, selectActiveContextName } from "./store/select
 // main application component that manages audio capture, transcription, and translation state
 function App() {
   const dispatch = useDispatch();
-  const { running, loopbackCaptureState, micCaptureState } = useSelector((state) => state.audio);
+  const { running, loopbackBytes, micBytes, loopbackCaptureState, micCaptureState } = useSelector((state) => state.audio);
   const preferences = useSelector((state) => state.preferences);
   const { activeTab, quotaExceeded, syncStatus, sessionElapsed } = useSelector((state) => state.ui);
   const activeContextJson = useSelector(selectActiveContextJson);
@@ -107,9 +107,7 @@ function App() {
   });
 
   const audioRuntime = {
-    loopbackStatus: loopbackTranscript.status,
     loopbackError: loopbackTranscript.error,
-    micStatus: micTranscript.status,
     micError: micTranscript.error,
     onRefreshDevices: refreshDevices,
   };
@@ -156,7 +154,9 @@ function App() {
                 transcriptGroups={mergedGroups}
                 running={running}
                 loopbackStatus={loopbackTranscript.status}
+                loopbackBytes={loopbackBytes}
                 micStatus={micTranscript.status}
+                micBytes={micBytes}
                 titleAction={(
                   <StartStopCard
                     running={running}

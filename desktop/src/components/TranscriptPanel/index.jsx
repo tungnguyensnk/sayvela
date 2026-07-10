@@ -7,14 +7,27 @@ export function TranscriptPanel({
   transcriptGroups,
   running,
   loopbackStatus,
+  loopbackBytes,
   micStatus,
+  micBytes,
   titleAction,
 }) {
   // retrieves compact language code for transcript pills
   const langLabel = (code) => code || "-";
   const [autoScroll, setAutoScroll] = useState(true);
+  const [streamingSince, setStreamingSince] = useState({ loopback: 0, mic: 0 });
   const scrollRef = useRef(null);
   const autoScrollingRef = useRef(false);
+
+  // formats byte counts into compact kilobyte labels
+  const kbLabel = (bytes) => `${Math.round((bytes || 0) / 1024)} KB`;
+
+  // returns stream status until one second passes, then returns kilobyte count
+  const statusLabel = (key, status, bytes) => {
+    if (status !== "streaming") return status;
+    const since = streamingSince[key];
+    return since && Date.now() - since >= 1000 ? kbLabel(bytes) : status;
+  };
 
   // smoothly scrolls the transcript view to the bottom
   const scrollToBottom = () => {
@@ -32,6 +45,19 @@ export function TranscriptPanel({
   }, [running]);
 
   useEffect(() => {
+    setStreamingSince((current) => ({
+      loopback: loopbackStatus === "streaming" ? current.loopback || Date.now() : 0,
+      mic: micStatus === "streaming" ? current.mic || Date.now() : 0,
+    }));
+  }, [loopbackStatus, micStatus]);
+
+  useEffect(() => {
+    if (loopbackStatus !== "streaming" && micStatus !== "streaming") return undefined;
+    const timer = setInterval(() => setStreamingSince((current) => ({ ...current })), 250);
+    return () => clearInterval(timer);
+  }, [loopbackStatus, micStatus]);
+
+  useEffect(() => {
     if (!autoScroll) return;
     scrollToBottom();
   }, [autoScroll, transcriptGroups]);
@@ -43,8 +69,8 @@ export function TranscriptPanel({
           <div className="panel-title">Transcript</div>
           {titleAction}
           <div className="transcript-status-row">
-            {loopbackStatus && <span className="status-badge">Sys: {loopbackStatus}</span>}
-            {micStatus && <span className="status-badge">Mic: {micStatus}</span>}
+            {loopbackStatus && <span className="status-badge">Sys: {statusLabel("loopback", loopbackStatus, loopbackBytes)}</span>}
+            {micStatus && <span className="status-badge">Mic: {statusLabel("mic", micStatus, micBytes)}</span>}
           </div>
         </div>
         <div className="transcript-actions">

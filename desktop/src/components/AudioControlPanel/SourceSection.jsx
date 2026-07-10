@@ -3,9 +3,6 @@ import { LanguageMultiSelect, LanguageDropdown } from "./LanguageControls";
 // renders a section for configuring a specific audio source (e.g., microphone or system audio)
 export function SourceSection({
   title,
-  captureState,
-  bytes,
-  status,
   error,
   deviceId,
   devices,
@@ -21,11 +18,7 @@ export function SourceSection({
     <div className="card acp-source">
       <div className="acp-sourceHeader">
         <div className="acp-sourceTitle">{title}</div>
-        <div className="acp-sourceMeta">
-          {captureState?.state || "stopped"} ({bytes} B)
-          {status && ` | ${status}`}
-          {error && ` (${error})`}
-        </div>
+        {error && <div className="acp-sourceMeta">{error}</div>}
       </div>
       <select
         className="select acp-select"
