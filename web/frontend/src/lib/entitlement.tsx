@@ -11,6 +11,7 @@ import {
 } from "react";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { authFetch } from "./auth-fetch";
 import {
   BILLING_PLAN_FEATURES,
   BILLING_PLAN_MINUTES,
@@ -108,7 +109,7 @@ export function EntitlementProvider({
       setState({ kind: "loading" });
     }
     try {
-      const res = await fetch("/api/proxy/billing/entitlement", { cache: "no-store" });
+      const res = await authFetch("/api/proxy/billing/entitlement", { cache: "no-store" });
 
       if (!res.ok) {
         if (!options?.keepPrevious) {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { authFetch } from "@/lib/auth-fetch";
 
 export type Session = {
   id: string;
@@ -46,7 +47,7 @@ export function useSessions(page = 1, limit = 20) {
     inFlightRef.current = true;
     setState({ kind: "loading" });
     try {
-      const res = await fetch(`/api/proxy/sessions?page=${page}&limit=${limit}`, {
+      const res = await authFetch(`/api/proxy/sessions?page=${page}&limit=${limit}`, {
         cache: "no-store",
       });
       if (!res.ok) throw new Error("failed to load sessions");
@@ -74,7 +75,7 @@ export function useSessionDetail(id: string) {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/proxy/sessions/${id}`, { cache: "no-store" })
+    authFetch(`/api/proxy/sessions/${id}`, { cache: "no-store" })
       .then((r) => {
         if (!r.ok) throw new Error("not found");
         return r.json() as Promise<SessionDetail>;
@@ -99,6 +100,6 @@ export function useSessionDetail(id: string) {
 
 // deletes a session by id and returns whether successful
 export async function deleteSession(id: string) {
-  const res = await fetch(`/api/proxy/sessions/${id}`, { method: "DELETE" });
+  const res = await authFetch(`/api/proxy/sessions/${id}`, { method: "DELETE" });
   return res.ok;
 }

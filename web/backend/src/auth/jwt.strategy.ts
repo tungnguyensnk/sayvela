@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { UsersService } from '../users/users.service';
 
 type JwtPayload = {
   sub: string;
@@ -9,7 +10,7 @@ type JwtPayload = {
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor() {
+  constructor(private readonly users: UsersService) {
     const secret = process.env.JWT_SECRET;
     if (!secret) throw new Error('JWT_SECRET env variable is not set');
     super({
@@ -19,7 +20,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(payload: JwtPayload) {
-    return { userId: payload.sub, email: payload.email };
+  async validate(payload: JwtPayload) {
+    const user = await this.users.findById(payload.sub);
+    if (!user) throw new UnauthorizedException();
+    return { userId: user.id, email: user.email };
   }
 }

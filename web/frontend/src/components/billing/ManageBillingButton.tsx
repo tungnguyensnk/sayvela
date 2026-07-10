@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
+import { authFetch } from "@/lib/auth-fetch";
 
 type Props = {
   className?: string;
@@ -26,7 +27,7 @@ export function ManageBillingButton({
 
     setIsLoading(true);
     try {
-      const res = await fetch("/api/proxy/billing/portal", { method: "POST" });
+      const res = await authFetch("/api/proxy/billing/portal", { method: "POST" });
 
       if (!res.ok) {
         const message = await res.text().catch(() => "");
@@ -62,4 +63,3 @@ export function ManageBillingButton({
     </div>
   );
 }
-

@@ -162,6 +162,7 @@ export async function startSonioxSession({
     num_channels: 1,
     model: "stt-rt-v5",
     language_hints: languageHints,
+    language_hints_strict: true,
     enable_speaker_diarization: enableSpeakerDiarization,
     enable_language_identification: true,
   };

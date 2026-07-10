@@ -7,6 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
+    "db:drop": "ts-node -e \"import { config } from 'dotenv'; import { Client } from 'pg'; config({ path: '../.env' }); const run = async () => { const client = new Client({ connectionString: process.env.DATABASE_URL }); await client.connect(); try { await client.query('DROP SCHEMA IF EXISTS public CASCADE; DROP SCHEMA IF EXISTS drizzle CASCADE; CREATE SCHEMA public;'); } finally { await client.end(); } }; run();\"",
     "db:generate": "drizzle-kit generate --name=init",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "ts-node -r dotenv/config src/seed.ts",

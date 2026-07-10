@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
+import { authFetch } from "@/lib/auth-fetch";
 
 type Props = {
   plan: "lite" | "pro";
@@ -30,7 +31,7 @@ export function CheckoutButton({
 
     setIsLoading(true);
     try {
-      const res = await fetch("/api/proxy/billing/checkout-session", {
+      const res = await authFetch("/api/proxy/billing/checkout-session", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan, interval }),

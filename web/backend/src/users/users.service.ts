@@ -7,6 +7,11 @@ import crypto from 'crypto';
 
 @Injectable()
 export class UsersService {
+  async findById(id: string) {
+    const res = await db.select().from(users).where(eq(users.id, id));
+    return res[0] ?? null;
+  }
+
   async findByEmail(email: string) {
     const res = await db.select().from(users).where(eq(users.email, email));
     return res[0] ?? null;
