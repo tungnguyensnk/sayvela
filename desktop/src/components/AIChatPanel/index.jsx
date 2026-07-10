@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
-import { Markdown } from "@astryxdesign/core/Markdown";
 import { ActionButton, ActionIconButton } from "../astryx/AstryxControls";
+import { ChatMessageContent } from "./ChatMessageContent";
 import "./AIChatPanel.css";
 
 function SendIcon() {
@@ -95,9 +95,7 @@ export function AIChatPanel({
                     {m.createdAt ? <span className="ai-msg-time">{formatTime(m.createdAt)}</span> : null}
                   </div>
                   <div className="ai-msg-text">
-                    <Markdown density="compact" isStreaming={m.status === "streaming"} autolink="gfm">
-                      {m.text || ""}
-                    </Markdown>
+                    <ChatMessageContent text={m.text || ""} contentReferences={m.contentReferences} isStreaming={m.status === "streaming"} />
                   </div>
                   </div>
                 </div>

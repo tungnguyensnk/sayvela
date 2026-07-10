@@ -85,13 +85,14 @@ export function useAI() {
               }
             } else if (event === "result") {
               const text = data?.response ?? data?.text ?? "";
+              const contentReferences = data?.content_references || data?.contentReferences || [];
               if (keepConversation) {
                 saveConversationState({
                   conversationId: data?.conversation_id,
                   parentMessageId: data?.message_id,
                 });
               }
-              dispatch({ type: "chat/finish", payload: { requestId, text } });
+              dispatch({ type: "chat/finish", payload: { requestId, text, contentReferences } });
             }
           },
           {

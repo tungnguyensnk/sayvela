@@ -29,6 +29,12 @@ export function SessionsPanel({ sessions, loading, error, onDelete }) {
   const [confirmId, setConfirmId] = useState(null);
   const [selectedSession, setSelectedSession] = useState(null);
 
+  const handleOpenKeyDown = (event, session) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    setSelectedSession(session);
+  };
+
   const handleDelete = async (id) => {
     await onDelete(id);
     setConfirmId(null);
@@ -47,7 +53,14 @@ export function SessionsPanel({ sessions, loading, error, onDelete }) {
           <div className="sesp-empty">No sessions yet.</div>
         )}
         {!loading && !error && sessions.map((s) => (
-          <button key={s.id} className="sesp-item" type="button" onClick={() => setSelectedSession(s)}>
+          <div
+            key={s.id}
+            className="sesp-item"
+            role="button"
+            tabIndex={0}
+            onClick={() => setSelectedSession(s)}
+            onKeyDown={(event) => handleOpenKeyDown(event, s)}
+          >
             <div className="sesp-item-content">
               <div className="sesp-item-topline">
                 <span className="sesp-item-title">{s.title ?? "Untitled"}</span>
@@ -69,7 +82,7 @@ export function SessionsPanel({ sessions, loading, error, onDelete }) {
                 <ActionButton className="sesp-tiny-btn" onClick={() => setConfirmId(s.id)} size="sm" variant="destructive">Delete</ActionButton>
               )}
             </div>
-          </button>
+          </div>
         ))}
       </div>
       <SessionDetailModal session={selectedSession} onClose={() => setSelectedSession(null)} />

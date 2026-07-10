@@ -206,6 +206,21 @@ fn message_text(chunk: &Value) -> Option<String> {
         .map(|s| s.to_string())
 }
 
+fn message_metadata(chunk: &Value) -> Option<&Value> {
+    if chunk.get("message")?.get("author")?.get("role")?.as_str()? != "assistant" {
+        return None;
+    }
+    chunk.get("message")?.get("metadata")
+}
+
+fn metadata_array(metadata: Option<&Value>, key: &str) -> Value {
+    metadata
+        .and_then(|m| m.get(key))
+        .and_then(|v| v.as_array())
+        .map(|v| Value::Array(v.clone()))
+        .unwrap_or_else(|| Value::Array(vec![]))
+}
+
 fn message_id(chunk: &Value) -> Option<String> {
     chunk.get("message")?.get("id")?.as_str().map(|s| s.to_string())
 }
@@ -336,6 +351,9 @@ async fn stream_agent(
     let mut final_text = String::new();
     let mut conv_id = String::new();
     let mut last_msg_id = String::new();
+    let mut content_references = Value::Array(vec![]);
+    let mut citations = Value::Array(vec![]);
+    let mut safe_urls = Value::Array(vec![]);
     while let Some(item) = stream.next().await {
         let bytes = match item {
             Ok(b) => b,
@@ -354,6 +372,20 @@ async fn stream_agent(
             }
             if let Some(id) = message_id(&chunk) {
                 last_msg_id = id;
+            }
+            if let Some(metadata) = message_metadata(&chunk) {
+                let next_content_references = metadata_array(Some(metadata), "content_references");
+                let next_citations = metadata_array(Some(metadata), "citations");
+                let next_safe_urls = metadata_array(Some(metadata), "safe_urls");
+                if next_content_references.as_array().map(|v| !v.is_empty()).unwrap_or(false) {
+                    content_references = next_content_references;
+                }
+                if next_citations.as_array().map(|v| !v.is_empty()).unwrap_or(false) {
+                    citations = next_citations;
+                }
+                if next_safe_urls.as_array().map(|v| !v.is_empty()).unwrap_or(false) {
+                    safe_urls = next_safe_urls;
+                }
             }
             if let Some(text) = message_text(&chunk) {
                 if text.len() > final_text.len() && text.starts_with(&final_text) {
@@ -378,7 +410,14 @@ async fn stream_agent(
         StreamEnvelope {
             request_id: request_id.clone(),
             event: "result".to_string(),
-            data: serde_json::json!({ "response": final_text, "conversation_id": conv_id, "message_id": last_msg_id }),
+            data: serde_json::json!({
+                "response": final_text,
+                "conversation_id": conv_id,
+                "message_id": last_msg_id,
+                "content_references": content_references,
+                "citations": citations,
+                "safe_urls": safe_urls
+            }),
         },
     );
     if let Ok(mut guard) = app.state::<ChatgptState>().streams.lock() {
