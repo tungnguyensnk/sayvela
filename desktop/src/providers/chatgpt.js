@@ -96,3 +96,26 @@ export async function sendStreamMessage(message, history = [], onEvent, options 
     }
   });
 }
+
+export async function hideConversation(conversationId) {
+  if (!isTauriRuntime() || !conversationId) return;
+  const authToken = getStoredAuth()?.token;
+  if (!authToken) return;
+  await invoke("chatgpt_hide_conversation", {
+    conversationId,
+    apiUrl: API_URL,
+    authToken,
+  });
+}
+
+export async function prepareStopConversation(state = getConversationState()) {
+  if (!isTauriRuntime() || !state?.conversationId || !state?.parentMessageId) return;
+  const authToken = getStoredAuth()?.token;
+  if (!authToken) return;
+  await invoke("chatgpt_prepare_stop", {
+    conversationId: state.conversationId,
+    parentMessageId: state.parentMessageId,
+    apiUrl: API_URL,
+    authToken,
+  });
+}

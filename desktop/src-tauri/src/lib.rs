@@ -178,6 +178,8 @@ pub fn run() {
             auth_poll_pending_token,
             chatgpt::chatgpt_start_stream,
             chatgpt::chatgpt_cancel_stream,
+            chatgpt::chatgpt_hide_conversation,
+            chatgpt::chatgpt_prepare_stop,
             tts_native::tts_list_voices,
             tts_native::tts_speak,
             tts_native::tts_stop,

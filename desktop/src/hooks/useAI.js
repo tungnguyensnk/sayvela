@@ -1,5 +1,6 @@
 import { useRef, useCallback, useReducer, useState } from "react";
 import { sendMessage as aiSendMessage } from "../services/aiService.js";
+import { hideConversation, prepareStopConversation } from "../providers/chatgpt.js";
 import {
   clearConversationState,
   getConversationState,
@@ -36,6 +37,7 @@ export function useAI() {
 
   const cancelActive = useCallback(() => {
     if (!abortRef.current.controller) return;
+    prepareStopConversation().catch(() => {});
     const rid = abortRef.current.requestId;
     abortRef.current.controller.abort();
     abortRef.current = { controller: null, requestId: "" };
@@ -43,7 +45,7 @@ export function useAI() {
   }, []);
 
   const sendPlainMessage = useCallback(
-    async ({ text, source, keepConversation = false }) => {
+    async ({ text, source, keepConversation = true }) => {
       const messageText = String(text || "").trim();
       if (!messageText) return;
       if (abortRef.current.controller) cancelActive();
@@ -126,9 +128,14 @@ export function useAI() {
   }, [input, sendPlainMessage]);
 
   const clearChat = useCallback(() => {
+    const { conversationId } = getConversationState();
+    cancelActive();
+    if (conversationId) {
+      hideConversation(conversationId).catch(() => {});
+    }
     clearConversationState();
     dispatch({ type: "chat/clear" });
-  }, []);
+  }, [cancelActive]);
 
   return {
     initChatGPTWindow: initAI,

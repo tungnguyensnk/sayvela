@@ -472,6 +472,99 @@ pub fn chatgpt_cancel_stream(state: State<'_, ChatgptState>, request_id: String)
     Ok(())
 }
 
+#[tauri::command]
+pub async fn chatgpt_hide_conversation(
+    conversation_id: String,
+    api_url: String,
+    auth_token: String,
+) -> Result<(), String> {
+    let conversation_id = conversation_id.trim();
+    if conversation_id.is_empty() || auth_token.trim().is_empty() {
+        return Ok(());
+    }
+    let client = make_client(30)?;
+    let access_token = fetch_access_token(&client, &api_url, &auth_token).await?;
+    let res = client
+        .patch(format!("{}/conversation/{}", CHATGPT_API, conversation_id))
+        .bearer_auth(access_token)
+        .header("Content-Type", "application/json")
+        .header("Accept", "*/*")
+        .header("User-Agent", USER_AGENT)
+        .header("oai-device-id", DEVICE_ID)
+        .header("oai-language", "vi-VN")
+        .header("Origin", "https://chatgpt.com")
+        .header("Referer", format!("https://chatgpt.com/c/{}", conversation_id))
+        .header("x-openai-target-path", format!("/backend-api/conversation/{}", conversation_id))
+        .header("x-openai-target-route", "/backend-api/conversation/{conversation_id}")
+        .json(&serde_json::json!({ "is_visible": false }))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    if !res.status().is_success() {
+        let status = res.status().as_u16();
+        let body = res.text().await.unwrap_or_default();
+        return Err(format!("hide conversation failed: {} {}", status, trim_error(&body)));
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn chatgpt_prepare_stop(
+    conversation_id: String,
+    parent_message_id: String,
+    api_url: String,
+    auth_token: String,
+) -> Result<(), String> {
+    let conversation_id = conversation_id.trim();
+    let parent_message_id = parent_message_id.trim();
+    if conversation_id.is_empty() || parent_message_id.is_empty() || auth_token.trim().is_empty() {
+        return Ok(());
+    }
+    let client = make_client(30)?;
+    let access_token = fetch_access_token(&client, &api_url, &auth_token).await?;
+    let res = client
+        .post(format!("{}/f/conversation/prepare", CHATGPT_API))
+        .bearer_auth(access_token)
+        .header("Content-Type", "application/json")
+        .header("Accept", "*/*")
+        .header("User-Agent", USER_AGENT)
+        .header("oai-device-id", DEVICE_ID)
+        .header("oai-language", "vi-VN")
+        .header("Origin", "https://chatgpt.com")
+        .header("Referer", format!("https://chatgpt.com/c/{}", conversation_id))
+        .header("x-openai-target-path", "/backend-api/f/conversation/prepare")
+        .header("x-openai-target-route", "/backend-api/f/conversation/prepare")
+        .json(&serde_json::json!({
+            "action": "next",
+            "conversation_id": conversation_id,
+            "parent_message_id": parent_message_id,
+            "model": "auto",
+            "client_prepare_state": "none",
+            "client_prepare_dispatch": "immediate",
+            "client_prepare_source": "context_change",
+            "timezone_offset_min": -420,
+            "timezone": "Asia/Saigon",
+            "conversation_mode": { "kind": "primary_assistant" },
+            "system_hints": [],
+            "supports_buffering": true,
+            "supported_encodings": ["v1"],
+            "client_contextual_info": {
+                "app_name": "chatgpt.com",
+                "has_web_push_capabilities": true,
+                "web_push_notification_permission": "default"
+            }
+        }))
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+    if !res.status().is_success() {
+        let status = res.status().as_u16();
+        let body = res.text().await.unwrap_or_default();
+        return Err(format!("prepare stop failed: {} {}", status, trim_error(&body)));
+    }
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

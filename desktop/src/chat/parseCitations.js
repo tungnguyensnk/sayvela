@@ -1,6 +1,7 @@
 const COMPLETE_MARKER_RE = /^[\s\S]*?/u;
 const INCOMPLETE_MARKER_RE = /^[^\s]*/u;
 const MARKER_RE = /[\s\S]*?|[^\s]*/gu;
+const WRITING_MARKER_RE = /:::writing(?:\{[^\n]*\})?\s*|^\s*:::\s*$/gmu;
 
 function domainFromUrl(url) {
   try {
@@ -63,7 +64,7 @@ function validRefs(contentReferences) {
 }
 
 function pushMarkdown(segments, text) {
-  const cleanText = stripCitationMarkers(text);
+  const cleanText = stripChatMarkers(text);
   if (!cleanText) return;
   const last = segments[segments.length - 1];
   if (last?.type === "markdown") last.text += cleanText;
@@ -79,11 +80,15 @@ export function stripCitationMarkers(text) {
   return String(text || "").replace(MARKER_RE, "");
 }
 
+export function stripChatMarkers(text) {
+  return stripCitationMarkers(text).replace(WRITING_MARKER_RE, "");
+}
+
 export function parseCitations(text, contentReferences = []) {
-  const raw = String(text || "");
+  const raw = stripChatMarkers(text);
   const refs = validRefs(contentReferences);
   if (!raw) return [];
-  if (!refs.length) return [{ type: "markdown", text: stripCitationMarkers(raw) }].filter((s) => s.text);
+  if (!refs.length) return [{ type: "markdown", text: raw }].filter((s) => s.text);
 
   const segments = [];
   let i = 0;
