@@ -12,10 +12,8 @@ export async function fetchEntitlement() {
   }
 }
 
-// records minutes used after a session ends; silently fails if not authenticated
+// records minutes used after a session ends; skips when unauthenticated
 export async function recordUsage(minutes) {
   if (!getStoredAuth()?.token || minutes <= 0) return;
-  try {
-    await apiRecordUsage(minutes);
-  } catch {}
+  await apiRecordUsage(minutes);
 }

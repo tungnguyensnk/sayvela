@@ -40,13 +40,14 @@ export function AIChatPanel({
 }) {
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
-  const lastMessageId = messages?.length ? messages[messages.length - 1].id : "";
+  const lastMessage = messages?.[messages.length - 1];
+  const scrollKey = lastMessage ? `${lastMessage.id}:${lastMessage.status}:${lastMessage.text?.length ?? 0}` : "";
 
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-  }, [lastMessageId]);
+  }, [scrollKey]);
 
   const canSend = useMemo(() => {
     return Boolean((input || "").trim());

@@ -61,7 +61,7 @@ export function ContextsPanel({ contexts, loading, onAdd, onEdit, onRemove, sele
               {confirmDeleteId === ctx.id ? (
                 <>
                   <ActionButton className="ctxp-tiny-btn" onClick={() => handleDelete(ctx.id)} size="sm" variant="destructive">Confirm</ActionButton>
-                  <ActionButton className="ctxp-tiny-btn" onClick={() => setConfirmDeleteId(null)} size="sm">Cancel</ActionButton>
+                  <ActionButton className="ctxp-tiny-btn ctxp-tiny-btn-cancel" onClick={() => setConfirmDeleteId(null)} size="sm">Cancel</ActionButton>
                 </>
               ) : (
                 <>

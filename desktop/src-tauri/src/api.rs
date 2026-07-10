@@ -1,10 +1,16 @@
 use log::{debug, warn};
 use serde_json::Value;
+use std::sync::OnceLock;
+
+fn client() -> &'static reqwest::Client {
+    static CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+    CLIENT.get_or_init(reqwest::Client::new)
+}
 
 // issues a GET request with bearer auth; returns parsed json value or error string
 async fn get(url: &str, token: &str) -> Result<Value, String> {
     debug!("[api] GET {}", url);
-    let res = reqwest::Client::new()
+    let res = client()
         .get(url)
         .bearer_auth(token)
         .send()
@@ -28,11 +34,11 @@ async fn request_with_body(
     token: &str,
     body: Value,
 ) -> Result<Value, String> {
-    debug!("[api] {} {} body={}", method, url, body);
+    debug!("[api] {} {}", method, url);
     let builder = match method {
-        "POST" => reqwest::Client::new().post(url),
-        "PUT" => reqwest::Client::new().put(url),
-        "PATCH" => reqwest::Client::new().patch(url),
+        "POST" => client().post(url),
+        "PUT" => client().put(url),
+        "PATCH" => client().patch(url),
         _ => return Err(format!("unsupported method: {}", method)),
     };
 
@@ -61,7 +67,7 @@ async fn request_with_body(
 // issues a DELETE request with bearer auth
 async fn delete(url: &str, token: &str) -> Result<(), String> {
     debug!("[api] DELETE {}", url);
-    let res = reqwest::Client::new()
+    let res = client()
         .delete(url)
         .bearer_auth(token)
         .send()
@@ -262,13 +268,4 @@ pub async fn api_delete_session(
 ) -> Result<(), String> {
     let url = format!("{}/backend/sessions/{}", api_url.trim_end_matches('/'), session_id);
     delete(&url, &token).await
-}
-
-// ── auth ──────────────────────────────────────────────────────────────────────
-
-// fetches currently authenticated user info (userId, email)
-#[tauri::command]
-pub async fn api_get_me(api_url: String, token: String) -> Result<Value, String> {
-    let url = format!("{}/backend/auth/me", api_url.trim_end_matches('/'));
-    get(&url, &token).await
 }

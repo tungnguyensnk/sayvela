@@ -7,5 +7,3 @@ export const LANGUAGES = [
   { code: "fr", label: "French" },
   { code: "de", label: "German" },
 ];
-
-export const LANGUAGE_LABEL_BY_CODE = new Map(LANGUAGES.map((l) => [l.code, l.label]));

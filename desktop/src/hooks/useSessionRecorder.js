@@ -26,6 +26,7 @@ export function useSessionRecorder({ isAuthenticated, preferences, transcripts, 
 
   const cleanupPartialStart = useCallback(async () => {
     clearInterval(elapsedTimerRef.current);
+    elapsedTimerRef.current = null;
     try { if (preferences.loopbackDeviceId) await invoke("stop_audio_capture", { kind: "loopback" }); } catch {}
     try { if (preferences.micDeviceId) await invoke("stop_audio_capture", { kind: "microphone" }); } catch {}
     wsClientRef.current?.disconnect();
@@ -76,6 +77,7 @@ export function useSessionRecorder({ isAuthenticated, preferences, transcripts, 
     if (!canStop) return;
     dispatchMachine({ type: "STOPPING" });
     clearInterval(elapsedTimerRef.current);
+    elapsedTimerRef.current = null;
     try { if (preferences.loopbackDeviceId) await invoke("stop_audio_capture", { kind: "loopback" }); } catch {}
     try { if (preferences.micDeviceId) await invoke("stop_audio_capture", { kind: "microphone" }); } catch {}
     dispatch(setRunning(false));
@@ -87,6 +89,7 @@ export function useSessionRecorder({ isAuthenticated, preferences, transcripts, 
       const minutes = Math.ceil(durationMs / 60000);
       dispatchMachine({ type: "SYNCING" });
       dispatch(setSyncStatus("syncing"));
+      let synced = false;
       try {
         const remaining = getRemainingSegments({
           loopbackGroups: transcripts.loopbackTranscript.groups,
@@ -94,21 +97,22 @@ export function useSessionRecorder({ isAuthenticated, preferences, transcripts, 
           sentIds: wsClientRef.current?.getSentIds() ?? new Set(),
         });
         await wsClientRef.current?.flush(remaining);
-        wsClientRef.current?.disconnect();
         await Promise.all([
           finalizeSession(sessionIdRef.current, { durationSeconds: Math.round(durationMs / 1000), status: "completed" }),
           recordUsage(minutes),
         ]);
+        synced = true;
         dispatch(setSyncStatus("synced"));
         setTimeout(() => dispatch(setSyncStatus(null)), 3000);
         dispatchMachine({ type: "SYNCED" });
       } catch (e) {
-        wsClientRef.current?.disconnect();
         dispatch(setSyncStatus("failed"));
         dispatchMachine({ type: "FAILED", error: String(e) });
+      } finally {
+        wsClientRef.current?.disconnect();
+        wsClientRef.current = null;
+        if (synced) sessionIdRef.current = null;
       }
-      sessionIdRef.current = null;
-      wsClientRef.current = null;
       dispatch(fetchSessionsThunk());
     } else {
       wsClientRef.current?.disconnect();

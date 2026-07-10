@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import "./App.css";
 import { TranscriptPanel } from "./components/TranscriptPanel";
@@ -87,9 +87,11 @@ function App() {
     dispatch(fetchSessionsThunk());
   }, [isAuthenticated, dispatch]);
 
-  const { refreshDevices } = useAudioCaptureController(() => {
+  const handleAudioReady = useCallback(() => {
     chatgpt.initChatGPTWindow().catch(() => {});
-  });
+  }, [chatgpt]);
+
+  const { refreshDevices } = useAudioCaptureController(handleAudioReady);
 
   const mergedGroups = useMergedTranscriptGroups(loopbackTranscript.groups, micTranscript.groups);
   useMicTranslationTts({
@@ -116,7 +118,7 @@ function App() {
     return (
       <div className="window">
         <div className="app">
-          <TitleBar title="Sayvela" user={null} onLoginClick={() => {}} onLogoutClick={() => {}} />
+          <TitleBar title="Sayvela" user={null} onLogoutClick={() => {}} />
           <main className="main">
             <LoginPanel onLogin={login} loading={authLoading} error={authError} />
           </main>
@@ -133,7 +135,6 @@ function App() {
           user={user}
           entitlement={entitlement}
           syncStatus={syncStatus}
-          onLoginClick={() => {}}
           onLogoutClick={logout}
         />
         {quotaExceeded && (

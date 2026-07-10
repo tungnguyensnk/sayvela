@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useDispatch } from "react-redux";
@@ -7,8 +7,13 @@ import { addLoopbackBytes, addMicBytes, setDevices, setDevicesError, setLoopback
 
 export function useAudioCaptureController(onReady) {
   const dispatch = useDispatch();
+  const onReadyRef = useRef(onReady);
 
-  async function refreshDevices() {
+  useEffect(() => {
+    onReadyRef.current = onReady;
+  }, [onReady]);
+
+  const refreshDevices = useCallback(async () => {
     dispatch(setDevicesError(""));
     try {
       const list = await invoke("list_audio_devices");
@@ -17,12 +22,12 @@ export function useAudioCaptureController(onReady) {
       dispatch(setDevices([]));
       dispatch(setDevicesError(String(e)));
     }
-  }
+  }, [dispatch]);
 
   useEffect(() => {
     refreshDevices();
-    onReady?.();
-  }, []);
+    onReadyRef.current?.();
+  }, [refreshDevices]);
 
   useEffect(() => {
     let unlistenList = [];

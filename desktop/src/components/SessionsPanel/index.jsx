@@ -46,7 +46,7 @@ export function SessionsPanel({ sessions, loading, error, onDelete }) {
         {!loading && !error && sessions.length === 0 && (
           <div className="sesp-empty">No sessions yet.</div>
         )}
-        {sessions.map((s) => (
+        {!loading && !error && sessions.map((s) => (
           <button key={s.id} className="sesp-item" type="button" onClick={() => setSelectedSession(s)}>
             <div className="sesp-item-content">
               <div className="sesp-item-topline">
@@ -63,7 +63,7 @@ export function SessionsPanel({ sessions, loading, error, onDelete }) {
               {confirmId === s.id ? (
                 <>
                   <ActionButton className="sesp-tiny-btn" onClick={() => handleDelete(s.id)} size="sm" variant="destructive">Confirm</ActionButton>
-                  <ActionButton className="sesp-tiny-btn" onClick={() => setConfirmId(null)} size="sm">Cancel</ActionButton>
+                  <ActionButton className="sesp-tiny-btn sesp-tiny-btn-cancel" onClick={() => setConfirmId(null)} size="sm">Cancel</ActionButton>
                 </>
               ) : (
                 <ActionButton className="sesp-tiny-btn" onClick={() => setConfirmId(s.id)} size="sm" variant="destructive">Delete</ActionButton>

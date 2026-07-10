@@ -611,7 +611,11 @@ pub fn tts_speak(state: tauri::State<TtsState>, options: TtsSpeakOptions) -> Res
                 });
                 cmd_tx
             } else {
-                guard.as_ref().unwrap().tx.clone()
+                guard
+                    .as_ref()
+                    .ok_or_else(|| "tts worker missing".to_string())?
+                    .tx
+                    .clone()
             }
         };
 

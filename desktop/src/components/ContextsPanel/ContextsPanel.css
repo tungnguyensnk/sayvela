@@ -98,3 +98,14 @@
   font-size: 11px;
   border-radius: 7px;
 }
+
+.ctxp-tiny-btn-cancel {
+  border-color: color-mix(in srgb, var(--app-muted) 28%, transparent);
+  background: color-mix(in srgb, var(--app-surface) 78%, transparent);
+  color: var(--app-muted);
+}
+
+.ctxp-tiny-btn-cancel:hover {
+  border-color: color-mix(in srgb, var(--app-muted) 44%, transparent);
+  background: color-mix(in srgb, var(--app-muted) 10%, transparent);
+}

@@ -131,6 +131,17 @@
   background: color-mix(in srgb, var(--app-danger) 16%, transparent);
 }
 
+.sesp-tiny-btn-cancel {
+  border-color: color-mix(in srgb, var(--app-muted) 28%, transparent);
+  background: color-mix(in srgb, var(--app-surface) 78%, transparent);
+  color: var(--app-muted);
+}
+
+.sesp-tiny-btn-cancel:hover {
+  border-color: color-mix(in srgb, var(--app-muted) 44%, transparent);
+  background: color-mix(in srgb, var(--app-muted) 10%, transparent);
+}
+
 .sesp-detail-modal {
   width: min(480px, 88vw);
 }

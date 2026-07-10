@@ -126,20 +126,6 @@ async fn auth_poll_pending_token(code: String, api_url: Option<String>) -> Resul
     Ok(token)
 }
 
-// opens a native save-file dialog and writes content to the chosen path; returns the path or null
-#[tauri::command]
-fn save_file_dialog(default_name: String, content: String) -> Result<Option<String>, String> {
-    let path = rfd::FileDialog::new()
-        .set_file_name(&default_name)
-        .save_file();
-    if let Some(p) = path {
-        std::fs::write(&p, content.as_bytes()).map_err(|e| e.to_string())?;
-        Ok(Some(p.to_string_lossy().to_string()))
-    } else {
-        Ok(None)
-    }
-}
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 // setup and run the tauri application with window positioning and event handlers
 pub fn run() {
@@ -195,7 +181,6 @@ pub fn run() {
             tts_native::tts_list_voices,
             tts_native::tts_speak,
             tts_native::tts_stop,
-            save_file_dialog,
             api::api_get_settings,
             api::api_update_settings,
             api::api_list_contexts,
@@ -210,7 +195,6 @@ pub fn run() {
             api::api_list_sessions,
             api::api_get_session,
             api::api_delete_session,
-            api::api_get_me,
         ]);
 
     #[cfg(debug_assertions)]
