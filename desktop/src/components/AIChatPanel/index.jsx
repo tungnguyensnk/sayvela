@@ -37,6 +37,8 @@ export function AIChatPanel({
   onCancel,
   onClear,
   isStreaming,
+  provider,
+  onChangeProvider,
 }) {
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
@@ -68,6 +70,16 @@ export function AIChatPanel({
         </div>
 
         <div className="ai-chat-actions">
+          <select
+            className="ai-chat-provider"
+            value={provider}
+            onChange={(event) => onChangeProvider?.(event.target.value)}
+            disabled={isStreaming}
+            aria-label="AI provider"
+          >
+            <option value="chatgpt">ChatGPT</option>
+            <option value="gemini">Gemini</option>
+          </select>
           <ActionButton
             type="button"
             className="ai-chat-action-btn"

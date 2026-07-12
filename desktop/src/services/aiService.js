@@ -1,5 +1,10 @@
-import { sendStreamMessage } from '../providers/chatgpt.js';
+import { sendStreamMessage as sendChatgptMessage } from "../providers/chatgpt.js";
+import { sendStreamMessage as sendGeminiMessage } from "../providers/gemini.js";
 
-export async function sendMessage(message, history = [], onEvent, options = {}) {
-  return sendStreamMessage(message, history, onEvent, options);
+const providers = { chatgpt: sendChatgptMessage, gemini: sendGeminiMessage };
+
+export async function sendMessage(provider, message, history = [], onEvent, options = {}) {
+  const send = providers[provider];
+  if (!send) throw new Error(`unsupported AI provider: ${provider}`);
+  return send(message, history, onEvent, options);
 }

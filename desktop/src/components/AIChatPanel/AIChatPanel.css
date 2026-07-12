@@ -17,6 +17,19 @@
   align-items: center;
 }
 
+.ai-chat-provider {
+  border: 1px solid var(--app-border);
+  border-radius: var(--radius-full);
+  background: var(--app-surface-muted);
+  color: var(--app-text);
+  padding: var(--spacing-1) var(--spacing-3);
+  font: inherit;
+}
+
+.ai-chat-provider:disabled {
+  opacity: 0.6;
+}
+
 .ai-chat-body {
   flex: 1;
   min-height: 0;

@@ -101,7 +101,13 @@ pub async fn api_update_settings(
     settings_json: Value,
 ) -> Result<Value, String> {
     let url = format!("{}/backend/settings/me", api_url.trim_end_matches('/'));
-    request_with_body("PUT", &url, &token, serde_json::json!({ "settingsJson": settings_json })).await
+    request_with_body(
+        "PUT",
+        &url,
+        &token,
+        serde_json::json!({ "settingsJson": settings_json }),
+    )
+    .await
 }
 
 // ── contexts ──────────────────────────────────────────────────────────────────
@@ -138,11 +144,7 @@ pub async fn api_update_context(
 
 // deletes a context by id; returns nothing on success
 #[tauri::command]
-pub async fn api_delete_context(
-    api_url: String,
-    token: String,
-    id: String,
-) -> Result<(), String> {
+pub async fn api_delete_context(api_url: String, token: String, id: String) -> Result<(), String> {
     let url = format!("{}/backend/contexts/{}", api_url.trim_end_matches('/'), id);
     delete(&url, &token).await
 }
@@ -152,21 +154,25 @@ pub async fn api_delete_context(
 // fetches current entitlement (quota) for the authenticated user
 #[tauri::command]
 pub async fn api_get_entitlement(api_url: String, token: String) -> Result<Value, String> {
-    let url = format!("{}/backend/billing/entitlement", api_url.trim_end_matches('/'));
+    let url = format!(
+        "{}/backend/billing/entitlement",
+        api_url.trim_end_matches('/')
+    );
     get(&url, &token).await
 }
 
 // records minutes used after a session ends
 #[tauri::command]
-pub async fn api_record_usage(
-    api_url: String,
-    token: String,
-    minutes: u32,
-) -> Result<(), String> {
+pub async fn api_record_usage(api_url: String, token: String, minutes: u32) -> Result<(), String> {
     let url = format!("{}/backend/billing/usage", api_url.trim_end_matches('/'));
-    request_with_body("POST", &url, &token, serde_json::json!({ "minutes": minutes }))
-        .await
-        .map(|_| ())
+    request_with_body(
+        "POST",
+        &url,
+        &token,
+        serde_json::json!({ "minutes": minutes }),
+    )
+    .await
+    .map(|_| ())
 }
 
 // ── sessions ──────────────────────────────────────────────────────────────────
@@ -179,13 +185,7 @@ pub async fn api_create_session(
     title: Option<String>,
 ) -> Result<Value, String> {
     let url = format!("{}/backend/sessions", api_url.trim_end_matches('/'));
-    request_with_body(
-        "POST",
-        &url,
-        &token,
-        serde_json::json!({ "title": title }),
-    )
-    .await
+    request_with_body("POST", &url, &token, serde_json::json!({ "title": title })).await
 }
 
 // updates session metadata after it finishes (duration, status, title)
@@ -198,7 +198,11 @@ pub async fn api_finalize_session(
     status: String,
     title: Option<String>,
 ) -> Result<(), String> {
-    let url = format!("{}/backend/sessions/{}", api_url.trim_end_matches('/'), session_id);
+    let url = format!(
+        "{}/backend/sessions/{}",
+        api_url.trim_end_matches('/'),
+        session_id
+    );
     request_with_body(
         "PUT",
         &url,
@@ -222,9 +226,14 @@ pub async fn api_upload_segments(
         api_url.trim_end_matches('/'),
         session_id
     );
-    request_with_body("POST", &url, &token, serde_json::json!({ "segments": segments }))
-        .await
-        .map(|_| ())
+    request_with_body(
+        "POST",
+        &url,
+        &token,
+        serde_json::json!({ "segments": segments }),
+    )
+    .await
+    .map(|_| ())
 }
 
 // ── sessions list / delete ──────────────────────────────────────────────────
@@ -255,7 +264,11 @@ pub async fn api_get_session(
     token: String,
     session_id: String,
 ) -> Result<Value, String> {
-    let url = format!("{}/backend/sessions/{}", api_url.trim_end_matches('/'), session_id);
+    let url = format!(
+        "{}/backend/sessions/{}",
+        api_url.trim_end_matches('/'),
+        session_id
+    );
     get(&url, &token).await
 }
 
@@ -266,6 +279,10 @@ pub async fn api_delete_session(
     token: String,
     session_id: String,
 ) -> Result<(), String> {
-    let url = format!("{}/backend/sessions/{}", api_url.trim_end_matches('/'), session_id);
+    let url = format!(
+        "{}/backend/sessions/{}",
+        api_url.trim_end_matches('/'),
+        session_id
+    );
     delete(&url, &token).await
 }

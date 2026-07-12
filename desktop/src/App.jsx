@@ -179,6 +179,8 @@ function App() {
                 onCancel={chatgpt.cancel}
                 onClear={chatgpt.clearChat}
                 isStreaming={chatgpt.isStreaming}
+                provider={chatgpt.provider}
+                onChangeProvider={chatgpt.setProvider}
               />
             </div>
           </main>

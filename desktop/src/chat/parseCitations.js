@@ -85,10 +85,13 @@ export function stripChatMarkers(text) {
 }
 
 export function parseCitations(text, contentReferences = []) {
-  const raw = stripChatMarkers(text);
+  const raw = String(text || "").replace(WRITING_MARKER_RE, "");
   const refs = validRefs(contentReferences);
   if (!raw) return [];
-  if (!refs.length) return [{ type: "markdown", text: raw }].filter((s) => s.text);
+  if (!refs.length) {
+    const clean = stripChatMarkers(raw);
+    return clean ? [{ type: "markdown", text: clean }] : [];
+  }
 
   const segments = [];
   let i = 0;

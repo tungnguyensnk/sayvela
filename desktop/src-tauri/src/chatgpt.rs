@@ -73,7 +73,11 @@ fn pow_config(user_agent: &str) -> Vec<Value> {
         .map(|d| d.as_nanos())
         .unwrap_or(0);
     let perf_ms = Instant::now().elapsed().as_secs_f64() * 1000.0;
-    let nav = ["webdriver−false", "hardwareConcurrency−32", "vendor−Google Inc."];
+    let nav = [
+        "webdriver−false",
+        "hardwareConcurrency−32",
+        "vendor−Google Inc.",
+    ];
     let docs = ["location"];
     let wins = ["document", "navigator", "crypto", "performance"];
     vec![
@@ -132,14 +136,24 @@ fn hex_bytes(input: &str) -> Vec<u8> {
 
 fn requirements_token(config: &[Value]) -> String {
     let seed = format!("{}", now_ms());
-    format!("gAAAAAC{}", generate_answer(&seed, "0fffff", config, 10_000))
+    format!(
+        "gAAAAAC{}",
+        generate_answer(&seed, "0fffff", config, 10_000)
+    )
 }
 
 fn answer_token(seed: &str, diff_hex: &str, config: &[Value]) -> String {
-    format!("gAAAAAB{}", generate_answer(seed, diff_hex, config, 100_000))
+    format!(
+        "gAAAAAB{}",
+        generate_answer(seed, diff_hex, config, 100_000)
+    )
 }
 
-async fn fetch_access_token(client: &Client, api_url: &str, auth_token: &str) -> Result<String, String> {
+async fn fetch_access_token(
+    client: &Client,
+    api_url: &str,
+    auth_token: &str,
+) -> Result<String, String> {
     let base = api_url.trim_end_matches('/');
     let res = client
         .get(format!("{}/backend/chatgpt-token/access-token", base))
@@ -150,7 +164,11 @@ async fn fetch_access_token(client: &Client, api_url: &str, auth_token: &str) ->
     if !res.status().is_success() {
         let status = res.status().as_u16();
         let body = res.text().await.unwrap_or_default();
-        return Err(format!("chatgpt token unavailable: {} {}", status, trim_error(&body)));
+        return Err(format!(
+            "chatgpt token unavailable: {} {}",
+            status,
+            trim_error(&body)
+        ));
     }
     let out: AccessTokenResponse = res.json().await.map_err(|e| e.to_string())?;
     let token = out.access_token.trim().to_string();
@@ -160,7 +178,10 @@ async fn fetch_access_token(client: &Client, api_url: &str, auth_token: &str) ->
     Ok(token)
 }
 
-async fn fetch_requirements(client: &Client, access_token: &str) -> Result<(String, Option<String>), String> {
+async fn fetch_requirements(
+    client: &Client,
+    access_token: &str,
+) -> Result<(String, Option<String>), String> {
     let config = pow_config(USER_AGENT);
     let res = client
         .post(format!("{}/sentinel/chat-requirements", CHATGPT_API))
@@ -179,10 +200,16 @@ async fn fetch_requirements(client: &Client, access_token: &str) -> Result<(Stri
     if !res.status().is_success() {
         let status = res.status().as_u16();
         let body = res.text().await.unwrap_or_default();
-        return Err(format!("chat requirements failed: {} {}", status, trim_error(&body)));
+        return Err(format!(
+            "chat requirements failed: {} {}",
+            status,
+            trim_error(&body)
+        ));
     }
     let out: RequirementsResponse = res.json().await.map_err(|e| e.to_string())?;
-    let chat_token = out.token.ok_or_else(|| "missing chat requirements token".to_string())?;
+    let chat_token = out
+        .token
+        .ok_or_else(|| "missing chat requirements token".to_string())?;
     let proof = out.proofofwork.and_then(|p| {
         if p.required.unwrap_or(false) {
             Some(answer_token(&p.seed?, &p.difficulty?, &config))
@@ -222,15 +249,25 @@ fn metadata_array(metadata: Option<&Value>, key: &str) -> Value {
 }
 
 fn message_id(chunk: &Value) -> Option<String> {
-    chunk.get("message")?.get("id")?.as_str().map(|s| s.to_string())
+    chunk
+        .get("message")?
+        .get("id")?
+        .as_str()
+        .map(|s| s.to_string())
 }
 
 fn conversation_id(chunk: &Value) -> Option<String> {
-    chunk.get("conversation_id")?.as_str().map(|s| s.to_string())
+    chunk
+        .get("conversation_id")?
+        .as_str()
+        .map(|s| s.to_string())
 }
 
 fn trim_error(body: &str) -> String {
-    body.chars().take(500).collect::<String>().replace('\n', " ")
+    body.chars()
+        .take(500)
+        .collect::<String>()
+        .replace('\n', " ")
 }
 
 async fn emit_failed(app: &AppHandle, request_id: String, error: String) {
@@ -264,7 +301,7 @@ fn base_payload(
     });
     if keep_conversation {
         if let Some(id) = conversation_id.filter(|s| !s.trim().is_empty()) {
-        payload["conversation_id"] = Value::from(id);
+            payload["conversation_id"] = Value::from(id);
         }
     }
     payload
@@ -311,7 +348,11 @@ async fn send_conversation(
     if !res.status().is_success() {
         let status = res.status().as_u16();
         let body = res.text().await.unwrap_or_default();
-        return Err(format!("conversation failed: {} {}", status, trim_error(&body)));
+        return Err(format!(
+            "conversation failed: {} {}",
+            status,
+            trim_error(&body)
+        ));
     }
     Ok(res)
 }
@@ -341,7 +382,9 @@ async fn stream_agent(
         conversation_id_in,
         parent_message_id,
         keep_conversation,
-    ).await {
+    )
+    .await
+    {
         Ok(r) => r,
         Err(e) => return emit_failed(&app, request_id, e).await,
     };
@@ -366,7 +409,9 @@ async fn stream_agent(
             if !line.starts_with("data: ") || line == "data: [DONE]" {
                 continue;
             }
-            let Ok(chunk) = serde_json::from_str::<Value>(&line[6..]) else { continue };
+            let Ok(chunk) = serde_json::from_str::<Value>(&line[6..]) else {
+                continue;
+            };
             if let Some(id) = conversation_id(&chunk) {
                 conv_id = id;
             }
@@ -377,13 +422,25 @@ async fn stream_agent(
                 let next_content_references = metadata_array(Some(metadata), "content_references");
                 let next_citations = metadata_array(Some(metadata), "citations");
                 let next_safe_urls = metadata_array(Some(metadata), "safe_urls");
-                if next_content_references.as_array().map(|v| !v.is_empty()).unwrap_or(false) {
+                if next_content_references
+                    .as_array()
+                    .map(|v| !v.is_empty())
+                    .unwrap_or(false)
+                {
                     content_references = next_content_references;
                 }
-                if next_citations.as_array().map(|v| !v.is_empty()).unwrap_or(false) {
+                if next_citations
+                    .as_array()
+                    .map(|v| !v.is_empty())
+                    .unwrap_or(false)
+                {
                     citations = next_citations;
                 }
-                if next_safe_urls.as_array().map(|v| !v.is_empty()).unwrap_or(false) {
+                if next_safe_urls
+                    .as_array()
+                    .map(|v| !v.is_empty())
+                    .unwrap_or(false)
+                {
                     safe_urls = next_safe_urls;
                 }
             }
@@ -441,7 +498,10 @@ pub async fn chatgpt_start_stream(
     if request_id.is_empty() || auth_token.trim().is_empty() {
         return Err("missing request_id or auth_token".to_string());
     }
-    let mut guard = state.streams.lock().map_err(|_| "state poisoned".to_string())?;
+    let mut guard = state
+        .streams
+        .lock()
+        .map_err(|_| "state poisoned".to_string())?;
     if guard.contains_key(&request_id) {
         return Err("stream already running".to_string());
     }
@@ -457,15 +517,22 @@ pub async fn chatgpt_start_stream(
             api_url,
             auth_token,
             keep_conversation,
-        ).await;
+        )
+        .await;
     });
     guard.insert(request_id, handle);
     Ok(())
 }
 
 #[tauri::command]
-pub fn chatgpt_cancel_stream(state: State<'_, ChatgptState>, request_id: String) -> Result<(), String> {
-    let mut guard = state.streams.lock().map_err(|_| "state poisoned".to_string())?;
+pub fn chatgpt_cancel_stream(
+    state: State<'_, ChatgptState>,
+    request_id: String,
+) -> Result<(), String> {
+    let mut guard = state
+        .streams
+        .lock()
+        .map_err(|_| "state poisoned".to_string())?;
     if let Some(h) = guard.remove(request_id.trim()) {
         h.abort();
     }
@@ -493,9 +560,18 @@ pub async fn chatgpt_hide_conversation(
         .header("oai-device-id", DEVICE_ID)
         .header("oai-language", "vi-VN")
         .header("Origin", "https://chatgpt.com")
-        .header("Referer", format!("https://chatgpt.com/c/{}", conversation_id))
-        .header("x-openai-target-path", format!("/backend-api/conversation/{}", conversation_id))
-        .header("x-openai-target-route", "/backend-api/conversation/{conversation_id}")
+        .header(
+            "Referer",
+            format!("https://chatgpt.com/c/{}", conversation_id),
+        )
+        .header(
+            "x-openai-target-path",
+            format!("/backend-api/conversation/{}", conversation_id),
+        )
+        .header(
+            "x-openai-target-route",
+            "/backend-api/conversation/{conversation_id}",
+        )
         .json(&serde_json::json!({ "is_visible": false }))
         .send()
         .await
@@ -503,7 +579,11 @@ pub async fn chatgpt_hide_conversation(
     if !res.status().is_success() {
         let status = res.status().as_u16();
         let body = res.text().await.unwrap_or_default();
-        return Err(format!("hide conversation failed: {} {}", status, trim_error(&body)));
+        return Err(format!(
+            "hide conversation failed: {} {}",
+            status,
+            trim_error(&body)
+        ));
     }
     Ok(())
 }
@@ -531,9 +611,18 @@ pub async fn chatgpt_prepare_stop(
         .header("oai-device-id", DEVICE_ID)
         .header("oai-language", "vi-VN")
         .header("Origin", "https://chatgpt.com")
-        .header("Referer", format!("https://chatgpt.com/c/{}", conversation_id))
-        .header("x-openai-target-path", "/backend-api/f/conversation/prepare")
-        .header("x-openai-target-route", "/backend-api/f/conversation/prepare")
+        .header(
+            "Referer",
+            format!("https://chatgpt.com/c/{}", conversation_id),
+        )
+        .header(
+            "x-openai-target-path",
+            "/backend-api/f/conversation/prepare",
+        )
+        .header(
+            "x-openai-target-route",
+            "/backend-api/f/conversation/prepare",
+        )
         .json(&serde_json::json!({
             "action": "next",
             "conversation_id": conversation_id,
@@ -560,7 +649,11 @@ pub async fn chatgpt_prepare_stop(
     if !res.status().is_success() {
         let status = res.status().as_u16();
         let body = res.text().await.unwrap_or_default();
-        return Err(format!("prepare stop failed: {} {}", status, trim_error(&body)));
+        return Err(format!(
+            "prepare stop failed: {} {}",
+            status,
+            trim_error(&body)
+        ));
     }
     Ok(())
 }
@@ -596,7 +689,12 @@ mod tests {
 
     #[test]
     fn payload_without_conversation_disables_history() {
-        let payload = base_payload("hello", Some("c1".to_string()), Some("m1".to_string()), false);
+        let payload = base_payload(
+            "hello",
+            Some("c1".to_string()),
+            Some("m1".to_string()),
+            false,
+        );
         assert_eq!(payload["history_and_training_disabled"], true);
         assert!(payload.get("conversation_id").is_none());
         assert_eq!(payload["parent_message_id"], "client-created-root");
@@ -604,7 +702,12 @@ mod tests {
 
     #[test]
     fn payload_with_conversation_enables_history() {
-        let payload = base_payload("hello", Some("c1".to_string()), Some("m1".to_string()), true);
+        let payload = base_payload(
+            "hello",
+            Some("c1".to_string()),
+            Some("m1".to_string()),
+            true,
+        );
         assert_eq!(payload["history_and_training_disabled"], false);
         assert_eq!(payload["conversation_id"], "c1");
         assert_eq!(payload["parent_message_id"], "m1");

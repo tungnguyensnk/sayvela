@@ -1,6 +1,7 @@
-mod audio;
 mod api;
+mod audio;
 mod chatgpt;
+mod gemini;
 mod soniox;
 mod tts_native;
 mod types;
@@ -97,7 +98,10 @@ async fn soniox_get_temp_key() -> Result<SonioxTempKey, String> {
 }
 
 #[tauri::command]
-async fn auth_poll_pending_token(code: String, api_url: Option<String>) -> Result<Option<String>, String> {
+async fn auth_poll_pending_token(
+    code: String,
+    api_url: Option<String>,
+) -> Result<Option<String>, String> {
     let base = api_url.unwrap_or_else(|| "http://localhost:80/api".to_string());
     let base = base.trim_end_matches('/');
     let ts = SystemTime::now()
@@ -133,6 +137,7 @@ pub fn run() {
     let mut builder = tauri::Builder::default()
         .manage(AppState::default())
         .manage(chatgpt::ChatgptState::default())
+        .manage(gemini::GeminiState::default())
         .manage(tts_native::TtsState::default())
         .plugin(
             tauri_plugin_log::Builder::new()
@@ -180,6 +185,8 @@ pub fn run() {
             chatgpt::chatgpt_cancel_stream,
             chatgpt::chatgpt_hide_conversation,
             chatgpt::chatgpt_prepare_stop,
+            gemini::gemini_start_stream,
+            gemini::gemini_cancel_stream,
             tts_native::tts_list_voices,
             tts_native::tts_speak,
             tts_native::tts_stop,
