@@ -19,7 +19,6 @@ export function useAI() {
   const abortRef = useRef({ controller: null, requestId: "" });
   const [chat, dispatch] = useReducer(chatReducer, undefined, initialChatState);
   const [input, setInput] = useState("");
-  const [provider, setProvider] = useState("chatgpt");
 
   const resetAI = useCallback(async () => {
     if (abortRef.current.controller) {
@@ -38,12 +37,12 @@ export function useAI() {
 
   const cancelActive = useCallback(() => {
     if (!abortRef.current.controller) return;
-    if (provider === "chatgpt") prepareStopConversation().catch(() => {});
+    prepareStopConversation().catch(() => {});
     const rid = abortRef.current.requestId;
     abortRef.current.controller.abort();
     abortRef.current = { controller: null, requestId: "" };
     if (rid) dispatch({ type: "chat/cancel", payload: { requestId: rid } });
-  }, [provider]);
+  }, []);
 
   const sendPlainMessage = useCallback(
     async ({ text, source, keepConversation = true }) => {
@@ -76,7 +75,6 @@ export function useAI() {
       
       try {
         await aiSendMessage(
-          provider,
           messageText,
           [],
           (payload) => {
@@ -90,7 +88,7 @@ export function useAI() {
             } else if (event === "result") {
               const text = data?.response ?? data?.text ?? "";
               const contentReferences = data?.content_references || data?.contentReferences || [];
-              if (provider === "chatgpt" && keepConversation) {
+              if (keepConversation) {
                 saveConversationState({
                   conversationId: data?.conversation_id,
                   parentMessageId: data?.message_id,
@@ -119,7 +117,7 @@ export function useAI() {
         }
       }
     },
-    [cancelActive, provider]
+    [cancelActive]
   );
 
   const sendManual = useCallback(async () => {
@@ -132,12 +130,12 @@ export function useAI() {
   const clearChat = useCallback(() => {
     const { conversationId } = getConversationState();
     cancelActive();
-    if (provider === "chatgpt" && conversationId) {
+    if (conversationId) {
       hideConversation(conversationId).catch(() => {});
     }
     clearConversationState();
     dispatch({ type: "chat/clear" });
-  }, [cancelActive, provider]);
+  }, [cancelActive]);
 
   return {
     initChatGPTWindow: initAI,
@@ -149,7 +147,5 @@ export function useAI() {
     cancel: cancelActive,
     clearChat,
     isStreaming: Boolean(chat.active),
-    provider,
-    setProvider,
   };
 }
