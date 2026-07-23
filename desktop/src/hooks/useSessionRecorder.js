@@ -82,7 +82,6 @@ export function useSessionRecorder({ isAuthenticated, preferences, transcripts, 
     try { if (preferences.micDeviceId) await invoke("stop_audio_capture", { kind: "microphone" }); } catch {}
     dispatch(setRunning(false));
     await transcripts.stopTranscripts();
-    await new Promise((r) => setTimeout(r, 300));
 
     if (isAuthenticated && sessionIdRef.current) {
       const durationMs = sessionStartRef.current ? Date.now() - sessionStartRef.current : 0;
@@ -128,11 +127,16 @@ export function useSessionRecorder({ isAuthenticated, preferences, transcripts, 
     return 0;
   };
   const enabledSourceCount = [preferences.loopbackDeviceId, preferences.micDeviceId].filter(Boolean).length;
+  const sourceStatuses = [
+    preferences.loopbackDeviceId && transcripts.loopbackTranscript.status,
+    preferences.micDeviceId && transcripts.micTranscript.status,
+  ].filter(Boolean);
+  const hasStreamError = sourceStatuses.some((status) => ["error", "closed"].includes(status));
   const streamProgress = enabledSourceCount
     ? (sourceProgress(preferences.loopbackDeviceId ? transcripts.loopbackTranscript.status : "idle") + sourceProgress(preferences.micDeviceId ? transcripts.micTranscript.status : "idle")) / (enabledSourceCount * 0.5)
     : 0;
-  const isPreparing = state.status === "running" && enabledSourceCount > 0 && streamProgress < 1;
-  const isReadyToStop = state.status === "running" && (enabledSourceCount === 0 || streamProgress >= 1);
+  const isPreparing = state.status === "running" && !hasStreamError && enabledSourceCount > 0 && streamProgress < 1;
+  const isReadyToStop = state.status === "running" && (hasStreamError || enabledSourceCount === 0 || streamProgress >= 1);
 
   return { start, stop, sendSegment, recorderStatus: state.status, recorderError: state.error, isPreparing, isReadyToStop, streamProgress };
 }

@@ -18,7 +18,7 @@ export function useTranscriptStreams({ running, loopbackCaptureState, micCapture
         audioEventName: "audio_chunk_loopback",
         context: activeContextJson,
         onTurnEnd: (seg) => sendSegment({ ...seg, source: "loopback" }),
-      }).catch(() => {});
+      }).catch(() => { loopbackStartedRef.current = false; });
     }
   }, [running, loopbackCaptureState, preferences.loopbackInputLangs, preferences.loopbackOutputLang, preferences.loopbackDeviceId, activeContextJson, sendSegment]);
 
@@ -33,11 +33,9 @@ export function useTranscriptStreams({ running, loopbackCaptureState, micCapture
         audioEventName: "audio_chunk_mic",
         context: activeContextJson,
         speakerOverride: "me",
-        splitTurnsOnLanguage: true,
-        splitTurnsOnSilenceMs: 900,
         enableSpeakerDiarization: false,
         onTurnEnd: (seg) => sendSegment({ ...seg, source: "mic", speaker: seg.translationStatus === "original" ? "me" : seg.speaker }),
-      }).catch(() => {});
+      }).catch(() => { micStartedRef.current = false; });
     }
   }, [running, micCaptureState, preferences.micInputLangs, preferences.micOutputLang, preferences.micDeviceId, activeContextJson, sendSegment]);
 

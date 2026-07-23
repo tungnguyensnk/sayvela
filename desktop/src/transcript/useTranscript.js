@@ -5,9 +5,6 @@ import { startSonioxSession } from "./sonioxSession";
 export function useTranscript() {
   const sessionRef = useRef(null);
   const [status, setStatus] = useState("idle");
-  const [text, setText] = useState("");
-  const [finalText, setFinalText] = useState("");
-  const [partialText, setPartialText] = useState("");
   const [groups, setGroups] = useState([]);
   const [error, setError] = useState("");
 
@@ -15,9 +12,6 @@ export function useTranscript() {
   const start = useCallback(async (opts = {}) => {
     if (sessionRef.current) return;
     setError("");
-    setText("");
-    setFinalText("");
-    setPartialText("");
     setGroups([]);
     setStatus("starting");
 
@@ -25,12 +19,7 @@ export function useTranscript() {
       const session = await startSonioxSession({
         ...opts,
         onState: (s) => setStatus(s),
-        onText: (t) => {
-          setText(t.text || "");
-          setFinalText(t.finalText || "");
-          setPartialText(t.partialText || "");
-          setGroups(Array.isArray(t.groups) ? t.groups : []);
-        },
+        onText: ({ groups: nextGroups }) => setGroups(Array.isArray(nextGroups) ? nextGroups : []),
         onTurnEnd: opts.onTurnEnd,
       });
       sessionRef.current = session;
@@ -54,9 +43,6 @@ export function useTranscript() {
 
   return {
     status,
-    text,
-    finalText,
-    partialText,
     groups,
     error,
     start,
