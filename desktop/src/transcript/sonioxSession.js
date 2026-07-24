@@ -52,6 +52,7 @@ export async function startSonioxSession({
   speakerOverride = "",
   onText,
   onState,
+  onError,
   onTurnEnd,
   rotationIntervalMs = 4 * 60 * 1000,
   rotationMaxDelayMs = 30000,
@@ -107,6 +108,7 @@ export async function startSonioxSession({
 
   // creates an independently keyed websocket with gated audio delivery
   const createSession = (active, emit) => {
+    let session;
     const source = new TauriAudioSource(audioEventName, active);
     const client = new SonioxClient({
       config: async () => {
@@ -123,7 +125,10 @@ export async function startSonioxSession({
       max_reconnect_attempts: 3,
       reconnect_base_delay_ms: 1000,
     });
-    recording.on("result", (result) => emit(() => transcript.add(result)));
+    recording.on("result", (result) => {
+      session.processedMs = Math.max(session.processedMs, result.total_audio_proc_ms ?? result.final_audio_proc_ms ?? 0);
+      emit(() => transcript.add(result, session.offsetMs));
+    });
     recording.on("endpoint", () => emit(() => {
       transcript.endpoint();
       if (rotationPending && activeSession?.recording === recording) rotate();
@@ -132,14 +137,15 @@ export async function startSonioxSession({
     recording.on("state_change", ({ new_state: state }) => {
       if (activeSession?.recording === recording) onState?.(state === "recording" ? "streaming" : state);
     });
-    recording.on("error", () => {
-      if (activeSession?.recording === recording) onState?.("error");
+    recording.on("error", (error) => {
+      if (activeSession?.recording === recording) onError?.(error);
     });
     const connected = new Promise((resolve, reject) => {
       recording.once("connected", resolve);
       recording.once("error", reject);
     });
-    return { recording, source, connected };
+    session = { recording, source, connected, offsetMs: 0, processedMs: 0 };
+    return session;
   };
 
   // gracefully drains final server results before releasing a websocket
@@ -166,6 +172,7 @@ export async function startSonioxSession({
       next.source.setActive(true);
       activeSession = next;
       await stopRecording(previous);
+      next.offsetMs = previous.offsetMs + previous.processedMs;
       buffering = false;
       queued.splice(0).forEach((event) => event());
     } catch {

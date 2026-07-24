@@ -84,9 +84,14 @@ export function createTranscriptMapper({ languageHints, targetLanguage, speakerO
   };
 
   // consumes one sdk result and emits stable plus live transcript groups
-  const add = (result) => {
+  const add = (result, offsetMs = 0) => {
     const tokensByStatus = new Map();
-    for (const token of result.tokens || []) {
+    for (const sourceToken of result.tokens || []) {
+      const token = {
+        ...sourceToken,
+        start_ms: (sourceToken.start_ms ?? 0) + offsetMs,
+        end_ms: (sourceToken.end_ms ?? 0) + offsetMs,
+      };
       const status = token.translation_status ?? "original";
       if (!tokensByStatus.has(status)) tokensByStatus.set(status, []);
       tokensByStatus.get(status).push(token);

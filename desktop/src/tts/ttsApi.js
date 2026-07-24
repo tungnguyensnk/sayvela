@@ -27,10 +27,15 @@ export function ttsGetTestSentence(language) {
 
 // sends a request to the backend to synthesize and play text
 export async function ttsSpeak(options) {
-  return invoke("tts_speak", { options });
+  return invoke("tts_speak", { options: { provider: "builtin", ...options } });
 }
 
 // sends a request to the backend to stop all currently playing tts audio
 export async function ttsStop() {
   return invoke("tts_stop");
+}
+
+// preconnects soniox without creating a synthesis stream
+export function ttsPrewarm() {
+  return invoke("tts_speak", { options: { text: "", provider: "soniox", prewarm: true } });
 }

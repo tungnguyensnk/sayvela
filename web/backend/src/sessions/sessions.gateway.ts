@@ -5,10 +5,9 @@ import {
   OnGatewayDisconnect,
   SubscribeMessage,
   WebSocketGateway,
-  WebSocketServer,
 } from '@nestjs/websockets';
 import { Logger } from '@nestjs/common';
-import { Server, WebSocket } from 'ws';
+import { WebSocket } from 'ws';
 import { IncomingMessage } from 'http';
 import { JwtService } from '@nestjs/jwt';
 import { SessionsRepository } from './sessions.repository';
@@ -20,7 +19,6 @@ type AuthedSocket = WebSocket & { sessionId?: string; userId?: string };
 export class SessionsGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
-  @WebSocketServer() server!: Server;
   private readonly logger = new Logger(SessionsGateway.name);
 
   constructor(

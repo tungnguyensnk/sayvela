@@ -7,14 +7,28 @@ export const DEFAULT_PREFERENCES = {
   micInputLangs: ["vi"],
   micOutputLang: "ja",
   micTtsEnabled: false,
-  micTtsVoiceId: "",
+  micTtsProvider: "builtin",
+  micTtsVoiceIds: { builtin: "", soniox: "" },
+  micTtsSonioxSpeed: 1.1,
   micTtsRate: 1.1,
   micTtsPitch: 1,
   micTtsVolume: 1,
+  micTtsSonioxVolume: 2,
   micTtsOutputDeviceId: "default-loopback",
   contentProtectionEnabled: true,
 };
 
 export function mergePreferences(value) {
-  return { ...DEFAULT_PREFERENCES, ...(value && typeof value === "object" ? value : {}) };
+  const source = value && typeof value === "object" ? value : {};
+  const voiceIds = source.micTtsVoiceIds && typeof source.micTtsVoiceIds === "object"
+    ? source.micTtsVoiceIds
+    : {};
+  return {
+    ...DEFAULT_PREFERENCES,
+    ...source,
+    micTtsVoiceIds: {
+      builtin: voiceIds.builtin || source.micTtsVoiceId || "",
+      soniox: voiceIds.soniox || "",
+    },
+  };
 }

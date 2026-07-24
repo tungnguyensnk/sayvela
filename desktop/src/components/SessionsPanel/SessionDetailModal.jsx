@@ -8,7 +8,7 @@ function toTranscriptGroups(detail) {
   const segments = detail?.segments || [];
   const originals = segments
     .filter((seg) => !seg.originId)
-    .sort((a, b) => (a.startMs ?? 0) - (b.startMs ?? 0) || new Date(a.createdAt || 0) - new Date(b.createdAt || 0));
+    .sort((a, b) => (a.startMs ?? 0) - (b.startMs ?? 0) || new Date(a.createdAt || 0) - new Date(b.createdAt || 0) || String(a.id).localeCompare(String(b.id)));
   const translationsByOrigin = new Map();
   for (const seg of segments) {
     if (!seg.originId) continue;

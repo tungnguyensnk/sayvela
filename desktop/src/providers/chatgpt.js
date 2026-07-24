@@ -81,13 +81,15 @@ export async function sendStreamMessage(message, history = [], onEvent, options 
       }
 
       await invoke("chatgpt_start_stream", {
-        requestId,
-        message,
-        conversationId: state?.conversationId || null,
-        parentMessageId: state?.parentMessageId || null,
-        apiUrl: API_URL,
-        authToken,
-        keepConversation,
+        request: {
+          requestId,
+          message,
+          conversationId: state?.conversationId || null,
+          parentMessageId: state?.parentMessageId || null,
+          apiUrl: API_URL,
+          authToken,
+          keepConversation,
+        },
       });
     } catch (err) {
       await teardown();

@@ -1,5 +1,5 @@
 .ai-chat-panel {
-  height: min(420px, 58vh);
+  height: 100%;
   overflow: hidden;
 }
 
@@ -183,20 +183,6 @@
   display: block;
 }
 
-.ai-cite-card-header {
-  display: flex;
-  gap: 18px;
-  align-items: center;
-  padding: 8px 10px;
-  color: color-mix(in srgb, #fff 62%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, #fff 8%, transparent);
-}
-
-.ai-cite-card-count {
-  margin-left: auto;
-  font-size: 12px;
-}
-
 .ai-cite-card {
   display: block;
   padding: 10px 12px 12px;
@@ -258,11 +244,6 @@
   color: var(--app-text);
   font-weight: 800;
   letter-spacing: -0.02em;
-}
-
-.ai-chat-empty-text {
-  max-width: 260px;
-  line-height: 1.45;
 }
 
 .ai-chat-input-row {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ttsGetVoices } from "../../tts/ttsApi";
+import { getCachedSonioxVoices, hasSonioxApiKey, loadSonioxVoices, SONIOX_BUILTIN_VOICES } from "../../services/sonioxTtsService";
 import { ActionButton } from "../astryx/AstryxControls";
 import { SourceSection } from "./SourceSection";
 import { TtsSection } from "./TtsSection";
@@ -36,14 +37,20 @@ export function AudioControlPanel({
   onChangeMicOutputLang,
   micTtsEnabled,
   onChangeMicTtsEnabled,
-  micTtsVoiceId,
-  onChangeMicTtsVoiceId,
+  micTtsProvider,
+  onChangeMicTtsProvider,
+  micTtsVoiceIds,
+  onChangeMicTtsVoiceIds,
+  micTtsSonioxSpeed,
+  onChangeMicTtsSonioxSpeed,
   micTtsRate,
   onChangeMicTtsRate,
   micTtsPitch,
   onChangeMicTtsPitch,
   micTtsVolume,
   onChangeMicTtsVolume,
+  micTtsSonioxVolume,
+  onChangeMicTtsSonioxVolume,
   micTtsOutputDeviceId,
   onChangeMicTtsOutputDeviceId,
 
@@ -64,7 +71,25 @@ export function AudioControlPanel({
     });
   const micDevices = devices.filter((d) => d.kind === "microphone");
   const [ttsVoices, setTtsVoices] = useState([]);
+  const [sonioxVoices, setSonioxVoices] = useState(getCachedSonioxVoices);
+  const [sonioxKeyExists, setSonioxKeyExists] = useState(false);
+  const [sonioxLoading, setSonioxLoading] = useState(false);
   const [ttsError, setTtsError] = useState("");
+
+  const reloadSoniox = async () => {
+    setSonioxLoading(true);
+    setTtsError("");
+    try {
+      const exists = await hasSonioxApiKey();
+      setSonioxKeyExists(Boolean(exists));
+      setSonioxVoices(exists ? await loadSonioxVoices(true) : SONIOX_BUILTIN_VOICES);
+    } catch (e) {
+      setTtsError(String(e));
+      throw e;
+    } finally {
+      setSonioxLoading(false);
+    }
+  };
 
   useEffect(() => {
     let alive = true;
@@ -82,6 +107,16 @@ export function AudioControlPanel({
     return () => {
       alive = false;
     };
+  }, []);
+
+  useEffect(() => {
+    let alive = true;
+    hasSonioxApiKey().then(async (exists) => {
+      if (!alive) return;
+      setSonioxKeyExists(Boolean(exists));
+      if (exists) setSonioxVoices(await loadSonioxVoices());
+    }).catch((e) => alive && setTtsError(String(e)));
+    return () => { alive = false; };
   }, []);
 
   return (
@@ -161,16 +196,27 @@ export function AudioControlPanel({
               onChangeMicTtsEnabled={onChangeMicTtsEnabled}
               micTtsOutputDeviceId={micTtsOutputDeviceId}
               onChangeMicTtsOutputDeviceId={onChangeMicTtsOutputDeviceId}
-              micTtsVoiceId={micTtsVoiceId}
-              onChangeMicTtsVoiceId={onChangeMicTtsVoiceId}
+              micTtsProvider={micTtsProvider}
+              onChangeMicTtsProvider={onChangeMicTtsProvider}
+              micTtsVoiceIds={micTtsVoiceIds}
+              onChangeMicTtsVoiceIds={onChangeMicTtsVoiceIds}
+              micTtsSonioxSpeed={micTtsSonioxSpeed}
+              onChangeMicTtsSonioxSpeed={onChangeMicTtsSonioxSpeed}
               micTtsRate={micTtsRate}
               onChangeMicTtsRate={onChangeMicTtsRate}
               micTtsPitch={micTtsPitch}
               onChangeMicTtsPitch={onChangeMicTtsPitch}
               micTtsVolume={micTtsVolume}
               onChangeMicTtsVolume={onChangeMicTtsVolume}
+              micTtsSonioxVolume={micTtsSonioxVolume}
+              onChangeMicTtsSonioxVolume={onChangeMicTtsSonioxVolume}
               ttsOutputDevices={ttsOutputDevices}
               ttsVoices={ttsVoices}
+              sonioxVoices={sonioxVoices}
+              sonioxKeyExists={sonioxKeyExists}
+              sonioxLoading={sonioxLoading}
+              onReloadSoniox={reloadSoniox}
+              onRefreshDevices={onRefreshDevices}
               ttsError={ttsError}
             />
           </SourceSection>

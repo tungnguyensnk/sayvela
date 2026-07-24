@@ -213,29 +213,6 @@ pub async fn api_finalize_session(
     .map(|_| ())
 }
 
-// bulk-uploads transcript segments for a session
-#[tauri::command]
-pub async fn api_upload_segments(
-    api_url: String,
-    token: String,
-    session_id: String,
-    segments: Value,
-) -> Result<(), String> {
-    let url = format!(
-        "{}/backend/sessions/{}/segments",
-        api_url.trim_end_matches('/'),
-        session_id
-    );
-    request_with_body(
-        "POST",
-        &url,
-        &token,
-        serde_json::json!({ "segments": segments }),
-    )
-    .await
-    .map(|_| ())
-}
-
 // ── sessions list / delete ──────────────────────────────────────────────────
 
 // returns all sessions owned by the authenticated user

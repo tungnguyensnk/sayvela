@@ -18,9 +18,11 @@ export function useAudioCaptureController(onReady) {
     try {
       const list = await invoke("list_audio_devices");
       dispatch(setDevices(list));
+      return list;
     } catch (e) {
       dispatch(setDevices([]));
       dispatch(setDevicesError(String(e)));
+      return [];
     }
   }, [dispatch]);
 

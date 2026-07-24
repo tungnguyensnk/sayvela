@@ -14,8 +14,8 @@
     "windows": [
       {
         "title": "Sayvela",
-        "width": 1300,
-        "height": 930,
+        "width": 1440,
+        "height": 810,
         "decorations": false,
         "transparent": false
       }

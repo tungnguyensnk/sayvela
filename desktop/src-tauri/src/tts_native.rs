@@ -2,7 +2,7 @@ use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _};
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 use std::sync::{
-    atomic::{AtomicBool, Ordering},
+    atomic::{AtomicBool, AtomicU64, Ordering},
     mpsc, Arc, Mutex,
 };
 use std::thread;
@@ -13,17 +13,32 @@ pub struct TtsState {
     worker: Mutex<Option<WorkerHandle>>,
 }
 
+impl Drop for TtsState {
+    // shuts down the owned worker when tauri releases application state
+    fn drop(&mut self) {
+        if let Ok(worker) = self.worker.get_mut() {
+            if let Some(handle) = worker.take() {
+                handle.shutdown();
+            }
+        }
+    }
+}
+
 struct WorkerHandle {
-    stop: Arc<AtomicBool>,
+    shutdown: Arc<AtomicBool>,
+    cancel: Arc<AtomicBool>,
+    generation: Arc<AtomicU64>,
     tx: mpsc::Sender<WorkerCmd>,
+    audio_tx: mpsc::Sender<AudioMsg>,
     join_synth: Option<thread::JoinHandle<()>>,
     join_audio: Option<thread::JoinHandle<()>>,
 }
 
 impl WorkerHandle {
-    // stop tts worker threads by setting flag and joining them
-    fn stop(mut self) {
-        self.stop.store(true, Ordering::SeqCst);
+    // shuts down tts worker threads and waits for their resources to close
+    fn shutdown(mut self) {
+        self.shutdown.store(true, Ordering::SeqCst);
+        self.cancel.store(true, Ordering::SeqCst);
         drop(self.tx);
         if let Some(j) = self.join_synth.take() {
             let _ = j.join();
@@ -46,6 +61,8 @@ pub struct TtsVoice {
 #[serde(rename_all = "camelCase")]
 pub struct TtsSpeakOptions {
     pub text: String,
+    #[serde(default = "default_provider")]
+    pub provider: String,
     #[serde(default)]
     pub language: Option<String>,
     #[serde(default)]
@@ -57,9 +74,18 @@ pub struct TtsSpeakOptions {
     #[serde(default)]
     pub pitch: Option<f32>,
     #[serde(default)]
+    pub speed: Option<f32>,
+    #[serde(default)]
     pub volume: Option<f32>,
     #[serde(default)]
     pub queue_mode: Option<String>,
+    #[serde(default)]
+    pub prewarm: bool,
+}
+
+// provides backward-compatible provider selection for existing callers
+fn default_provider() -> String {
+    "builtin".to_string()
 }
 
 fn decode_voice_id(id: &str) -> Result<String, String> {
@@ -73,16 +99,23 @@ fn encode_voice_id(id: &str) -> String {
     URL_SAFE_NO_PAD.encode(id.as_bytes())
 }
 
+// accepts only work from the active lifecycle generation
+fn is_current_generation(message_generation: u64, current_generation: u64) -> bool {
+    message_generation == current_generation
+}
+
 #[derive(Debug)]
 enum WorkerCmd {
-    Speak(TtsSpeakOptions),
+    Speak(TtsSpeakOptions, u64),
+    Stop(u64),
 }
 
 #[derive(Debug)]
 enum AudioMsg {
-    SetDevice(String),
-    Flush,
+    SetDevice(String, u64),
+    Flush(u64),
     Enqueue {
+        generation: u64,
         sample_rate: u32,
         channels: u16,
         pcm: Vec<u8>,
@@ -128,6 +161,17 @@ fn ssml_pitch_from_factor(pitch: f32) -> String {
 fn ssml_volume_from_factor(volume: f32) -> String {
     let pct = (volume.clamp(0.0, 1.0) * 100.0).round();
     format!("{pct:.0}%")
+}
+
+// applies saturating gain to little-endian pcm16 samples
+fn apply_pcm16_gain(pcm: &mut [u8], gain: f32) {
+    let gain = gain.clamp(0.0, 2.0);
+    for sample in pcm.chunks_exact_mut(2) {
+        let value = i16::from_le_bytes([sample[0], sample[1]]) as f32 * gain;
+        sample.copy_from_slice(
+            &(value.round().clamp(i16::MIN as f32, i16::MAX as f32) as i16).to_le_bytes(),
+        );
+    }
 }
 
 #[cfg(windows)]
@@ -263,7 +307,9 @@ fn ensure_render_stream(
 
 #[cfg(windows)]
 fn synth_thread_main(
-    stop: Arc<AtomicBool>,
+    shutdown: Arc<AtomicBool>,
+    cancel: Arc<AtomicBool>,
+    current_generation: Arc<AtomicU64>,
     rx: mpsc::Receiver<WorkerCmd>,
     audio_tx: mpsc::Sender<AudioMsg>,
 ) {
@@ -273,23 +319,97 @@ fn synth_thread_main(
         Ok(s) => s,
         Err(_) => return,
     };
+    let runtime = tokio::runtime::Runtime::new().ok();
+    let mut soniox_session: Option<crate::tts_soniox::SonioxSession> = None;
 
-    while !stop.load(Ordering::SeqCst) {
+    while !shutdown.load(Ordering::SeqCst) {
         match rx.recv() {
-            Ok(WorkerCmd::Speak(mut opts)) => {
-                let text = opts.text.trim().to_string();
-                if text.is_empty() {
+            Ok(WorkerCmd::Stop(generation)) => {
+                if generation == current_generation.load(Ordering::SeqCst) {
+                    cancel.store(false, Ordering::SeqCst);
+                    let _ = audio_tx.send(AudioMsg::Flush(generation));
+                }
+            }
+            Ok(WorkerCmd::Speak(mut opts, generation)) => {
+                if !is_current_generation(generation, current_generation.load(Ordering::SeqCst)) {
                     continue;
                 }
+                cancel.store(false, Ordering::SeqCst);
+                let text = opts.text.trim().to_string();
                 let new_device_id = opts
                     .output_device_id
                     .take()
                     .unwrap_or_else(|| "default-loopback".to_string());
-                let _ = audio_tx.send(AudioMsg::SetDevice(new_device_id));
+                let _ = audio_tx.send(AudioMsg::SetDevice(new_device_id, generation));
 
                 let flush = opts.queue_mode.as_deref() != Some("add");
                 if flush {
-                    let _ = audio_tx.send(AudioMsg::Flush);
+                    let _ = audio_tx.send(AudioMsg::Flush(generation));
+                }
+
+                if opts.provider == "soniox" {
+                    if soniox_session
+                        .as_ref()
+                        .is_some_and(|session| session.needs_reconnect())
+                    {
+                        soniox_session = None;
+                    }
+                    if let Some(runtime) = runtime.as_ref() {
+                        if soniox_session.is_none() {
+                            if let Ok(api_key) = crate::secure_store::get_api_key() {
+                                soniox_session = runtime
+                                    .block_on(crate::tts_soniox::SonioxSession::connect(api_key))
+                                    .ok();
+                            }
+                        }
+                    }
+                    if opts.prewarm || text.is_empty() {
+                        continue;
+                    }
+                    let voice = match opts.voice_id.as_deref().filter(|value| !value.is_empty()) {
+                        Some(value) => value.to_string(),
+                        None => continue,
+                    };
+                    let language = opts
+                        .language
+                        .as_deref()
+                        .filter(|value| !value.is_empty())
+                        .unwrap_or("en")
+                        .to_string();
+                    let speed = opts.speed;
+                    let volume = opts.volume.unwrap_or(1.0);
+                    let audio_tx_stream = audio_tx.clone();
+                    let cancel_stream = cancel.clone();
+                    if let Some(runtime) = runtime.as_ref() {
+                        let result = soniox_session.as_mut().map(|session| {
+                            runtime.block_on(session.synthesize(
+                                &text,
+                                &language,
+                                &voice,
+                                speed,
+                                cancel_stream,
+                                |mut pcm| {
+                                    apply_pcm16_gain(&mut pcm, volume);
+                                    audio_tx_stream
+                                        .send(AudioMsg::Enqueue {
+                                            generation,
+                                            sample_rate: 24000,
+                                            channels: 1,
+                                            pcm,
+                                        })
+                                        .map_err(|_| "TTS audio worker closed".to_string())
+                                },
+                            ))
+                        });
+                        if matches!(result, Some(Err(_))) {
+                            soniox_session = None;
+                        }
+                    }
+                    continue;
+                }
+
+                if text.is_empty() {
+                    continue;
                 }
 
                 if let Some(voice_id) = opts.voice_id.as_deref().filter(|s| !s.is_empty()) {
@@ -356,6 +476,7 @@ fn synth_thread_main(
                     Err(_) => continue,
                 };
                 let _ = audio_tx.send(AudioMsg::Enqueue {
+                    generation,
                     sample_rate: sr,
                     channels: ch,
                     pcm,
@@ -367,7 +488,11 @@ fn synth_thread_main(
 }
 
 #[cfg(windows)]
-fn audio_thread_main(stop: Arc<AtomicBool>, rx: mpsc::Receiver<AudioMsg>) {
+fn audio_thread_main(
+    shutdown: Arc<AtomicBool>,
+    current_generation: Arc<AtomicU64>,
+    rx: mpsc::Receiver<AudioMsg>,
+) {
     let _ = wasapi::initialize_mta();
 
     let mut current_device_id = "default-loopback".to_string();
@@ -383,8 +508,9 @@ fn audio_thread_main(stop: Arc<AtomicBool>, rx: mpsc::Receiver<AudioMsg>) {
     let mut queue: VecDeque<Vec<u8>> = VecDeque::new();
     let mut current: VecDeque<u8> = VecDeque::new();
     let mut pending_queue: VecDeque<Vec<u8>> = VecDeque::new();
+    let mut generation = 0;
 
-    while !stop.load(Ordering::SeqCst) {
+    while !shutdown.load(Ordering::SeqCst) {
         let busy = audio_client.is_some()
             || !current.is_empty()
             || !queue.is_empty()
@@ -408,7 +534,13 @@ fn audio_thread_main(stop: Arc<AtomicBool>, rx: mpsc::Receiver<AudioMsg>) {
 
         for msg in msgs {
             match msg {
-                AudioMsg::SetDevice(id) => {
+                AudioMsg::SetDevice(id, message_generation) => {
+                    if !is_current_generation(
+                        message_generation,
+                        current_generation.load(Ordering::SeqCst),
+                    ) {
+                        continue;
+                    }
                     if id != current_device_id {
                         if let Some(c) = audio_client.take() {
                             let _ = c.stop_stream();
@@ -425,7 +557,18 @@ fn audio_thread_main(stop: Arc<AtomicBool>, rx: mpsc::Receiver<AudioMsg>) {
                         pending_queue.clear();
                     }
                 }
-                AudioMsg::Flush => {
+                AudioMsg::Flush(message_generation) => {
+                    if !is_current_generation(
+                        message_generation,
+                        current_generation.load(Ordering::SeqCst),
+                    ) {
+                        continue;
+                    }
+                    if let Some(client) = audio_client.take() {
+                        let _ = client.stop_stream();
+                    }
+                    render_client = None;
+                    generation = message_generation;
                     queue.clear();
                     current.clear();
                     pending_queue.clear();
@@ -433,10 +576,18 @@ fn audio_thread_main(stop: Arc<AtomicBool>, rx: mpsc::Receiver<AudioMsg>) {
                     pending_ch = 0;
                 }
                 AudioMsg::Enqueue {
+                    generation: message_generation,
                     sample_rate,
                     channels,
                     pcm,
                 } => {
+                    if !is_current_generation(
+                        message_generation,
+                        current_generation.load(Ordering::SeqCst),
+                    ) || !is_current_generation(message_generation, generation)
+                    {
+                        continue;
+                    }
                     if current_sr == 0 {
                         current_sr = sample_rate;
                         current_ch = channels;
@@ -553,17 +704,23 @@ pub fn tts_list_voices(
 }
 
 #[tauri::command]
-// stop current tts playback by dropping worker handle
+// cancels current synthesis and discards queued text and audio without rebuilding workers
 pub fn tts_stop(state: tauri::State<TtsState>) -> Result<(), String> {
-    let handle = {
-        let mut guard = state
-            .worker
-            .lock()
-            .map_err(|_| "state poisoned".to_string())?;
-        guard.take()
-    };
-    if let Some(h) = handle {
-        h.stop();
+    let guard = state
+        .worker
+        .lock()
+        .map_err(|_| "state poisoned".to_string())?;
+    if let Some(handle) = guard.as_ref() {
+        let generation = handle.generation.fetch_add(1, Ordering::SeqCst) + 1;
+        handle.cancel.store(true, Ordering::SeqCst);
+        handle
+            .audio_tx
+            .send(AudioMsg::Flush(generation))
+            .map_err(|_| "tts audio worker closed".to_string())?;
+        handle
+            .tx
+            .send(WorkerCmd::Stop(generation))
+            .map_err(|_| "tts worker closed".to_string())?;
     }
     Ok(())
 }
@@ -572,7 +729,7 @@ pub fn tts_stop(state: tauri::State<TtsState>) -> Result<(), String> {
 // send text and voice options to tts worker thread for playback
 pub fn tts_speak(state: tauri::State<TtsState>, options: TtsSpeakOptions) -> Result<(), String> {
     let text = options.text.trim().to_string();
-    if text.is_empty() {
+    if text.is_empty() && !options.prewarm {
         return Ok(());
     }
 
@@ -585,42 +742,94 @@ pub fn tts_speak(state: tauri::State<TtsState>, options: TtsSpeakOptions) -> Res
     {
         let mut opts = options;
         opts.text = text;
-        let tx = {
+        let (tx, generation) = {
             let mut guard = state
                 .worker
                 .lock()
                 .map_err(|_| "state poisoned".to_string())?;
             if guard.is_none() {
-                let stop = Arc::new(AtomicBool::new(false));
+                let shutdown = Arc::new(AtomicBool::new(false));
+                let cancel = Arc::new(AtomicBool::new(false));
+                let generation = Arc::new(AtomicU64::new(0));
                 let (cmd_tx, cmd_rx) = mpsc::channel::<WorkerCmd>();
                 let (audio_tx, audio_rx) = mpsc::channel::<AudioMsg>();
 
-                let stop_synth = stop.clone();
+                let shutdown_synth = shutdown.clone();
+                let cancel_synth = cancel.clone();
+                let generation_synth = generation.clone();
                 let audio_tx_synth = audio_tx.clone();
-                let join_synth =
-                    thread::spawn(move || synth_thread_main(stop_synth, cmd_rx, audio_tx_synth));
+                let join_synth = thread::spawn(move || {
+                    synth_thread_main(
+                        shutdown_synth,
+                        cancel_synth,
+                        generation_synth,
+                        cmd_rx,
+                        audio_tx_synth,
+                    )
+                });
 
-                let stop_audio = stop.clone();
-                let join_audio = thread::spawn(move || audio_thread_main(stop_audio, audio_rx));
+                let shutdown_audio = shutdown.clone();
+                let generation_audio = generation.clone();
+                let join_audio = thread::spawn(move || {
+                    audio_thread_main(shutdown_audio, generation_audio, audio_rx)
+                });
 
                 *guard = Some(WorkerHandle {
-                    stop,
+                    shutdown,
+                    cancel,
+                    generation: generation.clone(),
                     tx: cmd_tx.clone(),
+                    audio_tx,
                     join_synth: Some(join_synth),
                     join_audio: Some(join_audio),
                 });
-                cmd_tx
+                (cmd_tx, generation)
             } else {
-                guard
+                let handle = guard
                     .as_ref()
-                    .ok_or_else(|| "tts worker missing".to_string())?
-                    .tx
-                    .clone()
+                    .ok_or_else(|| "tts worker missing".to_string())?;
+                (handle.tx.clone(), handle.generation.clone())
             }
         };
 
-        tx.send(WorkerCmd::Speak(opts))
+        let generation = if opts.queue_mode.as_deref() == Some("add") {
+            generation.load(Ordering::SeqCst)
+        } else {
+            let next = generation.fetch_add(1, Ordering::SeqCst) + 1;
+            let guard = state
+                .worker
+                .lock()
+                .map_err(|_| "state poisoned".to_string())?;
+            if let Some(handle) = guard.as_ref() {
+                handle.cancel.store(true, Ordering::SeqCst);
+            }
+            next
+        };
+        tx.send(WorkerCmd::Speak(opts, generation))
             .map_err(|_| "tts worker closed".to_string())?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    // verifies stop and flush generations reject delayed synthesis and audio work
+    fn filters_stale_lifecycle_work() {
+        assert!(is_current_generation(4, 4));
+        assert!(!is_current_generation(3, 4));
+        assert!(!is_current_generation(5, 4));
+    }
+
+    #[test]
+    // verifies soniox pcm gain boosts and saturates signed samples
+    fn applies_saturating_pcm16_gain() {
+        let mut pcm = [0x10, 0x27, 0xf0, 0xd8, 0xff, 0x7f];
+        apply_pcm16_gain(&mut pcm, 2.0);
+        assert_eq!(i16::from_le_bytes([pcm[0], pcm[1]]), 20_000);
+        assert_eq!(i16::from_le_bytes([pcm[2], pcm[3]]), -20_000);
+        assert_eq!(i16::from_le_bytes([pcm[4], pcm[5]]), i16::MAX);
     }
 }

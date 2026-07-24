@@ -27,13 +27,7 @@ export function TranscriptGrid({ transcriptGroups, langLabelFn }) {
   // 2. Sort turns by time
   const turns = Array.from(turnsMap.values()).sort((a, b) => a.createdAt - b.createdAt);
 
-  if (turns.length === 0) {
-    return (
-      <div className="empty transcript-empty">
-        -
-      </div>
-    );
-  }
+  if (turns.length === 0) return null;
 
   // extracts language label and finalization status from a list of segments
   const bubbleMeta = (list) => {

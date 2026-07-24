@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getStoredAuth } from "./authService";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:80/api";
+export const SERVER_UNREACHABLE = "SERVER_UNREACHABLE";
 
 // returns { apiUrl, token } for authenticated rust commands; throws if not auth
 function getInvokeArgs() {
@@ -20,6 +21,11 @@ async function safeInvoke(cmd, args) {
     const msg = String(e);
     if (msg.includes("http 401") || msg.includes("401")) {
       window.dispatchEvent(new CustomEvent("auth:expired"));
+    }
+    if (/error sending request|failed to fetch|connection refused|network error/i.test(msg)) {
+      const error = new Error("Unable to connect to the server");
+      error.code = SERVER_UNREACHABLE;
+      throw error;
     }
     throw e;
   }

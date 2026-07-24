@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import { ttsSpeak, ttsStop } from "./ttsApi";
+import { ttsPrewarm, ttsSpeak, ttsStop } from "./ttsApi";
 
 // normalizes text by collapsing whitespace and removing spaces before punctuation
 function normalizeText(s) {
@@ -20,11 +20,13 @@ export function useMicTranslationTts({
   running,
   groups,
   language,
+  provider = "builtin",
   voiceId,
   outputDeviceId,
   rate,
   pitch,
   volume,
+  speed,
 }) {
   const lastFullRef = useRef("");
   const timerRef = useRef(null);
@@ -34,24 +36,28 @@ export function useMicTranslationTts({
   const lastRatePitchRef = useRef({ rate: 1, pitch: 1 });
   const configRef = useRef({
     language: "",
+    provider: "builtin",
     voiceId: "",
     rate: 1,
     pitch: 1,
     volume: 1,
+    speed: 1,
     queueMode: "add",
   });
 
   useEffect(() => {
     configRef.current = {
       language: String(language || ""),
+      provider: provider === "soniox" ? "soniox" : "builtin",
       voiceId: String(voiceId || ""),
       outputDeviceId: String(outputDeviceId || "default-loopback"),
       rate: Number.isFinite(rate) ? rate : 1,
       pitch: Number.isFinite(pitch) ? pitch : 1,
       volume: Number.isFinite(volume) ? volume : 1,
+      speed: Number.isFinite(speed) ? speed : 1,
       queueMode: "add",
     };
-  }, [language, voiceId, outputDeviceId, rate, pitch, volume]);
+  }, [language, provider, voiceId, outputDeviceId, rate, pitch, volume, speed]);
 
   // clears all pending tts queue items and timers
   function clearPending() {
@@ -111,12 +117,13 @@ export function useMicTranslationTts({
       return;
     }
 
-    if ((prev.rate !== nextRate || prev.pitch !== nextPitch) && pendingTextRef.current.trim()) {
+    if (provider === "builtin" && (prev.rate !== nextRate || prev.pitch !== nextPitch) && pendingTextRef.current.trim()) {
       const cfg = configRef.current;
       const text = pendingTextRef.current;
       clearPending();
       ttsSpeak({
         text,
+        provider: "builtin",
         language: cfg.language,
         voiceId: cfg.voiceId || undefined,
         outputDeviceId: cfg.outputDeviceId || undefined,
@@ -127,7 +134,21 @@ export function useMicTranslationTts({
       }).catch((e) => console.error("TTS Speak Error:", e));
       enqueuePending(text, nextRate);
     }
-  }, [enabled, running, rate, pitch]);
+  }, [enabled, running, provider, rate, pitch]);
+
+  useEffect(() => {
+    if (enabled && running && provider === "soniox" && voiceId) {
+      ttsPrewarm().catch((e) => console.error("TTS Prewarm Error:", e));
+    }
+  }, [enabled, running, provider, voiceId]);
+
+  useEffect(() => {
+    lastFullRef.current = "";
+    clearPending();
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = null;
+    ttsStop().catch((e) => console.error("TTS Stop Error:", e));
+  }, [provider, language, voiceId, outputDeviceId]);
 
   useEffect(() => {
     if (!enabled || !running || !language) {
@@ -158,15 +179,17 @@ export function useMicTranslationTts({
       }
       ttsSpeak({
         text: delta,
+        provider: cfg.provider,
         language: cfg.language,
         voiceId: cfg.voiceId || undefined,
         outputDeviceId: cfg.outputDeviceId || undefined,
         rate: cfg.rate,
         pitch: cfg.pitch,
+        speed: cfg.speed,
         volume: cfg.volume,
         queueMode: cfg.queueMode,
       }).catch((e) => console.error("TTS Speak Error:", e));
-      enqueuePending(delta, cfg.rate);
+      if (cfg.provider === "builtin") enqueuePending(delta, cfg.rate);
     }, 250);
 
     return () => {

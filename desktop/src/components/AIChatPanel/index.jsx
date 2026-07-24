@@ -105,7 +105,6 @@ export function AIChatPanel({
             <div className="ai-chat-empty">
               <div className="ai-chat-empty-icon">✦</div>
               <div className="ai-chat-empty-title">ready to chat</div>
-              <div className="ai-chat-empty-text">type a message to start a new conversation.</div>
             </div>
           )}
         </div>

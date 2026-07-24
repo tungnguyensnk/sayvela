@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import "./App.css";
 import { TranscriptPanel } from "./components/TranscriptPanel";
@@ -10,6 +10,7 @@ import { QuotaExceededModal } from "./components/QuotaExceededModal";
 import { LeftBar } from "./components/LeftBar";
 import { StartStopCard } from "./components/StartStopCard";
 import { AppLeftContent } from "./components/AppLeftContent";
+import { ServerUnavailableScreen } from "./components/ServerUnavailableScreen";
 import { useAI } from "./hooks/useAI";
 import { useAuth } from "./hooks/useAuth";
 import { useSettings } from "./hooks/useSettings";
@@ -23,6 +24,7 @@ import { hydratePreferences } from "./store/preferencesSlice";
 import { setActiveTab, setQuotaExceeded } from "./store/uiSlice";
 import { clearContexts, fetchContextsThunk } from "./store/contextsSlice";
 import { clearSessions, fetchSessionsThunk } from "./store/sessionsSlice";
+import { SERVER_UNREACHABLE } from "./services/apiClient";
 import { selectActiveContextJson, selectActiveContextName } from "./store/selectors";
 
 // main application component that manages audio capture, transcription, and translation state
@@ -31,6 +33,7 @@ function App() {
   const { running, loopbackBytes, micBytes, loopbackCaptureState, micCaptureState } = useSelector((state) => state.audio);
   const preferences = useSelector((state) => state.preferences);
   const { activeTab, quotaExceeded, syncStatus, sessionElapsed } = useSelector((state) => state.ui);
+  const { loading: sessionsLoading, errorCode: sessionsErrorCode } = useSelector((state) => state.sessions);
   const activeContextJson = useSelector(selectActiveContextJson);
   const activeContextName = useSelector(selectActiveContextName);
   const { auth, user, isAuthenticated, loading: authLoading, error: authError, login, logout } = useAuth();
@@ -52,13 +55,16 @@ function App() {
 
   useContentProtection(preferences.contentProtectionEnabled, updateSetting);
 
+  const sendSegmentRef = useRef(() => {});
+  const sendSegment = useCallback((segment) => sendSegmentRef.current(segment), []);
+
   const transcripts = useTranscriptStreams({
     running,
     loopbackCaptureState,
     micCaptureState,
     preferences,
     activeContextJson,
-    sendSegment: (segment) => recorder.sendSegment(segment),
+    sendSegment,
   });
 
   const recorder = useSessionRecorder({
@@ -68,6 +74,7 @@ function App() {
     chatgpt,
     checkQuota,
   });
+  sendSegmentRef.current = recorder.sendSegment;
 
   const { loopbackTranscript, micTranscript } = transcripts;
 
@@ -99,11 +106,13 @@ function App() {
     running,
     groups: micTranscript.groups,
     language: preferences.micOutputLang,
-    voiceId: preferences.micTtsVoiceId,
+    provider: preferences.micTtsProvider,
+    voiceId: preferences.micTtsVoiceIds?.[preferences.micTtsProvider],
+    speed: preferences.micTtsSonioxSpeed,
     outputDeviceId: preferences.micTtsOutputDeviceId,
     rate: preferences.micTtsRate,
     pitch: preferences.micTtsPitch,
-    volume: preferences.micTtsVolume,
+    volume: preferences.micTtsProvider === "soniox" ? preferences.micTtsSonioxVolume : preferences.micTtsVolume,
   });
 
   const audioRuntime = {
@@ -120,6 +129,20 @@ function App() {
           <main className="main">
             <LoginPanel onLogin={login} loading={authLoading} error={authError} />
           </main>
+        </div>
+      </div>
+    );
+  }
+
+  if (sessionsErrorCode === SERVER_UNREACHABLE) {
+    return (
+      <div className="window">
+        <div className="app">
+          <TitleBar title="Sayvela" user={user} onLogoutClick={logout} />
+          <ServerUnavailableScreen
+            loading={sessionsLoading}
+            onRetry={() => dispatch(fetchSessionsThunk())}
+          />
         </div>
       </div>
     );

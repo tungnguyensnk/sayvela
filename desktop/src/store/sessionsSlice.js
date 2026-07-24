@@ -5,6 +5,7 @@ const initialState = {
   items: [],
   loading: false,
   error: null,
+  errorCode: null,
 };
 
 export const fetchSessionsThunk = createAsyncThunk("sessions/fetch", async () => {
@@ -25,9 +26,13 @@ const sessionsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchSessionsThunk.pending, (state) => { state.loading = true; state.error = null; })
+      .addCase(fetchSessionsThunk.pending, (state) => { state.loading = true; state.error = null; state.errorCode = null; })
       .addCase(fetchSessionsThunk.fulfilled, (state, action) => { state.loading = false; state.items = action.payload; })
-      .addCase(fetchSessionsThunk.rejected, (state, action) => { state.loading = false; state.error = action.error.message || "failed to load sessions"; })
+      .addCase(fetchSessionsThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message || "failed to load sessions";
+        state.errorCode = action.error.code || null;
+      })
       .addCase(deleteSessionThunk.fulfilled, (state, action) => { state.items = state.items.filter((s) => s.id !== action.payload); });
   },
 });

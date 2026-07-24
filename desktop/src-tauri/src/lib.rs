@@ -1,9 +1,12 @@
 mod api;
 mod audio;
 mod chatgpt;
+mod secure_store;
 mod soniox;
 mod tts_native;
+mod tts_soniox;
 mod types;
+mod vb_cable;
 
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -11,7 +14,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, State};
 
-use crate::soniox::SonioxTempKey;
 use crate::types::AudioDevice;
 
 pub struct AppState {
@@ -89,11 +91,6 @@ fn set_main_window_content_protected(app: AppHandle, enabled: bool) -> Result<()
 
     win.set_content_protected(enabled)
         .map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-async fn soniox_get_temp_key() -> Result<SonioxTempKey, String> {
-    soniox::get_temp_key().await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -177,7 +174,11 @@ pub fn run() {
             start_audio_capture,
             stop_audio_capture,
             set_main_window_content_protected,
-            soniox_get_temp_key,
+            secure_store::soniox_set_api_key,
+            secure_store::soniox_has_api_key,
+            secure_store::soniox_delete_api_key,
+            soniox::soniox_get_temp_key,
+            soniox::soniox_list_voices,
             auth_poll_pending_token,
             chatgpt::chatgpt_start_stream,
             chatgpt::chatgpt_cancel_stream,
@@ -186,6 +187,7 @@ pub fn run() {
             tts_native::tts_list_voices,
             tts_native::tts_speak,
             tts_native::tts_stop,
+            vb_cable::install_vb_cable,
             api::api_get_settings,
             api::api_update_settings,
             api::api_list_contexts,
@@ -196,7 +198,6 @@ pub fn run() {
             api::api_record_usage,
             api::api_create_session,
             api::api_finalize_session,
-            api::api_upload_segments,
             api::api_list_sessions,
             api::api_get_session,
             api::api_delete_session,

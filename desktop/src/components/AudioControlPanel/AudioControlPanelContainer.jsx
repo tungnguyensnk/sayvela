@@ -29,10 +29,13 @@ export function AudioControlPanelContainer({ loopbackError, micError, onRefreshD
       onChangeMicInputLangs={setAndSave("micInputLangs")}
       onChangeMicOutputLang={setAndSave("micOutputLang")}
       onChangeMicTtsEnabled={setAndSave("micTtsEnabled")}
-      onChangeMicTtsVoiceId={setAndSave("micTtsVoiceId")}
+      onChangeMicTtsProvider={setAndSave("micTtsProvider")}
+      onChangeMicTtsVoiceIds={setAndSave("micTtsVoiceIds")}
+      onChangeMicTtsSonioxSpeed={setAndSave("micTtsSonioxSpeed")}
       onChangeMicTtsRate={setAndSave("micTtsRate")}
       onChangeMicTtsPitch={setAndSave("micTtsPitch")}
       onChangeMicTtsVolume={setAndSave("micTtsVolume")}
+      onChangeMicTtsSonioxVolume={setAndSave("micTtsSonioxVolume")}
       onChangeMicTtsOutputDeviceId={setAndSave("micTtsOutputDeviceId")}
       loopbackError={loopbackError}
       micError={micError}

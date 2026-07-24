@@ -18,6 +18,19 @@ pub struct ChatgptState {
     streams: Mutex<HashMap<String, tauri::async_runtime::JoinHandle<()>>>,
 }
 
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StartStreamRequest {
+    request_id: String,
+    message: String,
+    conversation_id: Option<String>,
+    parent_message_id: Option<String>,
+    api_url: String,
+    auth_token: String,
+    #[serde(default)]
+    keep_conversation: bool,
+}
+
 #[derive(Debug, Serialize, Clone)]
 pub struct StreamEnvelope {
     pub request_id: String,
@@ -357,16 +370,16 @@ async fn send_conversation(
     Ok(res)
 }
 
-async fn stream_agent(
-    app: AppHandle,
-    request_id: String,
-    message: String,
-    conversation_id_in: Option<String>,
-    parent_message_id: Option<String>,
-    api_url: String,
-    auth_token: String,
-    keep_conversation: bool,
-) {
+async fn stream_agent(app: AppHandle, request: StartStreamRequest) {
+    let StartStreamRequest {
+        request_id,
+        message,
+        conversation_id: conversation_id_in,
+        parent_message_id,
+        api_url,
+        auth_token,
+        keep_conversation,
+    } = request;
     let client = match make_client(120) {
         Ok(c) => c,
         Err(e) => return emit_failed(&app, request_id, e).await,
@@ -486,39 +499,22 @@ async fn stream_agent(
 pub async fn chatgpt_start_stream(
     app: AppHandle,
     state: State<'_, ChatgptState>,
-    request_id: String,
-    message: String,
-    conversation_id: Option<String>,
-    parent_message_id: Option<String>,
-    api_url: String,
-    auth_token: String,
-    keep_conversation: Option<bool>,
+    mut request: StartStreamRequest,
 ) -> Result<(), String> {
-    let request_id = request_id.trim().to_string();
-    if request_id.is_empty() || auth_token.trim().is_empty() {
+    request.request_id = request.request_id.trim().to_string();
+    if request.request_id.is_empty() || request.auth_token.trim().is_empty() {
         return Err("missing request_id or auth_token".to_string());
     }
     let mut guard = state
         .streams
         .lock()
         .map_err(|_| "state poisoned".to_string())?;
-    if guard.contains_key(&request_id) {
+    if guard.contains_key(&request.request_id) {
         return Err("stream already running".to_string());
     }
-    let rid = request_id.clone();
-    let keep_conversation = keep_conversation.unwrap_or(false);
+    let request_id = request.request_id.clone();
     let handle = tauri::async_runtime::spawn(async move {
-        stream_agent(
-            app,
-            rid,
-            message,
-            conversation_id,
-            parent_message_id,
-            api_url,
-            auth_token,
-            keep_conversation,
-        )
-        .await;
+        stream_agent(app, request).await;
     });
     guard.insert(request_id, handle);
     Ok(())

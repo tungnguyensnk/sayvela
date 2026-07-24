@@ -26,7 +26,11 @@ export function createSegmentWsClient({ connectTimeoutMs = 8000, flushTimeoutMs 
   const waitForPending = () => new Promise((resolve) => {
     const started = Date.now();
     const tick = () => {
-      if (!pendingIds.size || Date.now() - started >= flushTimeoutMs) { resolve(); return; }
+      if (!pendingIds.size) { resolve(); return; }
+      if (Date.now() - started >= flushTimeoutMs) {
+        resolve();
+        return;
+      }
       setTimeout(tick, 50);
     };
     tick();

@@ -29,10 +29,10 @@ describe('chatgpt provider', () => {
     let handler = null;
     const invoke = vi.fn(async (cmd, args) => {
       if (cmd === 'chatgpt_start_stream') {
-        handler?.({ payload: { request_id: args.requestId, event: 'chunk', data: { delta: 'hi' } } });
+        handler?.({ payload: { request_id: args.request.requestId, event: 'chunk', data: { delta: 'hi' } } });
         handler?.({
           payload: {
-            request_id: args.requestId,
+            request_id: args.request.requestId,
             event: 'result',
             data: { response: 'done', conversation_id: 'c1', message_id: 'm1' },
           },
@@ -55,13 +55,15 @@ describe('chatgpt provider', () => {
     await sendStreamMessage('hello', [], (p) => events.push(p), { requestId: 'rid' });
 
     expect(invoke).toHaveBeenCalledWith('chatgpt_start_stream', {
-      requestId: 'rid',
-      message: 'hello',
-      conversationId: null,
-      parentMessageId: null,
-      apiUrl: 'http://localhost:80/api',
-      authToken: 'jwt',
-      keepConversation: false,
+      request: {
+        requestId: 'rid',
+        message: 'hello',
+        conversationId: null,
+        parentMessageId: null,
+        apiUrl: 'http://localhost:80/api',
+        authToken: 'jwt',
+        keepConversation: false,
+      },
     });
     expect(events).toEqual([
       { event: 'chunk', data: { delta: 'hi' } },
@@ -86,7 +88,7 @@ describe('chatgpt provider', () => {
     let handler = null;
     const invoke = vi.fn(async (cmd, args) => {
       if (cmd === 'chatgpt_start_stream') {
-        handler?.({ payload: { request_id: args.requestId, event: 'result', data: { response: 'done' } } });
+        handler?.({ payload: { request_id: args.request.requestId, event: 'result', data: { response: 'done' } } });
       }
       return null;
     });
@@ -104,13 +106,15 @@ describe('chatgpt provider', () => {
     await sendStreamMessage('hello', [], () => {}, { requestId: 'rid', keepConversation: true });
 
     expect(invoke).toHaveBeenCalledWith('chatgpt_start_stream', {
-      requestId: 'rid',
-      message: 'hello',
-      conversationId: 'c1',
-      parentMessageId: 'm1',
-      apiUrl: 'http://localhost:80/api',
-      authToken: 'jwt',
-      keepConversation: true,
+      request: {
+        requestId: 'rid',
+        message: 'hello',
+        conversationId: 'c1',
+        parentMessageId: 'm1',
+        apiUrl: 'http://localhost:80/api',
+        authToken: 'jwt',
+        keepConversation: true,
+      },
     });
   });
 });

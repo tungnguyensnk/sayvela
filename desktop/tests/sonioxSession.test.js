@@ -73,6 +73,15 @@ describe("startSonioxSession", () => {
     expect(onText.mock.calls[0][0].groups[0].text).toBe("xin chào");
   });
 
+  it("forwards runtime errors", async () => {
+    const { startSonioxSession } = await import("../src/transcript/sonioxSession.js");
+    const onError = vi.fn();
+    await startSonioxSession({ onError });
+    const error = new Error("Soniox network error");
+    handlers.get("error")(error);
+    expect(onError).toHaveBeenCalledWith(error);
+  });
+
   it("starts a new sys message after an endpoint", async () => {
     const { startSonioxSession } = await import("../src/transcript/sonioxSession.js");
     const onText = vi.fn();

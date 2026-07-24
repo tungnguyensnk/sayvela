@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { and, desc, eq } from 'drizzle-orm';
+import { asc, desc, eq } from 'drizzle-orm';
 import crypto from 'crypto';
 import { db } from '../db';
 import { sessionSegments, sessions } from '../schema';
@@ -91,14 +91,18 @@ export class SessionsRepository {
       .select()
       .from(sessionSegments)
       .where(eq(sessionSegments.sessionId, sessionId))
-      .orderBy(sessionSegments.startMs);
+      .orderBy(
+        asc(sessionSegments.startMs),
+        asc(sessionSegments.createdAt),
+        asc(sessionSegments.id),
+      );
   }
 
   async countByUser(userId: string) {
     const res = await db
       .select()
       .from(sessions)
-      .where(and(eq(sessions.userId, userId)));
+      .where(eq(sessions.userId, userId));
     return res.length;
   }
 }
