@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import crypto from 'crypto';
 import { eq } from 'drizzle-orm';
+import { createId } from '../common/id';
 import { db } from '../db';
 import { userSettings } from '../schema';
 
@@ -21,7 +21,7 @@ export class SettingsRepository {
     const existing = await this.findByUser(userId);
     if (!existing) {
       await db.insert(userSettings).values({
-        id: crypto.randomUUID(),
+        id: createId(),
         userId,
         settingsJson,
         version: 1,

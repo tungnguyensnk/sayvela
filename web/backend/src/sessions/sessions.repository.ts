@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { asc, desc, eq } from 'drizzle-orm';
-import crypto from 'crypto';
+import { createId } from '../common/id';
 import { db } from '../db';
 import { sessionSegments, sessions } from '../schema';
 
@@ -31,7 +31,7 @@ type SegmentInput = {
 @Injectable()
 export class SessionsRepository {
   async create(input: CreateInput) {
-    const id = crypto.randomUUID();
+    const id = createId();
     await db.insert(sessions).values({
       id,
       userId: input.userId,
@@ -72,7 +72,7 @@ export class SessionsRepository {
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     await db.insert(sessionSegments).values(
       segments.map((s) => ({
-        id: UUID_RE.test(s.id) ? s.id : crypto.randomUUID(),
+        id: UUID_RE.test(s.id) ? s.id : createId(),
         sessionId,
         speaker: s.speaker ?? null,
         source: s.source ?? null,

@@ -1,4 +1,5 @@
 import { RealtimeSegmentBuffer, segmentRealtimeTokens } from "@soniox/client";
+import { v7 as createId } from "uuid";
 
 const statusOf = (segment) => segment.tokens[0]?.translation_status ?? "original";
 const keyOf = (segment) => `${statusOf(segment)}|${segment.speaker ?? "0"}|${segment.language ?? ""}|${segment.start_ms ?? 0}`;
@@ -20,8 +21,8 @@ export function createTranscriptMapper({ languageHints, targetLanguage, speakerO
     const speaker = String(speakerOverride || segment.speaker || "0");
     const original = status === "translation" ? originalsBySpeaker.get(speaker) : null;
     const identity = status === "translation"
-      ? { id: crypto.randomUUID(), seq: original?.seq ?? nextSeq, originId: original?.id ?? null, createdAt: Date.now(), speaker, status }
-      : { id: crypto.randomUUID(), seq: nextSeq++, originId: null, createdAt: Date.now() };
+      ? { id: createId(), seq: original?.seq ?? nextSeq, originId: original?.id ?? null, createdAt: Date.now(), speaker, status }
+      : { id: createId(), seq: nextSeq++, originId: null, createdAt: Date.now() };
     identities.set(key, identity);
     if (status === "original") {
       originalsBySpeaker.set(speaker, identity);

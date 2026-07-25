@@ -1,5 +1,5 @@
 import { hash } from 'bcrypt';
-import crypto from 'crypto';
+import { createId } from './common/id';
 import { db, pool } from './db';
 import { users } from './schema/users';
 import { eq } from 'drizzle-orm';
@@ -11,7 +11,7 @@ async function seed() {
   const exists = await db.select().from(users).where(eq(users.email, email));
   if (exists[0]) return;
 
-  const id = crypto.randomUUID();
+  const id = createId();
   const passwordHash = await hash(password, 10);
   await db.insert(users).values({ id, email, passwordHash });
 }

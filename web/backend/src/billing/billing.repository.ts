@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { and, desc, eq, gt, lte } from 'drizzle-orm';
-import crypto from 'crypto';
+import { createId } from '../common/id';
 import { db } from '../db';
 import { billingCustomers } from '../schema';
 import { billingUsageCycles } from '../schema';
@@ -58,7 +58,7 @@ export class BillingRepository {
       );
 
     if (existing.length === 0) {
-      const id = crypto.randomUUID();
+      const id = createId();
       await db.insert(subscriptions).values({
         id,
         userId: input.userId,
@@ -150,7 +150,7 @@ export class BillingRepository {
   }
 
   async createUsageCycle(input: UsageCycleCreateInput) {
-    const id = crypto.randomUUID();
+    const id = createId();
     await db.insert(billingUsageCycles).values({
       id,
       userId: input.userId,

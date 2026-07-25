@@ -3,7 +3,7 @@ import { db } from '../db';
 import { users } from '../schema/users';
 import { eq } from 'drizzle-orm';
 import { compare, hash } from 'bcrypt';
-import crypto from 'crypto';
+import { createId } from '../common/id';
 
 @Injectable()
 export class UsersService {
@@ -20,7 +20,7 @@ export class UsersService {
   async create(email: string, password: string) {
     const exists = await this.findByEmail(email);
     if (exists) return null;
-    const id = crypto.randomUUID();
+    const id = createId();
     const passwordHash = await hash(password, 10);
     await db.insert(users).values({ id, email, passwordHash });
     return { id, email };

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import crypto from 'crypto';
 import { and, desc, eq } from 'drizzle-orm';
+import { createId } from '../common/id';
 import { db } from '../db';
 import { contexts } from '../schema';
 
@@ -36,7 +36,7 @@ export class ContextsRepository {
     description: string | undefined,
     contextJson: ContextJson,
   ) {
-    const id = crypto.randomUUID();
+    const id = createId();
     await db.insert(contexts).values({
       id,
       userId,

@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { version } from "uuid";
 import { createTranscriptMapper } from "../src/transcript/sonioxTranscript";
 
 describe("createTranscriptMapper", () => {
@@ -18,5 +19,6 @@ describe("createTranscriptMapper", () => {
     mapper.endpoint();
 
     expect(onTurnEnd).toHaveBeenCalledWith(expect.objectContaining({ startMs: 2520, endMs: 2620 }));
+    expect(version(onTurnEnd.mock.calls[0][0].id)).toBe(7);
   });
 });

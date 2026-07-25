@@ -6,4 +6,4 @@ COPY package*.json ./
 RUN npm install
 
 EXPOSE 3000
-CMD ["npm", "run", "dev"]
+CMD ["sh", "-c", "npm install && npm run dev"]
