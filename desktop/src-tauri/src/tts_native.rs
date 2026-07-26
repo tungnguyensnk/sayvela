@@ -6,7 +6,7 @@ use std::sync::{
     mpsc, Arc, Mutex,
 };
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 #[derive(Default)]
 pub struct TtsState {
@@ -28,8 +28,8 @@ struct WorkerHandle {
     shutdown: Arc<AtomicBool>,
     cancel: Arc<AtomicBool>,
     generation: Arc<AtomicU64>,
-    tx: mpsc::Sender<WorkerCmd>,
-    audio_tx: mpsc::Sender<AudioMsg>,
+    tx: mpsc::SyncSender<WorkerCmd>,
+    audio_tx: mpsc::SyncSender<AudioMsg>,
     join_synth: Option<thread::JoinHandle<()>>,
     join_audio: Option<thread::JoinHandle<()>>,
 }
@@ -55,8 +55,8 @@ fn create_worker() -> WorkerHandle {
     let shutdown = Arc::new(AtomicBool::new(false));
     let cancel = Arc::new(AtomicBool::new(false));
     let generation = Arc::new(AtomicU64::new(0));
-    let (tx, cmd_rx) = mpsc::channel::<WorkerCmd>();
-    let (audio_tx, audio_rx) = mpsc::channel::<AudioMsg>();
+    let (tx, cmd_rx) = mpsc::sync_channel::<WorkerCmd>(24);
+    let (audio_tx, audio_rx) = mpsc::sync_channel::<AudioMsg>(64);
 
     let join_synth = {
         let shutdown = shutdown.clone();
@@ -344,7 +344,7 @@ fn synth_thread_main(
     cancel: Arc<AtomicBool>,
     current_generation: Arc<AtomicU64>,
     rx: mpsc::Receiver<WorkerCmd>,
-    audio_tx: mpsc::Sender<AudioMsg>,
+    audio_tx: mpsc::SyncSender<AudioMsg>,
 ) {
     let _ = wasapi::initialize_mta();
 
@@ -542,6 +542,7 @@ fn audio_thread_main(
     let mut current: VecDeque<u8> = VecDeque::new();
     let mut pending_queue: VecDeque<Vec<u8>> = VecDeque::new();
     let mut generation = 0;
+    let mut idle_since: Option<Instant> = None;
 
     while !shutdown.load(Ordering::SeqCst) {
         let busy = audio_client.is_some()
@@ -588,6 +589,7 @@ fn audio_thread_main(
                         queue.clear();
                         current.clear();
                         pending_queue.clear();
+                        idle_since = None;
                     }
                 }
                 AudioMsg::Flush(message_generation) => {
@@ -607,6 +609,7 @@ fn audio_thread_main(
                     pending_queue.clear();
                     pending_sr = 0;
                     pending_ch = 0;
+                    idle_since = None;
                 }
                 AudioMsg::Enqueue {
                     generation: message_generation,
@@ -683,13 +686,17 @@ fn audio_thread_main(
         }
 
         if current.is_empty() && queue.is_empty() && pending_queue.is_empty() {
-            if let Some(c) = audio_client.take() {
-                let _ = c.stop_stream();
+            let idle_start = idle_since.get_or_insert_with(Instant::now);
+            if idle_start.elapsed() >= Duration::from_millis(750) {
+                if let Some(c) = audio_client.take() {
+                    let _ = c.stop_stream();
+                }
+                render_client = None;
+                current_sr = 0;
+                current_ch = 0;
             }
-            audio_client = None;
-            render_client = None;
-            current_sr = 0;
-            current_ch = 0;
+        } else {
+            idle_since = None;
         }
     }
 
@@ -828,8 +835,11 @@ pub fn tts_speak(state: tauri::State<TtsState>, options: TtsSpeakOptions) -> Res
             }
             next
         };
-        tx.send(WorkerCmd::Speak(opts, generation))
-            .map_err(|_| "tts worker closed".to_string())?;
+        tx.try_send(WorkerCmd::Speak(opts, generation))
+            .map_err(|error| match error {
+                mpsc::TrySendError::Full(_) => "tts queue full".to_string(),
+                mpsc::TrySendError::Disconnected(_) => "tts worker closed".to_string(),
+            })?;
         Ok(())
     }
 }

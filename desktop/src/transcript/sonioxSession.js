@@ -46,7 +46,7 @@ export async function startSonioxSession({
   languageHints = ["vi", "ja"],
   enableSpeakerDiarization = true,
   targetLanguage = "ja",
-  endpointDelayMs = 900,
+  endpointDelayMs = 600,
   context = null,
   audioEventName = "audio_chunk",
   speakerOverride = "",

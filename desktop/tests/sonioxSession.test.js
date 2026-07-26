@@ -50,7 +50,7 @@ describe("startSonioxSession", () => {
       num_channels: 1,
       language_hints: ["vi"],
       enable_endpoint_detection: true,
-      max_endpoint_delay_ms: 900,
+      max_endpoint_delay_ms: 600,
       auto_reconnect: true,
     });
     expect(options.source.eventName).toBe("audio_chunk_mic");

@@ -289,7 +289,8 @@ fn capture_thread(
     let mut carry: Vec<f32> = Vec::new();
     let mut carry_idx_f: f32 = 0.0;
     let ratio = out_rate as f32 / in_rate as f32;
-    let chunk_bytes = (out_rate as usize * 2) / 10;
+    let chunk_ms = if kind == "microphone" { 50 } else { 100 };
+    let chunk_bytes = out_rate as usize * 2 * chunk_ms / 1000;
 
     while !stop.load(Ordering::SeqCst) {
         let frames = capture

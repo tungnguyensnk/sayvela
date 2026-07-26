@@ -29,7 +29,6 @@ export function useMicTranslationTts({
   speed,
 }) {
   const lastFullRef = useRef("");
-  const timerRef = useRef(null);
   const pendingTextRef = useRef("");
   const pendingQueueRef = useRef([]);
   const pendingTimersRef = useRef([]);
@@ -154,8 +153,6 @@ export function useMicTranslationTts({
   useEffect(() => {
     lastFullRef.current = "";
     clearPending();
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = null;
     ttsStop().catch((e) => console.error("TTS Stop Error:", e));
   }, [provider, language, voiceId, outputDeviceId]);
 
@@ -163,8 +160,6 @@ export function useMicTranslationTts({
     if (!enabled || !running || !language) {
       lastFullRef.current = "";
       clearPending();
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = null;
       ttsStop().catch((e) => console.error("TTS Stop Error:", e));
       return;
     }
@@ -172,38 +167,25 @@ export function useMicTranslationTts({
     const prev = lastFullRef.current;
     if (!fullText || fullText === prev) return;
 
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      const currentPrev = lastFullRef.current;
-      const currentFull = fullText;
+    let delta = fullText.startsWith(prev) ? fullText.slice(prev.length) : fullText;
+    delta = removeLeadingJunk(delta);
+    if (!delta) return;
 
-      let delta = currentFull.startsWith(currentPrev) ? currentFull.slice(currentPrev.length) : currentFull;
-      delta = removeLeadingJunk(delta);
-      if (delta.trim().length === 0) return;
-
-      lastFullRef.current = currentFull;
-      const cfg = configRef.current;
-      if (cfg.queueMode !== "add") {
-        clearPending();
-      }
-      ttsSpeak({
-        text: delta,
-        provider: cfg.provider,
-        language: cfg.language,
-        voiceId: cfg.voiceId || undefined,
-        outputDeviceId: cfg.outputDeviceId || undefined,
-        rate: cfg.rate,
-        pitch: cfg.pitch,
-        speed: cfg.speed,
-        volume: cfg.volume,
-        queueMode: cfg.queueMode,
-      }).catch((e) => console.error("TTS Speak Error:", e));
-      if (cfg.provider === "builtin") enqueuePending(delta, cfg.rate);
-    }, 250);
-
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-      timerRef.current = null;
-    };
+    lastFullRef.current = fullText;
+    const cfg = configRef.current;
+    if (cfg.queueMode !== "add") clearPending();
+    ttsSpeak({
+      text: delta,
+      provider: cfg.provider,
+      language: cfg.language,
+      voiceId: cfg.voiceId || undefined,
+      outputDeviceId: cfg.outputDeviceId || undefined,
+      rate: cfg.rate,
+      pitch: cfg.pitch,
+      speed: cfg.speed,
+      volume: cfg.volume,
+      queueMode: cfg.queueMode,
+    }).catch((e) => console.error("TTS Speak Error:", e));
+    if (cfg.provider === "builtin") enqueuePending(delta, cfg.rate);
   }, [enabled, running, language, fullText]);
 }
