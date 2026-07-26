@@ -185,6 +185,7 @@ pub fn run() {
             chatgpt::chatgpt_hide_conversation,
             chatgpt::chatgpt_prepare_stop,
             tts_native::tts_list_voices,
+            tts_native::tts_start,
             tts_native::tts_speak,
             tts_native::tts_stop,
             vb_cable::install_vb_cable,

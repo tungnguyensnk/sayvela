@@ -52,7 +52,7 @@ export function useAuthForm({
   const safeCallbackUrl = callbackUrl?.trim() ? callbackUrl.trim() : "/";
 
   const passwordHint = useMemo(
-    () => "Tối thiểu 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt.",
+    () => "At least 8 characters, including uppercase and lowercase letters, a number, and a special character.",
     [],
   );
 
@@ -156,7 +156,7 @@ export function useAuthForm({
         email: registerValues.email,
       }));
       setRegisterErrors({});
-      setSuccessMessage("Tạo tài khoản thành công. Bạn có thể đăng nhập ngay bây giờ.");
+      setSuccessMessage("Account created successfully. You can sign in now.");
       switchMode("login", true);
     } catch (error) {
       setRegisterErrors({

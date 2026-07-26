@@ -6,9 +6,9 @@ import { authOptions } from "@/lib/auth";
 import { normalizeAuthMode } from "@/lib/auth-validation";
 
 export const metadata: Metadata = {
-  title: "Đăng nhập hoặc đăng ký | Sayvela",
+  title: "Sign in or sign up | Sayvela",
   description:
-    "Tạo tài khoản hoặc đăng nhập Sayvela để bắt đầu sử dụng voice translation, transcription và workflow đa ngôn ngữ an toàn.",
+    "Create an account or sign in to Sayvela to start using secure voice translation, transcription, and multilingual workflows.",
   alternates: {
     canonical: "/auth",
   },

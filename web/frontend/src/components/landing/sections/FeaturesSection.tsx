@@ -2,17 +2,16 @@ import type { LandingFeature } from "@/components/landing/landing-content";
 
 export function FeaturesSection({ features }: { features: LandingFeature[] }) {
   return (
-    <section id="features" className="mx-auto w-full max-w-6xl px-6 py-10 sm:px-8">
+    <section className="mx-auto w-full max-w-6xl px-6 py-10 sm:px-8">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div className="max-w-2xl">
-          <div className="section-eyebrow">Core capabilities</div>
+          <div className="section-eyebrow">Core technology</div>
           <h2 className="mt-4 text-3xl font-semibold text-white sm:text-4xl">
-            Một bộ tính năng đủ sâu để biến cuộc hội thoại thành hành động
+            AI that redefines <br className="hidden sm:block" /> how you work
           </h2>
         </div>
         <p className="max-w-xl text-sm leading-7 text-white/68 sm:text-base">
-          Toàn bộ luồng capture, transcription, translation và phản hồi được thiết kế để làm việc trong môi trường cần
-          tốc độ, độ rõ ràng và tính riêng tư.
+          A high-speed, secure data pipeline built for accurate, confident decisions.
         </p>
       </div>
 

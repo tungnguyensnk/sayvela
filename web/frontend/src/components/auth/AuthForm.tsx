@@ -47,7 +47,7 @@ export function AuthForm({ initialMode, callbackUrl, desktop, desktopCode }: Aut
     <div className="glass-panel w-full max-w-xl p-7 sm:p-8">
       {desktop ? (
         <div className="mb-5 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-200">
-          Đăng nhập từ ứng dụng desktop Sayvela. Sau khi đăng nhập bạn sẽ tự động quay lại app.
+          Sign in from the Sayvela desktop app. You will automatically return to the app after signing in.
         </div>
       ) : null}
       <div className="inline-flex rounded-full border border-white/10 bg-white/6 p-1">
@@ -60,7 +60,7 @@ export function AuthForm({ initialMode, callbackUrl, desktop, desktopCode }: Aut
           }`}
           onClick={() => switchMode("login")}
         >
-          Đăng nhập
+          Sign in
         </button>
         <button
           type="button"
@@ -71,7 +71,7 @@ export function AuthForm({ initialMode, callbackUrl, desktop, desktopCode }: Aut
           }`}
           onClick={() => switchMode("register")}
         >
-          Đăng ký
+          Sign up
         </button>
       </div>
 
@@ -81,13 +81,13 @@ export function AuthForm({ initialMode, callbackUrl, desktop, desktopCode }: Aut
         </div>
         <h1 className="mt-4 text-3xl font-semibold text-white">
           {mode === "login"
-            ? "Đăng nhập để tiếp tục với Sayvela"
-            : "Đăng ký để bắt đầu workflow đa ngôn ngữ"}
+            ? "Sign in to continue with Sayvela"
+            : "Sign up to start your multilingual workflow"}
         </h1>
         <p className="mt-3 text-sm leading-7 text-white/68">
           {mode === "login"
-            ? "Tiếp tục với tài khoản của bạn để truy cập phiên dịch và transcript theo thời gian thực."
-            : "Tạo tài khoản mới với password mạnh để đồng bộ transcript, translation và privacy settings."}
+            ? "Continue with your account to access real-time translation and transcripts."
+            : "Create an account with a strong password to sync transcripts, translations, and privacy settings."}
         </p>
       </div>
 
@@ -115,7 +115,7 @@ export function AuthForm({ initialMode, callbackUrl, desktop, desktopCode }: Aut
           />
 
           <Field
-            label="Mật khẩu"
+            label="Password"
             type="password"
             autoComplete="current-password"
             value={loginValues.password}
@@ -135,7 +135,7 @@ export function AuthForm({ initialMode, callbackUrl, desktop, desktopCode }: Aut
             className="primary-button w-full justify-center"
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Đang đăng nhập..." : "Đăng nhập"}
+            {isSubmitting ? "Signing in..." : "Sign in"}
           </button>
         </form>
       ) : (
@@ -153,7 +153,7 @@ export function AuthForm({ initialMode, callbackUrl, desktop, desktopCode }: Aut
           />
 
           <Field
-            label="Mật khẩu"
+            label="Password"
             type="password"
             autoComplete="new-password"
             value={registerValues.password}
@@ -171,7 +171,7 @@ export function AuthForm({ initialMode, callbackUrl, desktop, desktopCode }: Aut
           />
 
           <Field
-            label="Xác nhận mật khẩu"
+            label="Confirm password"
             type="password"
             autoComplete="new-password"
             value={registerValues.confirmPassword}
@@ -198,27 +198,27 @@ export function AuthForm({ initialMode, callbackUrl, desktop, desktopCode }: Aut
             className="primary-button w-full justify-center"
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Đang tạo tài khoản..." : "Tạo tài khoản"}
+            {isSubmitting ? "Creating account..." : "Create account"}
           </button>
         </form>
       )}
 
       <div className="mt-6 text-sm text-white/64">
-        {mode === "login" ? "Chưa có tài khoản?" : "Đã có tài khoản?"}{" "}
+        {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
         <button
           type="button"
           className="font-medium text-cyan-200 transition hover:text-cyan-100"
           onClick={() => switchMode(mode === "login" ? "register" : "login")}
         >
-          {mode === "login" ? "Đăng ký ngay" : "Đăng nhập"}
+          {mode === "login" ? "Sign up now" : "Sign in"}
         </button>
       </div>
 
       <div className="mt-4 text-sm leading-7 text-white/50">
-        Bằng việc tiếp tục, bạn đồng ý với quy trình bảo vệ dữ liệu và xác thực an toàn của Sayvela.
+        By continuing, you agree to Sayvela&apos;s data protection and secure authentication practices.
         <span className="mx-2 text-white/25">•</span>
         <Link href="/" className="text-white/70 transition hover:text-white">
-          Quay về landing page
+          Back to the landing page
         </Link>
       </div>
     </div>

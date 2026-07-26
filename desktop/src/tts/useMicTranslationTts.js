@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
-import { ttsPrewarm, ttsSpeak, ttsStop } from "./ttsApi";
+import { ttsPrewarm, ttsSpeak, ttsStart, ttsStop } from "./ttsApi";
 
 // normalizes text by collapsing whitespace and removing spaces before punctuation
 function normalizeText(s) {
@@ -137,10 +137,19 @@ export function useMicTranslationTts({
   }, [enabled, running, provider, rate, pitch]);
 
   useEffect(() => {
-    if (enabled && running && provider === "soniox" && voiceId) {
-      ttsPrewarm().catch((e) => console.error("TTS Prewarm Error:", e));
-    }
-  }, [enabled, running, provider, voiceId]);
+    if (!enabled || !running) return;
+    let active = true;
+    const start = async () => {
+      await ttsStart();
+      if (active && configRef.current.provider === "soniox" && configRef.current.voiceId) {
+        await ttsPrewarm();
+      }
+    };
+    start().catch((e) => console.error("TTS Start Error:", e));
+    return () => {
+      active = false;
+    };
+  }, [enabled, running]);
 
   useEffect(() => {
     lastFullRef.current = "";

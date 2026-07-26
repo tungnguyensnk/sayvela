@@ -22,12 +22,12 @@ export function normalizeAuthMode(value?: string): AuthMode {
 
 export function validateEmail(email: string) {
   if (!email.trim()) {
-    return "Vui lòng nhập email.";
+    return "Please enter your email.";
   }
 
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailPattern.test(email)) {
-    return "Email không đúng định dạng.";
+    return "Enter a valid email address.";
   }
 
   return "";
@@ -35,15 +35,15 @@ export function validateEmail(email: string) {
 
 export function validatePassword(password: string, mode: AuthMode) {
   if (!password) {
-    return "Vui lòng nhập mật khẩu.";
+    return "Please enter your password.";
   }
 
   if (mode === "register" && password.length < 8) {
-    return "Mật khẩu phải có ít nhất 8 ký tự.";
+    return "Password must be at least 8 characters.";
   }
 
   if (mode === "register" && !passwordPattern.test(password)) {
-    return "Mật khẩu cần chữ hoa, chữ thường, số và ký tự đặc biệt.";
+    return "Password must include uppercase and lowercase letters, a number, and a special character.";
   }
 
   return "";
@@ -80,9 +80,9 @@ export function validateRegisterValues(
   }
 
   if (!values.confirmPassword) {
-    errors.confirmPassword = "Vui lòng xác nhận mật khẩu.";
+    errors.confirmPassword = "Please confirm your password.";
   } else if (values.confirmPassword !== values.password) {
-    errors.confirmPassword = "Mật khẩu xác nhận chưa khớp.";
+    errors.confirmPassword = "Passwords do not match.";
   }
 
   return errors;
@@ -92,7 +92,7 @@ export function getAuthErrorMessage(input: string) {
   const error = input.toLowerCase();
 
   if (error.includes("email already exists")) {
-    return "Email này đã được sử dụng.";
+    return "This email is already in use.";
   }
 
   if (
@@ -100,12 +100,12 @@ export function getAuthErrorMessage(input: string) {
     error.includes("credentials") ||
     error.includes("unauthorized")
   ) {
-    return "Email hoặc mật khẩu không chính xác.";
+    return "Incorrect email or password.";
   }
 
   if (error.includes("failed to fetch") || error.includes("network")) {
-    return "Không thể kết nối tới máy chủ. Vui lòng thử lại.";
+    return "Unable to connect to the server. Please try again.";
   }
 
-  return "Đã xảy ra lỗi. Vui lòng thử lại sau.";
+  return "Something went wrong. Please try again later.";
 }

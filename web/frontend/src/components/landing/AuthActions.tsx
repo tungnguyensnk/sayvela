@@ -9,7 +9,7 @@ interface AuthActionsProps {
 
 export function AuthActions({ compact = false }: AuthActionsProps) {
   const { data: session, status } = useSession();
-  const userEmail = session?.user?.email ?? session?.user?.name ?? "người dùng";
+  const userEmail = session?.user?.email ?? session?.user?.name ?? "user";
 
   if (status === "loading") {
     return (
@@ -20,7 +20,7 @@ export function AuthActions({ compact = false }: AuthActionsProps) {
         aria-busy="true"
       >
         <div className="glass-chip text-center text-sm text-white/80 animate-pulse">
-          Đang kiểm tra phiên…
+          Checking session…
         </div>
         <div
           className="glass-button w-48 opacity-60 pointer-events-none"
@@ -42,17 +42,17 @@ export function AuthActions({ compact = false }: AuthActionsProps) {
         } gap-3`}
       >
         <div className="glass-chip text-center text-sm text-white/80">
-          Phiên đang hoạt động · {userEmail}
+          Active session · {userEmail}
         </div>
         <Link href="/settings/billing" className="glass-button text-center">
-          Quản lý
+          Manage
         </Link>
         <button
           type="button"
           className="glass-button"
           onClick={() => signOut({ callbackUrl: "/" })}
         >
-          Đăng xuất
+          Sign out
         </button>
       </div>
     );
@@ -65,10 +65,10 @@ export function AuthActions({ compact = false }: AuthActionsProps) {
       } gap-3`}
     >
       <Link href="/auth?mode=login" className="glass-button text-center">
-        Đăng nhập
+        Sign in
       </Link>
       <Link href="/auth?mode=register" className="primary-button text-center">
-        Tạo tài khoản
+        Create account
       </Link>
     </div>
   );

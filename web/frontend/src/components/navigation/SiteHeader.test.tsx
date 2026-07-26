@@ -56,9 +56,9 @@ describe("SiteHeader", () => {
 
     render(<SiteHeader />);
 
-    expect(screen.getByText("Đang kiểm tra phiên…")).not.toBeNull();
-    expect(screen.queryByText("Đăng nhập")).toBeNull();
-    expect(screen.queryByText("Tạo tài khoản")).toBeNull();
+    expect(screen.getByText("Checking session…")).not.toBeNull();
+    expect(screen.queryByText("Sign in")).toBeNull();
+    expect(screen.queryByText("Create account")).toBeNull();
   });
 
   it("renders app header with soon nav items and user menu when authenticated", () => {
@@ -88,7 +88,7 @@ describe("SiteHeader", () => {
     render(<SiteHeader />);
 
     const dashboardLink = screen.getByRole("link", { name: "Dashboard" });
-    expect(dashboardLink.getAttribute("href")).toBe("/app");
+    expect(dashboardLink.getAttribute("href")).toBe("/dashboard");
     const billingLink = screen.getByRole("link", { name: "Billing & usage" });
     expect(billingLink.getAttribute("href")).toBe("/settings/billing");
 

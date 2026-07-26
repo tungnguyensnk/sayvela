@@ -2,34 +2,34 @@
 
 const items = [
   {
-    question: "Sayvela hoạt động với những nguồn âm thanh nào?",
+    question: "How does Sayvela process audio sources?",
     answer:
-      "Hệ thống có thể xử lý đồng thời loopback từ loa hệ thống và microphone để giữ trọn ngữ cảnh cuộc hội thoại.",
+      "Our omni-channel architecture captures and processes system and microphone audio in parallel with near-zero latency.",
   },
   {
-    question: "Có hỗ trợ nhận diện người nói không?",
+    question: "How does speaker diarization work?",
     answer:
-      "Có. Speaker diarization giúp tách người nói, giữ transcript rõ ràng và hỗ trợ theo dõi cuộc trao đổi dễ hơn.",
+      "AI identifies and labels each speaker automatically, producing clear, accurate meeting notes.",
   },
   {
-    question: "Bản dịch có thể phát lại bằng giọng nói không?",
+    question: "Can Sayvela speak translated content?",
     answer:
-      "Có. Bạn có thể bật TTS cho mic translation để nghe bản dịch tức thì qua loa đầu ra phù hợp.",
+      "Yes. Neural TTS plays translations in a natural voice to keep conversations flowing.",
   },
   {
-    question: "Dữ liệu nhạy cảm có được bảo vệ không?",
+    question: "How secure is the platform?",
     answer:
-      "Sayvela ưu tiên quyền riêng tư với các tùy chọn content protection và thiết kế auth bảo mật bằng password hashing.",
+      "Zero Trust security, end-to-end encryption, and screen-capture protection keep your data private.",
   },
 ];
 
 export default function FaqSection() {
   return (
-    <section id="faq" className="mx-auto w-full max-w-6xl px-6 py-10 sm:px-8">
+    <section className="mx-auto w-full max-w-6xl px-6 py-10 sm:px-8">
       <div className="flex flex-col gap-4">
         <div className="section-eyebrow">FAQ</div>
         <h2 className="max-w-2xl text-3xl font-semibold text-white sm:text-4xl">
-          Những câu hỏi thường gặp trước khi bắt đầu
+          Everything you need to know before you start
         </h2>
       </div>
 

@@ -19,7 +19,7 @@ use std::sync::{
 use std::thread;
 
 #[cfg(windows)]
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 // list both loopback (render) and microphone (capture) audio devices
 pub fn list_audio_devices() -> Result<Vec<AudioDevice>> {
@@ -101,7 +101,13 @@ impl CaptureHandle {
     pub fn stop(mut self) {
         self.stop.store(true, Ordering::SeqCst);
         if let Some(j) = self.join.take() {
-            let _ = j.join();
+            let deadline = Instant::now() + Duration::from_secs(3);
+            while !j.is_finished() && Instant::now() < deadline {
+                thread::sleep(Duration::from_millis(10));
+            }
+            if j.is_finished() {
+                let _ = j.join();
+            }
         }
     }
 }

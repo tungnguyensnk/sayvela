@@ -148,10 +148,21 @@ export async function startSonioxSession({
     return session;
   };
 
+  const STOP_TIMEOUT_MS = 3000;
+
   // gracefully drains final server results before releasing a websocket
   const stopRecording = async ({ recording }) => {
     if (["stopped", "canceled", "error"].includes(recording.state)) return;
-    await recording.stop();
+    let timeout;
+    try {
+      await Promise.race([
+        recording.stop(),
+        new Promise((resolve) => { timeout = setTimeout(resolve, STOP_TIMEOUT_MS); }),
+      ]);
+    } finally {
+      clearTimeout(timeout);
+      if (!["stopped", "canceled", "error"].includes(recording.state)) recording.cancel();
+    }
   };
 
   // connects the next websocket before switching audio and draining the previous one

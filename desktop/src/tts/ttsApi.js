@@ -35,6 +35,11 @@ export async function ttsStop() {
   return invoke("tts_stop");
 }
 
+// starts an isolated tts session after discarding all previous session state
+export async function ttsStart() {
+  return invoke("tts_start");
+}
+
 // preconnects soniox without creating a synthesis stream
 export function ttsPrewarm() {
   return invoke("tts_speak", { options: { text: "", provider: "soniox", prewarm: true } });

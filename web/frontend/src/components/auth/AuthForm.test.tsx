@@ -32,14 +32,14 @@ describe("AuthForm", () => {
   it("shows validation errors for invalid register input", async () => {
     render(<AuthForm initialMode="register" />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Tạo tài khoản" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create account" }));
 
-    expect(await screen.findByText("Vui lòng nhập email.")).not.toBeNull();
+    expect(await screen.findByText("Please enter your email.")).not.toBeNull();
     expect(
-      screen.getByText("Vui lòng nhập mật khẩu."),
+      screen.getByText("Please enter your password."),
     ).not.toBeNull();
     expect(
-      screen.getByText("Vui lòng xác nhận mật khẩu."),
+      screen.getByText("Please confirm your password."),
     ).not.toBeNull();
   });
 
@@ -54,17 +54,17 @@ describe("AuthForm", () => {
     fireEvent.change(screen.getByLabelText("Email"), {
       target: { value: "demo@sayvela.local" },
     });
-    fireEvent.change(screen.getByLabelText("Mật khẩu"), {
+    fireEvent.change(screen.getByLabelText("Password"), {
       target: { value: "Admin@1234!" },
     });
-    fireEvent.change(screen.getByLabelText("Xác nhận mật khẩu"), {
+    fireEvent.change(screen.getByLabelText("Confirm password"), {
       target: { value: "Admin@1234!" },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Tạo tài khoản" }));
+    fireEvent.click(screen.getByRole("button", { name: "Create account" }));
 
     expect(
-      await screen.findByText("Tạo tài khoản thành công. Bạn có thể đăng nhập ngay bây giờ."),
+      await screen.findByText("Account created successfully. You can sign in now."),
     ).not.toBeNull();
 
     expect(replace).toHaveBeenCalledWith("/auth?mode=login");
@@ -82,11 +82,11 @@ describe("AuthForm", () => {
     fireEvent.change(screen.getByLabelText("Email"), {
       target: { value: "demo@sayvela.local" },
     });
-    fireEvent.change(screen.getByLabelText("Mật khẩu"), {
+    fireEvent.change(screen.getByLabelText("Password"), {
       target: { value: "Admin@1234!" },
     });
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Đăng nhập" })[1]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Sign in" })[1]);
 
     await waitFor(() => {
       expect(signIn).toHaveBeenCalledWith("credentials", {
@@ -112,11 +112,11 @@ describe("AuthForm", () => {
     fireEvent.change(screen.getByLabelText("Email"), {
       target: { value: "demo@sayvela.local" },
     });
-    fireEvent.change(screen.getByLabelText("Mật khẩu"), {
+    fireEvent.change(screen.getByLabelText("Password"), {
       target: { value: "Admin@1234!" },
     });
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Đăng nhập" })[1]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Sign in" })[1]);
 
     await waitFor(() => {
       expect(signIn).toHaveBeenCalledWith("credentials", {
@@ -142,14 +142,14 @@ describe("AuthForm", () => {
     fireEvent.change(screen.getByLabelText("Email"), {
       target: { value: "demo@sayvela.local" },
     });
-    fireEvent.change(screen.getByLabelText("Mật khẩu"), {
+    fireEvent.change(screen.getByLabelText("Password"), {
       target: { value: "wrong-password" },
     });
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Đăng nhập" })[1]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Sign in" })[1]);
 
     expect(
-      await screen.findByText("Email hoặc mật khẩu không chính xác."),
+      await screen.findByText("Incorrect email or password."),
     ).not.toBeNull();
   });
 });

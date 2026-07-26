@@ -23,9 +23,9 @@ describe("AuthActions", () => {
 
     render(<AuthActions />);
 
-    expect(screen.queryByText("Đăng nhập")).toBeNull();
-    expect(screen.queryByText("Tạo tài khoản")).toBeNull();
-    expect(screen.getByText("Đang kiểm tra phiên…")).not.toBeNull();
+    expect(screen.queryByText("Sign in")).toBeNull();
+    expect(screen.queryByText("Create account")).toBeNull();
+    expect(screen.getByText("Checking session…")).not.toBeNull();
   });
 
   it("shows logout actions when authenticated", () => {
@@ -36,8 +36,7 @@ describe("AuthActions", () => {
 
     render(<AuthActions />);
 
-    expect(screen.getByText(/Phiên đang hoạt động/)).not.toBeNull();
-    expect(screen.getByText("Đăng xuất")).not.toBeNull();
+    expect(screen.getByText(/Active session/)).not.toBeNull();
+    expect(screen.getByText("Sign out")).not.toBeNull();
   });
 });
-

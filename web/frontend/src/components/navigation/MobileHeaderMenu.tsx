@@ -16,17 +16,21 @@ import { UserMenu } from "@/components/navigation/UserMenu";
 type MobileHeaderMenuProps = {
   variant: "marketing" | "app";
   activePathname: string | null;
+  activeHash?: string;
 };
 
-function isItemActive(item: NavItem, pathname: string | null) {
+function isItemActive(item: NavItem, pathname: string | null, hash: string = "") {
   if (!pathname) return false;
   if (item.kind !== "internal") return false;
   if (item.availability !== "available") return false;
-  if (item.href === "/") return pathname === "/";
+  if (item.href === "/#hero") return pathname === "/" && (hash === "" || hash === "#hero");
+  if (item.href.startsWith("/#")) {
+    return pathname === "/" && hash === item.href.replace("/", "");
+  }
   return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 
-export function MobileHeaderMenu({ variant, activePathname }: MobileHeaderMenuProps) {
+export function MobileHeaderMenu({ variant, activePathname, activeHash = "" }: MobileHeaderMenuProps) {
   const { status } = useSession();
   const [open, setOpen] = useState(false);
   const panelId = useId();
@@ -65,7 +69,7 @@ export function MobileHeaderMenu({ variant, activePathname }: MobileHeaderMenuPr
           <button
             type="button"
             className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
-            aria-label="Đóng menu"
+            aria-label="Close menu"
             onClick={() => setOpen(false)}
           />
           <div
@@ -76,13 +80,13 @@ export function MobileHeaderMenu({ variant, activePathname }: MobileHeaderMenuPr
             className="absolute left-4 right-4 top-4 rounded-3xl border border-white/12 bg-slate-950/78 p-5 shadow-2xl backdrop-blur-xl"
           >
             <div className="flex items-center justify-between gap-3">
-              <div className="text-sm font-semibold text-white/90">Điều hướng</div>
+              <div className="text-sm font-semibold text-white/90">Navigation</div>
               <button
                 type="button"
                 className="glass-button min-h-[2.75rem] px-4 text-sm"
                 onClick={() => setOpen(false)}
               >
-                Đóng
+                Close
               </button>
             </div>
 
@@ -91,7 +95,7 @@ export function MobileHeaderMenu({ variant, activePathname }: MobileHeaderMenuPr
                 <NavItemLink
                   key={`${item.label}-${item.href}`}
                   item={item}
-                  isActive={isItemActive(item, activePathname)}
+                  isActive={isItemActive(item, activePathname, activeHash)}
                   className="w-full justify-between px-4 py-3"
                   onNavigate={() => setOpen(false)}
                 />
@@ -108,7 +112,7 @@ export function MobileHeaderMenu({ variant, activePathname }: MobileHeaderMenuPr
                     <NavItemLink
                       key={`${item.label}-${item.href}`}
                       item={item}
-                      isActive={isItemActive(item, activePathname)}
+                      isActive={isItemActive(item, activePathname, activeHash)}
                       className="w-full justify-between px-4 py-3"
                       onNavigate={() => setOpen(false)}
                     />

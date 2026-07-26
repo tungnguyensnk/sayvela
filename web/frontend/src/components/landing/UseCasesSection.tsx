@@ -2,36 +2,35 @@
 
 const useCases = [
   {
-    title: "Cuộc họp đa ngôn ngữ",
+    title: "Global Board Meetings",
     description:
-      "Theo dõi song song transcript, bản dịch và phân tách người nói để cả nhóm ra quyết định nhanh hơn.",
+      "Break language barriers in strategic meetings and make faster decisions with instant translations.",
   },
   {
-    title: "Phỏng vấn và nghiên cứu",
+    title: "Global User Research",
     description:
-      "Ghi lại nội dung theo thời gian thực, giữ nguyên bối cảnh và giảm thời gian tổng hợp sau buổi trao đổi.",
+      "Streamline global user interviews and capture accurate insights automatically.",
   },
   {
-    title: "Hỗ trợ khách hàng toàn cầu",
+    title: "Cross-border Customer Success",
     description:
-      "Phản hồi chính xác hơn khi agent và khách hàng dùng ngôn ngữ khác nhau trên cùng một luồng âm thanh.",
+      "Deliver consistent global customer support across every language.",
   },
 ];
 
 export default function UseCasesSection() {
   return (
-    <section id="use-cases" className="mx-auto w-full max-w-6xl px-6 py-10 sm:px-8">
+    <section className="mx-auto w-full max-w-6xl px-6 py-10 sm:px-8">
       <div className="glass-panel p-8 sm:p-10">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl">
-            <div className="section-eyebrow">Ứng dụng thực tế</div>
+            <div className="section-eyebrow">Enterprise Solutions</div>
             <h2 className="mt-4 text-3xl font-semibold text-white sm:text-4xl">
-              Sẵn sàng cho meeting, phỏng vấn và phối hợp xuyên biên giới
+              Built for global teams
             </h2>
           </div>
           <p className="max-w-xl text-sm leading-7 text-white/68 sm:text-base">
-            Từ call nội bộ đến buổi làm việc với đối tác, Sayvela giúp nội dung
-            được ghi nhận rõ ràng và dễ hành động ngay sau khi cuộc trò chuyện kết thúc.
+            Deploy across every touchpoint, from internal strategy to global customer success.
           </p>
         </div>
 

@@ -19,8 +19,8 @@ describe("auth-validation", () => {
         password: "",
       }),
     ).toEqual({
-      email: "Email không đúng định dạng.",
-      password: "Vui lòng nhập mật khẩu.",
+      email: "Enter a valid email address.",
+      password: "Please enter your password.",
     });
   });
 
@@ -32,20 +32,20 @@ describe("auth-validation", () => {
         confirmPassword: "different",
       }),
     ).toEqual({
-      password: "Mật khẩu cần chữ hoa, chữ thường, số và ký tự đặc biệt.",
-      confirmPassword: "Mật khẩu xác nhận chưa khớp.",
+      password: "Password must include uppercase and lowercase letters, a number, and a special character.",
+      confirmPassword: "Passwords do not match.",
     });
   });
 
   it("maps auth errors to user-friendly messages", () => {
     expect(getAuthErrorMessage("email already exists")).toBe(
-      "Email này đã được sử dụng.",
+      "This email is already in use.",
     );
     expect(getAuthErrorMessage("invalid credentials")).toBe(
-      "Email hoặc mật khẩu không chính xác.",
+      "Incorrect email or password.",
     );
     expect(getAuthErrorMessage("failed to fetch")).toBe(
-      "Không thể kết nối tới máy chủ. Vui lòng thử lại.",
+      "Unable to connect to the server. Please try again.",
     );
   });
 });

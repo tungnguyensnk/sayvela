@@ -5,24 +5,23 @@ export function HeroSection({ trustStats }: { trustStats: LandingTrustStat[] }) 
   return (
     <section className="mx-auto grid w-full max-w-6xl gap-12 px-6 pb-12 pt-14 sm:px-8 lg:grid-cols-[1.1fr_0.9fr] lg:pt-20">
       <div className="flex flex-col justify-center">
-        <div className="glass-chip w-fit">Real-time voice translation cho team toàn cầu</div>
-        <h1 className="mt-6 max-w-3xl text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">
-          Hiểu mọi cuộc trò chuyện đa ngôn ngữ trong một giao diện glass mượt và rõ ràng.
+        <div className="glass-chip w-fit border-cyan-500/30 text-cyan-200">🚀 AI Voice Intelligence Platform</div>
+        <h1 className="mt-6 max-w-3xl text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl leading-[1.1]">
+          Break language barriers with <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-400 to-violet-400">real-time AI</span>
         </h1>
         <p className="mt-6 max-w-2xl text-base leading-8 text-white/72 sm:text-lg">
-          Sayvela kết hợp dual audio capture, transcription, translation, speaker diarization và TTS để bạn theo dõi,
-          dịch và phản hồi tức thì mà không đánh mất ngữ cảnh.
+          Analyze, translate, and synthesize speech with near-zero latency and enterprise-grade security.
         </p>
 
         <div className="mt-8 flex flex-wrap gap-4">
           <Link href="/auth?mode=register" className="primary-button">
-            Bắt đầu miễn phí
+            Start free
           </Link>
           <Link href="/pricing" className="glass-button">
-            Xem pricing
+            View pricing
           </Link>
           <a href="#features" className="glass-button">
-            Xem tính năng
+            Explore features
           </a>
         </div>
 
@@ -44,7 +43,7 @@ export function HeroSection({ trustStats }: { trustStats: LandingTrustStat[] }) 
           <div className="flex items-center justify-between gap-4">
             <div>
               <div className="text-xs uppercase tracking-[0.24em] text-cyan-200/72">Live workspace</div>
-              <div className="mt-2 text-2xl font-semibold text-white">Bảng điều phối transcript theo thời gian thực</div>
+              <div className="mt-2 text-2xl font-semibold text-white">Real-time transcription workspace</div>
             </div>
             <div className="glass-chip">Speaker lanes</div>
           </div>
@@ -75,7 +74,7 @@ export function HeroSection({ trustStats }: { trustStats: LandingTrustStat[] }) 
               <div className="glass-panel-muted p-5">
                 <div className="text-sm text-white/62">Translation</div>
                 <div className="mt-3 text-sm leading-7 text-white/80">
-                  Xin chào, tôi sẽ chia sẻ bản dịch ghi chú cuộc họp ngay bây giờ.
+                  Hello, I’ll share the translated meeting notes now.
                 </div>
               </div>
             </div>

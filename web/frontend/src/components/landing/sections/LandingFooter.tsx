@@ -8,14 +8,13 @@ export function LandingFooter() {
         <div>
           <SayvelaBrand size="sm" />
           <p className="mt-3 max-w-xl leading-7">
-            Real-time voice translation và transcription cho team làm việc xuyên ngôn ngữ, được tối ưu cho tốc độ, sự rõ
-            ràng và quyền riêng tư.
+            Real-time voice translation and transcription for multilingual teams, built for speed, clarity, and privacy.
           </p>
         </div>
 
         <div className="grid gap-3 md:justify-items-end">
           <a href="#features" className="nav-link">
-            Tính năng
+            Features
           </a>
           <a href="#workflow" className="nav-link">
             Workflow
@@ -24,7 +23,7 @@ export function LandingFooter() {
             FAQ
           </a>
           <Link href="/auth?mode=register" className="nav-link">
-            Tạo tài khoản
+            Create account
           </Link>
         </div>
       </div>

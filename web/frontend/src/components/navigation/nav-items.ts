@@ -11,21 +11,21 @@ export type NavItem = {
 
 export const marketingNavItems = [
   {
-    label: "Pricing",
-    href: "/pricing",
+    label: "Overview",
+    href: "/#hero",
     kind: "internal",
     availability: "available",
     requiresAuth: false,
   },
   {
-    label: "Tính năng",
+    label: "Features",
     href: "/#features",
     kind: "internal",
     availability: "available",
     requiresAuth: false,
   },
   {
-    label: "Cách hoạt động",
+    label: "How it works",
     href: "/#workflow",
     kind: "internal",
     availability: "available",
@@ -50,7 +50,7 @@ export const marketingNavItems = [
 export const appPrimaryNavItems = [
   {
     label: "Dashboard",
-    href: "/app",
+    href: "/dashboard",
     kind: "internal",
     availability: "available",
     requiresAuth: true,

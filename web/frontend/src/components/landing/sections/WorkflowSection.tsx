@@ -2,11 +2,11 @@ import type { LandingWorkflowStep } from "@/components/landing/landing-content";
 
 export function WorkflowSection({ steps }: { steps: LandingWorkflowStep[] }) {
   return (
-    <section id="workflow" className="mx-auto w-full max-w-6xl px-6 py-10 sm:px-8">
+    <section className="mx-auto w-full max-w-6xl px-6 py-10 sm:px-8">
       <div className="glass-panel p-8 sm:p-10">
-        <div className="section-eyebrow">How it works</div>
+        <div className="section-eyebrow">Automated workflow</div>
         <h2 className="mt-4 max-w-2xl text-3xl font-semibold text-white sm:text-4xl">
-          Ba bước để đi từ âm thanh thô đến phản hồi chính xác hơn
+          Turn complexity into a seamless three-step workflow.
         </h2>
 
         <div className="mt-8 grid gap-4 lg:grid-cols-3">

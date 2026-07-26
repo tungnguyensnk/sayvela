@@ -58,6 +58,20 @@ describe("startSonioxSession", () => {
     expect(stop).toHaveBeenCalledOnce();
   });
 
+  it("force cancels when graceful stop times out", async () => {
+    vi.useFakeTimers();
+    const cancel = vi.fn(() => { recording.state = "canceled"; });
+    recording.cancel = cancel;
+    stop.mockImplementationOnce(() => new Promise(() => {}));
+    const { startSonioxSession } = await import("../src/transcript/sonioxSession.js");
+    const session = await startSonioxSession({});
+    const stopping = session.stop();
+    await vi.advanceTimersByTimeAsync(3000);
+    await stopping;
+    expect(cancel).toHaveBeenCalledOnce();
+    vi.useRealTimers();
+  });
+
   it("maps sdk state and transcript results", async () => {
     const { startSonioxSession } = await import("../src/transcript/sonioxSession.js");
     const onState = vi.fn();

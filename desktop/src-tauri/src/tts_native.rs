@@ -49,6 +49,39 @@ impl WorkerHandle {
     }
 }
 
+#[cfg(windows)]
+// creates isolated synthesis and audio workers for one tts session
+fn create_worker() -> WorkerHandle {
+    let shutdown = Arc::new(AtomicBool::new(false));
+    let cancel = Arc::new(AtomicBool::new(false));
+    let generation = Arc::new(AtomicU64::new(0));
+    let (tx, cmd_rx) = mpsc::channel::<WorkerCmd>();
+    let (audio_tx, audio_rx) = mpsc::channel::<AudioMsg>();
+
+    let join_synth = {
+        let shutdown = shutdown.clone();
+        let cancel = cancel.clone();
+        let generation = generation.clone();
+        let audio_tx = audio_tx.clone();
+        thread::spawn(move || synth_thread_main(shutdown, cancel, generation, cmd_rx, audio_tx))
+    };
+    let join_audio = {
+        let shutdown = shutdown.clone();
+        let generation = generation.clone();
+        thread::spawn(move || audio_thread_main(shutdown, generation, audio_rx))
+    };
+
+    WorkerHandle {
+        shutdown,
+        cancel,
+        generation,
+        tx,
+        audio_tx,
+        join_synth: Some(join_synth),
+        join_audio: Some(join_audio),
+    }
+}
+
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TtsVoice {
@@ -726,6 +759,32 @@ pub fn tts_stop(state: tauri::State<TtsState>) -> Result<(), String> {
 }
 
 #[tauri::command]
+// replaces the tts session to discard its socket, input queue, and audio queue
+pub fn tts_start(state: tauri::State<TtsState>) -> Result<(), String> {
+    #[cfg(not(windows))]
+    {
+        let _ = state;
+        return Err("only supported on windows".to_string());
+    }
+    #[cfg(windows)]
+    {
+        let previous = state
+            .worker
+            .lock()
+            .map_err(|_| "state poisoned".to_string())?
+            .take();
+        if let Some(handle) = previous {
+            handle.shutdown();
+        }
+        *state
+            .worker
+            .lock()
+            .map_err(|_| "state poisoned".to_string())? = Some(create_worker());
+        Ok(())
+    }
+}
+
+#[tauri::command]
 // send text and voice options to tts worker thread for playback
 pub fn tts_speak(state: tauri::State<TtsState>, options: TtsSpeakOptions) -> Result<(), String> {
     let text = options.text.trim().to_string();
@@ -748,48 +807,12 @@ pub fn tts_speak(state: tauri::State<TtsState>, options: TtsSpeakOptions) -> Res
                 .lock()
                 .map_err(|_| "state poisoned".to_string())?;
             if guard.is_none() {
-                let shutdown = Arc::new(AtomicBool::new(false));
-                let cancel = Arc::new(AtomicBool::new(false));
-                let generation = Arc::new(AtomicU64::new(0));
-                let (cmd_tx, cmd_rx) = mpsc::channel::<WorkerCmd>();
-                let (audio_tx, audio_rx) = mpsc::channel::<AudioMsg>();
-
-                let shutdown_synth = shutdown.clone();
-                let cancel_synth = cancel.clone();
-                let generation_synth = generation.clone();
-                let audio_tx_synth = audio_tx.clone();
-                let join_synth = thread::spawn(move || {
-                    synth_thread_main(
-                        shutdown_synth,
-                        cancel_synth,
-                        generation_synth,
-                        cmd_rx,
-                        audio_tx_synth,
-                    )
-                });
-
-                let shutdown_audio = shutdown.clone();
-                let generation_audio = generation.clone();
-                let join_audio = thread::spawn(move || {
-                    audio_thread_main(shutdown_audio, generation_audio, audio_rx)
-                });
-
-                *guard = Some(WorkerHandle {
-                    shutdown,
-                    cancel,
-                    generation: generation.clone(),
-                    tx: cmd_tx.clone(),
-                    audio_tx,
-                    join_synth: Some(join_synth),
-                    join_audio: Some(join_audio),
-                });
-                (cmd_tx, generation)
-            } else {
-                let handle = guard
-                    .as_ref()
-                    .ok_or_else(|| "tts worker missing".to_string())?;
-                (handle.tx.clone(), handle.generation.clone())
+                *guard = Some(create_worker());
             }
+            let handle = guard
+                .as_ref()
+                .ok_or_else(|| "tts worker missing".to_string())?;
+            (handle.tx.clone(), handle.generation.clone())
         };
 
         let generation = if opts.queue_mode.as_deref() == Some("add") {
