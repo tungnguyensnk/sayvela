@@ -1,6 +1,6 @@
 import { TranscriptBubble } from "./TranscriptBubble";
 
-export function TranscriptGrid({ transcriptGroups, langLabelFn }) {
+export function TranscriptGrid({ transcriptGroups, langLabelFn, speech }) {
   const groups = Array.isArray(transcriptGroups) ? transcriptGroups : [];
   
   // 1. Group by Session+Seq to form "Turns"
@@ -79,6 +79,7 @@ export function TranscriptGrid({ transcriptGroups, langLabelFn }) {
             segments={translated}
             isFinal={tMeta.isFinal}
             isTranslation={true}
+            speech={speech}
           />
         </div>
       </div>

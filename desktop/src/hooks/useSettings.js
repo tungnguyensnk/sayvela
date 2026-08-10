@@ -7,11 +7,15 @@ export function useSettings(isAuthenticated) {
   const [settings, setSettings] = useState(DEFAULT_PREFERENCES);
   const [loaded, setLoaded] = useState(false);
   const saveTimer = useRef(null);
+  const pendingSave = useRef(null);
+  const loadedRef = useRef(false);
 
   // loads settings from backend or localStorage cache on auth change
   useEffect(() => {
     let alive = true;
     clearTimeout(saveTimer.current);
+    pendingSave.current = null;
+    loadedRef.current = false;
     if (!isAuthenticated) {
       setSettings(DEFAULT_PREFERENCES);
       setLoaded(false);
@@ -20,6 +24,7 @@ export function useSettings(isAuthenticated) {
     fetchSettings().then((remote) => {
       if (!alive) return;
       setSettings(mergePreferences(remote));
+      loadedRef.current = true;
       setLoaded(true);
     });
     return () => {
@@ -30,10 +35,19 @@ export function useSettings(isAuthenticated) {
 
   // debounced update — coalesces rapid setting changes into one network call
   const update = useCallback((patch) => {
+    // before the load resolves the state is still defaults, so saving now would
+    // overwrite the stored preferences with them
+    if (!loadedRef.current) return;
     setSettings((prev) => {
       const next = { ...prev, ...patch };
+      // the timer saves the latest value rather than the snapshot captured here
+      pendingSave.current = next;
       clearTimeout(saveTimer.current);
-      saveTimer.current = setTimeout(() => updateSettings(next), 600);
+      saveTimer.current = setTimeout(() => {
+        const value = pendingSave.current;
+        pendingSave.current = null;
+        if (value) updateSettings(value);
+      }, 600);
       return next;
     });
   }, []);

@@ -46,7 +46,8 @@ export async function startSonioxSession({
   languageHints = ["vi", "ja"],
   enableSpeakerDiarization = true,
   targetLanguage = "ja",
-  endpointDelayMs = 600,
+  endpointDelayMs = 1000,
+  endpointLatencyAdjustmentLevel = 0,
   context = null,
   audioEventName = "audio_chunk",
   speakerOverride = "",
@@ -54,6 +55,7 @@ export async function startSonioxSession({
   onState,
   onError,
   onTurnEnd,
+  onEndpoint,
   rotationIntervalMs = 150000,
   rotationMaxDelayMs = 30000,
   connectTimeoutMs = 10000,
@@ -69,6 +71,7 @@ export async function startSonioxSession({
     enable_language_identification: true,
     enable_endpoint_detection: true,
     max_endpoint_delay_ms: endpointDelayMs,
+    endpoint_latency_adjustment_level: endpointLatencyAdjustmentLevel,
   };
 
   const buildConfig = () => {
@@ -85,7 +88,7 @@ export async function startSonioxSession({
     return config;
   };
 
-  const transcript = createTranscriptMapper({ languageHints, targetLanguage, speakerOverride, onText, onTurnEnd });
+  const transcript = createTranscriptMapper({ languageHints, targetLanguage, speakerOverride, onText, onTurnEnd, onEndpoint });
 
   let activeSession = null;
   let pendingSession = null;

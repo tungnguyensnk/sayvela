@@ -11,6 +11,7 @@ export function TranscriptPanel({
   micStatus,
   micBytes,
   titleAction,
+  speech,
 }) {
   // retrieves compact language code for transcript pills
   const langLabel = (code) => code || "-";
@@ -103,7 +104,7 @@ export function TranscriptPanel({
           }}
         >
           <div className="transcript-grid">
-            <TranscriptGrid transcriptGroups={transcriptGroups} langLabelFn={langLabel} />
+            <TranscriptGrid transcriptGroups={transcriptGroups} langLabelFn={langLabel} speech={speech} />
           </div>
         </div>
       </div>

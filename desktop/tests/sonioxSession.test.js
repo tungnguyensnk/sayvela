@@ -52,7 +52,8 @@ describe("startSonioxSession", () => {
       num_channels: 1,
       language_hints: ["vi"],
       enable_endpoint_detection: true,
-      max_endpoint_delay_ms: 600,
+      max_endpoint_delay_ms: 1000,
+      endpoint_latency_adjustment_level: 0,
       auto_reconnect: true,
     });
     expect(options.source.eventName).toBe("audio_chunk_mic");
@@ -114,7 +115,8 @@ describe("startSonioxSession", () => {
     const { startSonioxSession } = await import("../src/transcript/sonioxSession.js");
     const onText = vi.fn();
     const onTurnEnd = vi.fn();
-    await startSonioxSession({ languageHints: ["vi"], targetLanguage: "ja", onText, onTurnEnd });
+    const onEndpoint = vi.fn();
+    await startSonioxSession({ languageHints: ["vi"], targetLanguage: "ja", onText, onTurnEnd, onEndpoint });
     const result = (text, start_ms, end_ms) => ({
       tokens: [{ text, language: "vi", translation_status: "original", is_final: true, start_ms, end_ms }],
       final_audio_proc_ms: end_ms,
@@ -125,6 +127,7 @@ describe("startSonioxSession", () => {
     handlers.get("result")(result("sys hai", 2000, 2500));
     handlers.get("endpoint")();
     expect(onTurnEnd).toHaveBeenCalledTimes(2);
+    expect(onEndpoint).toHaveBeenCalledTimes(2);
     expect(onTurnEnd.mock.calls.map(([group]) => group.seq)).toEqual([1, 2]);
     expect(onText.mock.lastCall[0].groups.map((group) => group.text)).toEqual(["sys một", "sys hai"]);
   });

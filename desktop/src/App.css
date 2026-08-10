@@ -300,6 +300,27 @@ body {
   padding: 0 2px;
 }
 
+/* text the voice has already read out, tracked from soniox character timings */
+.text-voiced {
+  color: var(--app-accent);
+  text-decoration: underline;
+  text-decoration-color: var(--app-accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+/* the last sound spoken; stays after playback ends to mark where it stopped */
+.text-voiced-end {
+  color: var(--app-accent);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: var(--app-accent);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 4px;
+  background-color: color-mix(in srgb, var(--app-accent) 22%, transparent);
+  border-radius: 3px;
+}
+
 .lang-pill {
   height: 20px;
   display: inline-flex;

@@ -5,7 +5,7 @@ const statusOf = (segment) => segment.tokens[0]?.translation_status ?? "original
 const keyOf = (segment) => `${statusOf(segment)}|${segment.speaker ?? "0"}|${segment.language ?? ""}|${segment.start_ms ?? 0}`;
 
 // maps soniox segments to the application transcript contract
-export function createTranscriptMapper({ languageHints, targetLanguage, speakerOverride, onText, onTurnEnd }) {
+export function createTranscriptMapper({ languageHints, targetLanguage, speakerOverride, onText, onTurnEnd, onEndpoint }) {
   const buffers = new Map();
   const activeFinalTokens = new Map();
   const completed = [];
@@ -126,6 +126,7 @@ export function createTranscriptMapper({ languageHints, targetLanguage, speakerO
     identities.clear();
     originalsBySpeaker.clear();
     emitSnapshot();
+    onEndpoint?.();
   };
 
   return { add, endpoint, finish: endpoint };

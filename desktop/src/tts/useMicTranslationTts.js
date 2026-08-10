@@ -1,24 +1,13 @@
-import { useEffect, useMemo, useRef } from "react";
-import { ttsPrewarm, ttsSpeak, ttsStart, ttsStop } from "./ttsApi";
-
-// normalizes text by collapsing whitespace and removing spaces before punctuation
-function normalizeText(s) {
-  return String(s || "")
-    .replace(/\s+/g, " ")
-    .replace(/\s+([,.!?;:])/g, "$1")
-    .trim();
-}
-
-// removes leading whitespace and punctuation from a string
-function removeLeadingJunk(s) {
-  return String(s || "").replace(/^[\s,.;:!?-]+/, "").trim();
-}
+import { useEffect, useRef } from "react";
+import { ttsEndStream, ttsPrewarm, ttsSpeak, ttsStart, ttsStop } from "./ttsApi";
+import { createTranslationSpeechQueue } from "./translationSpeechQueue";
 
 // hook that manages real-time text-to-speech for translated microphone input
 export function useMicTranslationTts({
   enabled,
   running,
   groups,
+  endpointTick = 0,
   language,
   provider = "builtin",
   voiceId,
@@ -28,7 +17,11 @@ export function useMicTranslationTts({
   volume,
   speed,
 }) {
-  const lastFullRef = useRef("");
+  const queueRef = useRef(null);
+  if (queueRef.current === null) queueRef.current = createTranslationSpeechQueue();
+  const speakingRef = useRef(false);
+  const speechGenerationRef = useRef(0);
+  const speakChainRef = useRef(Promise.resolve());
   const pendingTextRef = useRef("");
   const pendingQueueRef = useRef([]);
   const pendingTimersRef = useRef([]);
@@ -57,6 +50,24 @@ export function useMicTranslationTts({
       queueMode: "add",
     };
   }, [language, provider, voiceId, outputDeviceId, rate, pitch, volume, speed]);
+
+  // serializes speak commands so deltas and stream ends reach the backend in
+  // order, and drops any still queued from a session that already ended
+  function enqueueSpeakCommand(command) {
+    const generation = speechGenerationRef.current;
+    const guarded = () => (generation === speechGenerationRef.current ? command() : undefined);
+    const next = speakChainRef.current.then(guarded, guarded);
+    speakChainRef.current = next.catch(() => {});
+    return next;
+  }
+
+  // discards spoken history and any queued commands from the previous session
+  function resetSpeech() {
+    speechGenerationRef.current += 1;
+    queueRef.current.reset();
+    speakingRef.current = false;
+    clearPending();
+  }
 
   // clears all pending tts queue items and timers
   function clearPending() {
@@ -93,17 +104,6 @@ export function useMicTranslationTts({
     }, waitMs + durationMs);
     pendingTimersRef.current.push(timeout);
   }
-
-  const fullText = useMemo(() => {
-    if (!enabled || !running) return "";
-    if (!language) return "";
-    if (!Array.isArray(groups)) return "";
-    const translated = groups
-      .filter((g) => g?.translationStatus && g.translationStatus !== "original")
-      .map((g) => String(g?.finalText || ""))
-      .join("");
-    return normalizeText(translated);
-  }, [enabled, running, groups, language]);
 
   useEffect(() => {
     const nextRate = Number.isFinite(rate) ? rate : 1;
@@ -151,41 +151,58 @@ export function useMicTranslationTts({
   }, [enabled, running]);
 
   useEffect(() => {
-    lastFullRef.current = "";
-    clearPending();
+    resetSpeech();
     ttsStop().catch((e) => console.error("TTS Stop Error:", e));
   }, [provider, language, voiceId, outputDeviceId]);
 
   useEffect(() => {
     if (!enabled || !running || !language) {
-      lastFullRef.current = "";
-      clearPending();
+      resetSpeech();
       ttsStop().catch((e) => console.error("TTS Stop Error:", e));
       return;
     }
 
-    const prev = lastFullRef.current;
-    if (!fullText || fullText === prev) return;
-
-    let delta = fullText.startsWith(prev) ? fullText.slice(prev.length) : fullText;
-    delta = removeLeadingJunk(delta);
-    if (!delta) return;
-
-    lastFullRef.current = fullText;
     const cfg = configRef.current;
+    // soniox synthesizes incrementally, so its partial translation is spoken as
+    // it settles instead of waiting for endpoint finalization
+    const speakPartial = cfg.provider === "soniox";
+    // a new session starts while the previous transcript is still on screen, so
+    // that text is adopted as already spoken instead of being read out again
+    if (!speakingRef.current) {
+      speakingRef.current = true;
+      queueRef.current.seed(groups);
+      return;
+    }
+    const deltas = queueRef.current.collect(groups, { speakPartial });
+    if (!deltas.length) return;
     if (cfg.queueMode !== "add") clearPending();
-    ttsSpeak({
-      text: delta,
-      provider: cfg.provider,
-      language: cfg.language,
-      voiceId: cfg.voiceId || undefined,
-      outputDeviceId: cfg.outputDeviceId || undefined,
-      rate: cfg.rate,
-      pitch: cfg.pitch,
-      speed: cfg.speed,
-      volume: cfg.volume,
-      queueMode: cfg.queueMode,
-    }).catch((e) => console.error("TTS Speak Error:", e));
-    if (cfg.provider === "builtin") enqueuePending(delta, cfg.rate);
-  }, [enabled, running, language, fullText]);
+    for (const delta of deltas) {
+      enqueueSpeakCommand(() => ttsSpeak({
+        text: delta.text,
+        markerId: delta.markerId,
+        markerOffset: delta.markerOffset,
+        provider: cfg.provider,
+        language: cfg.language,
+        voiceId: cfg.voiceId || undefined,
+        outputDeviceId: cfg.outputDeviceId || undefined,
+        rate: cfg.rate,
+        pitch: cfg.pitch,
+        speed: cfg.speed,
+        volume: cfg.volume,
+        queueMode: cfg.queueMode,
+      })).catch((e) => console.error("TTS Speak Error:", e));
+      if (cfg.provider === "builtin") enqueuePending(delta.text, cfg.rate);
+    }
+  }, [enabled, running, language, groups]);
+
+  // closes the open soniox stream at each utterance boundary; declared after the
+  // delta effect so the final delta of the utterance is sent first
+  const lastEndpointRef = useRef(0);
+  useEffect(() => {
+    if (!enabled || !running) return;
+    if (!endpointTick || endpointTick === lastEndpointRef.current) return;
+    lastEndpointRef.current = endpointTick;
+    if (configRef.current.provider !== "soniox") return;
+    enqueueSpeakCommand(() => ttsEndStream()).catch((e) => console.error("TTS End Error:", e));
+  }, [enabled, running, endpointTick]);
 }

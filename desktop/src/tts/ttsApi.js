@@ -40,7 +40,12 @@ export async function ttsStart() {
   return invoke("tts_start");
 }
 
-// preconnects soniox without creating a synthesis stream
+// preconnects soniox without creating a synthesis stream or disturbing playback
 export function ttsPrewarm() {
-  return invoke("tts_speak", { options: { text: "", provider: "soniox", prewarm: true } });
+  return invoke("tts_speak", { options: { text: "", provider: "soniox", prewarm: true, queueMode: "add" } });
+}
+
+// closes the open soniox synthesis stream at an utterance boundary
+export function ttsEndStream() {
+  return invoke("tts_speak", { options: { text: "", provider: "soniox", streamEnd: true, queueMode: "add" } });
 }

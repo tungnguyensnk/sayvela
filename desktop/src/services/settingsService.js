@@ -25,7 +25,9 @@ export async function fetchSettings() {
   try {
     const data = await getSettings();
     const json = data?.settingsJson ?? data ?? {};
-    cacheSettings(json);
+    // an account with nothing stored yet must not wipe the local cache
+    if (Object.keys(json).length) cacheSettings(json);
+    else return getCachedSettings() ?? json;
     return json;
   } catch {
     return getCachedSettings();

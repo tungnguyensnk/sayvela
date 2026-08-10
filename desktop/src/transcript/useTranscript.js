@@ -9,6 +9,7 @@ export function useTranscript() {
   const [status, setStatus] = useState("idle");
   const [groups, setGroups] = useState([]);
   const [error, setError] = useState("");
+  const [endpointTick, setEndpointTick] = useState(0);
 
   // starts a new transcription session with the provided options
   const start = useCallback(async (opts = {}) => {
@@ -49,6 +50,9 @@ export function useTranscript() {
         onTurnEnd: (group) => {
           if (generationRef.current === generation) opts.onTurnEnd?.(mapGroup(group));
         },
+        onEndpoint: () => {
+          if (generationRef.current === generation) setEndpointTick((tick) => tick + 1);
+        },
       });
       if (generationRef.current !== generation) {
         await session.stop?.();
@@ -81,6 +85,7 @@ export function useTranscript() {
     status,
     groups,
     error,
+    endpointTick,
     start,
     stop,
     running: status !== "idle" && status !== "closed" && status !== "error",

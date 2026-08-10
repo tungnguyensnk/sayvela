@@ -4,6 +4,7 @@ import "./App.css";
 import { TranscriptPanel } from "./components/TranscriptPanel";
 import { AIChatPanel } from "./components/AIChatPanel";
 import { useMicTranslationTts } from "./tts/useMicTranslationTts";
+import { useSpeechHighlight } from "./tts/useSpeechHighlight";
 import { TitleBar } from "./components/TitleBar";
 import { LoginPanel } from "./components/LoginPanel";
 import { QuotaExceededModal } from "./components/QuotaExceededModal";
@@ -53,7 +54,7 @@ function App() {
     onQuotaExceeded: () => dispatch(setQuotaExceeded(true)),
   });
 
-  useContentProtection(preferences.contentProtectionEnabled, updateSetting);
+  useContentProtection(preferences.contentProtectionEnabled);
 
   const sendSegmentRef = useRef(() => {});
   const sendSegment = useCallback((segment) => sendSegmentRef.current(segment), []);
@@ -105,6 +106,7 @@ function App() {
     enabled: preferences.micTtsEnabled,
     running,
     groups: micTranscript.groups,
+    endpointTick: micTranscript.endpointTick,
     language: preferences.micOutputLang,
     provider: preferences.micTtsProvider,
     voiceId: preferences.micTtsVoiceIds?.[preferences.micTtsProvider],
@@ -114,6 +116,7 @@ function App() {
     pitch: preferences.micTtsPitch,
     volume: preferences.micTtsProvider === "soniox" ? preferences.micTtsSonioxVolume : preferences.micTtsVolume,
   });
+  const speechHighlight = useSpeechHighlight(preferences.micTtsEnabled && running);
 
   const audioRuntime = {
     loopbackError: loopbackTranscript.error,
@@ -180,6 +183,7 @@ function App() {
                 loopbackBytes={loopbackBytes}
                 micStatus={micTranscript.status}
                 micBytes={micBytes}
+                speech={speechHighlight}
                 titleAction={(
                   <StartStopCard
                     running={running}
