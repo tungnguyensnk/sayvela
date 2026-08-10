@@ -28,8 +28,8 @@ struct WorkerHandle {
     shutdown: Arc<AtomicBool>,
     cancel: Arc<AtomicBool>,
     generation: Arc<AtomicU64>,
-    tx: mpsc::SyncSender<WorkerCmd>,
-    audio_tx: mpsc::SyncSender<AudioMsg>,
+    tx: mpsc::Sender<WorkerCmd>,
+    audio_tx: mpsc::Sender<AudioMsg>,
     join_synth: Option<thread::JoinHandle<()>>,
     join_audio: Option<thread::JoinHandle<()>>,
 }
@@ -55,8 +55,8 @@ fn create_worker() -> WorkerHandle {
     let shutdown = Arc::new(AtomicBool::new(false));
     let cancel = Arc::new(AtomicBool::new(false));
     let generation = Arc::new(AtomicU64::new(0));
-    let (tx, cmd_rx) = mpsc::sync_channel::<WorkerCmd>(24);
-    let (audio_tx, audio_rx) = mpsc::sync_channel::<AudioMsg>(64);
+    let (tx, cmd_rx) = mpsc::channel::<WorkerCmd>();
+    let (audio_tx, audio_rx) = mpsc::channel::<AudioMsg>();
 
     let join_synth = {
         let shutdown = shutdown.clone();
@@ -344,7 +344,7 @@ fn synth_thread_main(
     cancel: Arc<AtomicBool>,
     current_generation: Arc<AtomicU64>,
     rx: mpsc::Receiver<WorkerCmd>,
-    audio_tx: mpsc::SyncSender<AudioMsg>,
+    audio_tx: mpsc::Sender<AudioMsg>,
 ) {
     let _ = wasapi::initialize_mta();
 
@@ -359,7 +359,6 @@ fn synth_thread_main(
         match rx.recv() {
             Ok(WorkerCmd::Stop(generation)) => {
                 if generation == current_generation.load(Ordering::SeqCst) {
-                    cancel.store(false, Ordering::SeqCst);
                     let _ = audio_tx.send(AudioMsg::Flush(generation));
                 }
             }
@@ -835,11 +834,8 @@ pub fn tts_speak(state: tauri::State<TtsState>, options: TtsSpeakOptions) -> Res
             }
             next
         };
-        tx.try_send(WorkerCmd::Speak(opts, generation))
-            .map_err(|error| match error {
-                mpsc::TrySendError::Full(_) => "tts queue full".to_string(),
-                mpsc::TrySendError::Disconnected(_) => "tts worker closed".to_string(),
-            })?;
+        tx.send(WorkerCmd::Speak(opts, generation))
+            .map_err(|_| "tts worker closed".to_string())?;
         Ok(())
     }
 }

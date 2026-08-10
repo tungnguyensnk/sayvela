@@ -8,6 +8,7 @@ const recording = {
   on: vi.fn((event, handler) => { handlers.set(event, handler); return recording; }),
   once: vi.fn((event, handler) => { onceHandlers.set(event, handler); return recording; }),
   stop,
+  cancel: vi.fn(() => { recording.state = "canceled"; }),
 };
 const record = vi.fn(() => queueMicrotask(() => onceHandlers.get("connected")?.()) || recording);
 const invoke = vi.fn(async () => ({ apiKey: "temporary-key" }));
@@ -32,6 +33,7 @@ describe("startSonioxSession", () => {
     onceHandlers.clear();
     vi.clearAllMocks();
     recording.state = "recording";
+    record.mockImplementation(() => queueMicrotask(() => onceHandlers.get("connected")?.()) || recording);
   });
 
   it("configures the sdk and stops gracefully", async () => {
@@ -69,6 +71,18 @@ describe("startSonioxSession", () => {
     await vi.advanceTimersByTimeAsync(3000);
     await stopping;
     expect(cancel).toHaveBeenCalledOnce();
+    vi.useRealTimers();
+  });
+
+  it("cancels when connection times out", async () => {
+    vi.useFakeTimers();
+    record.mockImplementationOnce(() => recording);
+    const { startSonioxSession } = await import("../src/transcript/sonioxSession.js");
+    const starting = startSonioxSession({ connectTimeoutMs: 100 });
+    const rejected = expect(starting).rejects.toThrow("Soniox connection timed out");
+    await vi.advanceTimersByTimeAsync(100);
+    await rejected;
+    expect(recording.cancel).toHaveBeenCalledOnce();
     vi.useRealTimers();
   });
 

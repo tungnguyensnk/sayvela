@@ -54,8 +54,9 @@ export async function startSonioxSession({
   onState,
   onError,
   onTurnEnd,
-  rotationIntervalMs = 4 * 60 * 1000,
+  rotationIntervalMs = 150000,
   rotationMaxDelayMs = 30000,
+  connectTimeoutMs = 10000,
 } = {}) {
   const configBase = {
     audio_format: "pcm_s16le",
@@ -141,8 +142,17 @@ export async function startSonioxSession({
       if (activeSession?.recording === recording) onError?.(error);
     });
     const connected = new Promise((resolve, reject) => {
-      recording.once("connected", resolve);
-      recording.once("error", reject);
+      let timeout;
+      const settle = (callback) => (value) => {
+        clearTimeout(timeout);
+        callback(value);
+      };
+      recording.once("connected", settle(resolve));
+      recording.once("error", settle(reject));
+      timeout = setTimeout(() => {
+        recording.cancel();
+        reject(new Error("Soniox connection timed out"));
+      }, connectTimeoutMs);
     });
     session = { recording, source, connected, offsetMs: 0, processedMs: 0 };
     return session;

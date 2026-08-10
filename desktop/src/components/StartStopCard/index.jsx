@@ -6,8 +6,8 @@ import { formatElapsed } from "../../utils/time";
 export function StartStopCard({ running, onStart, onStop, elapsed, activeContextName, preparing, readyToStop, progress = 0, inline = false }) {
   const [animatedProgress, setAnimatedProgress] = useState(0);
   const showPreparing = preparing || (readyToStop && animatedProgress < 0.995);
-  const buttonPreparing = showPreparing || (running && !readyToStop);
-  const buttonStopping = readyToStop && !buttonPreparing;
+  const buttonPreparing = !running && showPreparing;
+  const buttonStopping = running;
   const progressStyle = { "--ssc-progress": `${animatedProgress * 100}%` };
 
   useEffect(() => {

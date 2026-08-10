@@ -32,30 +32,9 @@ pub fn config_message(
     })
 }
 
-// creates one text chunk for an active synthesis stream
-pub fn text_message(stream_id: &str, text: &str, text_end: bool) -> Value {
-    json!({ "stream_id": stream_id, "text": text, "text_end": text_end })
-}
-
-// splits text at character boundaries so synthesis can start before input completes
-fn text_chunks(text: &str, max_chars: usize) -> Vec<&str> {
-    let mut chunks = Vec::new();
-    let mut start = 0;
-    let mut chars = 0;
-    for (index, character) in text.char_indices() {
-        chars += 1;
-        if chars < max_chars || !character.is_whitespace() {
-            continue;
-        }
-        let end = index + character.len_utf8();
-        chunks.push(&text[start..end]);
-        start = end;
-        chars = 0;
-    }
-    if start < text.len() {
-        chunks.push(&text[start..]);
-    }
-    chunks
+// creates a final text message for one independent synthesis stream
+pub fn text_message(stream_id: &str, text: &str) -> Value {
+    json!({ "stream_id": stream_id, "text": text, "text_end": true })
 }
 
 // creates a cancellation message for an active synthesis stream
@@ -127,12 +106,7 @@ impl SonioxSession {
         ))
         .await?;
         self.authenticated = true;
-        let chunks = text_chunks(text, 80);
-        for (index, chunk) in chunks.iter().enumerate() {
-            self.send(text_message(&stream_id, chunk, index + 1 == chunks.len()))
-                .await?;
-        }
-        let mut canceled = false;
+        self.send(text_message(&stream_id, text)).await?;
         let result = tokio::time::timeout(Duration::from_secs(45), async {
             loop {
                 tokio::select! {
@@ -140,35 +114,24 @@ impl SonioxSession {
                         let message = message
                             .ok_or_else(|| "Soniox stream ended unexpectedly".to_string())?
                             .map_err(|_| "Soniox stream closed".to_string())?;
-                        match message {
-                            Message::Text(payload) => {
-                                let value: Value = serde_json::from_str(&payload)
-                                    .map_err(|_| "invalid Soniox message".to_string())?;
-                                if value.get("stream_id").and_then(Value::as_str).is_some_and(|id| id != stream_id) {
-                                    return Err("unexpected Soniox stream".to_string());
-                                }
-                                if let Some(error_type) = value.get("error_type").and_then(Value::as_str) {
-                                    return Err(format!("Soniox error: {error_type}"));
-                                }
-                                if !canceled {
-                                    if let Some(pcm) = parse_audio(&value)? {
-                                        enqueue(pcm)?;
-                                    }
-                                }
-                                if value.get("terminated").and_then(Value::as_bool) == Some(true) {
-                                    return Ok(());
-                                }
+                        if let Message::Text(payload) = message {
+                            let value: Value = serde_json::from_str(&payload)
+                                .map_err(|_| "invalid Soniox message".to_string())?;
+                            if let Some(error_type) = value.get("error_type").and_then(Value::as_str) {
+                                return Err(format!("Soniox error: {error_type}"));
                             }
-                            Message::Ping(payload) => self.socket.send(Message::Pong(payload)).await
-                                .map_err(|_| "Soniox pong failed".to_string())?,
-                            Message::Close(_) => return Err("Soniox stream closed".to_string()),
-                            _ => {}
+                            if let Some(pcm) = parse_audio(&value)? {
+                                enqueue(pcm)?;
+                            }
+                            if value.get("terminated").and_then(Value::as_bool) == Some(true) {
+                                return Ok(());
+                            }
                         }
                     }
                     _ = tokio::time::sleep(Duration::from_millis(25)) => {
-                        if cancel.load(Ordering::SeqCst) && !canceled {
+                        if cancel.load(Ordering::SeqCst) {
                             let _ = self.send(cancel_message(&stream_id)).await;
-                            canceled = true;
+                            return Ok(());
                         }
                     }
                 }
@@ -196,9 +159,8 @@ mod tests {
         let config = config_message("secret", "id", "vi", "Maya", Some(2.0));
         assert!((config["speed"].as_f64().unwrap() - 1.3).abs() < f64::EPSILON * 1_000_000_000.0);
         assert_eq!(config["audio_format"], "pcm_s16le");
-        assert_eq!(text_message("id", "hello", true)["text_end"], true);
+        assert_eq!(text_message("id", "hello")["text_end"], true);
         assert_eq!(cancel_message("id")["cancel"], true);
-        assert_eq!(text_chunks("hello world again", 8), vec!["hello world ", "again"]);
     }
 
     #[test]
