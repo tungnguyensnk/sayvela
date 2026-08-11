@@ -1,19 +1,27 @@
-import { AuthActions } from "@/components/landing/AuthActions";
+import Link from "next/link";
+import type { Messages } from "@/i18n/messages";
+import { ArrowRightIcon } from "@/components/ui/icons";
 
-export function CtaSection() {
+export function CtaSection({ m }: { m: Messages }) {
+  const section = m.landing.cta;
+
   return (
-    <section className="mx-auto w-full max-w-6xl px-6 py-10 pb-20 sm:px-8">
-      <div className="glass-panel overflow-hidden p-8 sm:p-10">
-        <div className="relative">
-          <div className="section-eyebrow">Ready to scale</div>
-          <h2 className="mt-4 max-w-3xl text-3xl font-semibold text-white sm:text-4xl">
-            Sẵn sàng dẫn đầu với sức mạnh của AI? Bắt đầu tối ưu hóa giao tiếp toàn cầu ngay hôm nay.
-          </h2>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-white/70 sm:text-base">
-            Khởi tạo tài khoản trong 30 giây để đưa tính năng dịch thuật thời gian thực chuẩn enterprise vào hệ thống làm việc của bạn.
-          </p>
-          <div className="mt-8">
-            <AuthActions compact />
+    <section className="border-b border-line py-16 sm:py-20">
+      <div className="mx-auto w-full max-w-6xl px-5 sm:px-8">
+        <div className="card flex flex-col gap-6 p-8 sm:p-10 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <span className="eyebrow">{section.eyebrow}</span>
+            <h2 className="mt-3 max-w-2xl text-2xl sm:text-3xl">{section.title}</h2>
+            <p className="measure mt-3 text-sm leading-7 text-muted">{section.lede}</p>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-3">
+            <Link href="/auth?mode=register" className="btn btn-primary btn-lg">
+              {section.primary}
+              <ArrowRightIcon width={16} height={16} />
+            </Link>
+            <Link href="/pricing" className="btn btn-secondary btn-lg">
+              {section.secondary}
+            </Link>
           </div>
         </div>
       </div>

@@ -1,22 +1,20 @@
-import { LandingHeader } from "@/components/landing/LandingHeader";
+import type { Metadata } from "next";
+import { AppShell } from "@/components/layout/AppShell";
 import { BillingSettingsDashboard } from "@/components/billing/BillingSettingsDashboard";
 import { requireAuth } from "@/lib/auth-guard";
+import { getServerI18n } from "@/i18n/server";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { m } = await getServerI18n();
+  return { title: m.meta.billing };
+}
 
 export default async function BillingSettingsPage() {
   await requireAuth("/settings/billing");
 
   return (
-    <main className="relative flex-1">
-      <LandingHeader />
-
-      <div className="relative overflow-hidden">
-        <div className="page-glow page-glow-top" />
-        <div className="page-glow page-glow-bottom" />
-
-        <section className="mx-auto w-full max-w-6xl px-6 pb-16 pt-14 sm:px-8 lg:pt-20">
-          <BillingSettingsDashboard />
-        </section>
-      </div>
-    </main>
+    <AppShell>
+      <BillingSettingsDashboard />
+    </AppShell>
   );
 }

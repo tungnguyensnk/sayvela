@@ -2,9 +2,13 @@
 
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { useI18n } from "@/i18n/client";
+import { CheckIcon, CloseIcon } from "@/components/ui/icons";
 
 export function DesktopCallbackView() {
   const searchParams = useSearchParams();
+  const { m } = useI18n();
+  const t = m.auth.callback;
   const code = searchParams.get("code");
 
   const [status, setStatus] = useState("idle");
@@ -41,47 +45,41 @@ export function DesktopCallbackView() {
 
   if (code) {
     return (
-      <div className="glass-panel w-full max-w-md p-8 text-center">
-        <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-emerald-400/30 bg-emerald-400/15">
-          <svg className="h-8 w-8 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
+      <div className="card w-full max-w-md p-8 text-center">
+        <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center border border-ok/30 bg-ok-soft text-ok">
+          <CheckIcon width={22} height={22} />
         </div>
-        <div className="section-eyebrow mb-3">Đăng nhập thành công</div>
-        <h1 className="mb-3 text-2xl font-semibold text-white">Quay lại Sayvela</h1>
+        <div className="eyebrow">{t.successEyebrow}</div>
+        <h1 className="mt-3 text-2xl">{t.successTitle}</h1>
         {status === "sent" ? (
-          <p className="text-sm leading-6 text-white/60">Bạn có thể đóng tab này.</p>
+          <p className="mt-3 text-sm leading-6 text-muted">{t.sent}</p>
         ) : status === "error" ? (
-          <div className="text-sm leading-6 text-white/60">
-            <div className="mt-5">
-              <button type="button" className="primary-button w-full justify-center" onClick={sendToken}>
-                Thử lại
-              </button>
-            </div>
-          </div>
+          <>
+            <p className="mt-3 text-sm leading-6 text-muted">{t.failed}</p>
+            <button
+              type="button"
+              className="btn btn-primary btn-block mt-5"
+              onClick={sendToken}
+            >
+              {m.common.retry}
+            </button>
+          </>
         ) : (
-          <p className="text-sm leading-6 text-white/60">
-            Đang gửi thông tin đăng nhập tới ứng dụng…
-          </p>
+          <p className="mt-3 text-sm leading-6 text-muted">{t.sending}</p>
         )}
       </div>
     );
   }
 
-  // no code — show error
   return (
-    <div className="glass-panel w-full max-w-md p-8 text-center">
-      <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full border border-rose-400/30 bg-rose-400/15">
-        <svg className="h-8 w-8 text-rose-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-        </svg>
+    <div className="card w-full max-w-md p-8 text-center">
+      <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center border border-crit/30 bg-crit-soft text-crit">
+        <CloseIcon width={22} height={22} />
       </div>
-      <h1 className="mb-3 text-2xl font-semibold text-white">Phiên không hợp lệ</h1>
-      <p className="mb-6 text-sm text-white/60">
-        Hãy thử đăng nhập lại từ ứng dụng Sayvela.
-      </p>
-      <a href="/auth?desktop=1" className="primary-button inline-flex w-full justify-center">
-        Đăng nhập lại
+      <h1 className="text-2xl">{t.invalidTitle}</h1>
+      <p className="mt-3 text-sm leading-6 text-muted">{t.invalidBody}</p>
+      <a href="/auth?desktop=1" className="btn btn-primary btn-block mt-5">
+        {t.signInAgain}
       </a>
     </div>
   );

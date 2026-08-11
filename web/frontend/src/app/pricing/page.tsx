@@ -1,32 +1,54 @@
-import { LandingHeader } from "@/components/landing/LandingHeader";
+import type { Metadata } from "next";
+import { SiteHeader } from "@/components/navigation/SiteHeader";
+import { LandingFooter } from "@/components/landing/sections/LandingFooter";
 import { PricingCards } from "@/components/billing/PricingCards";
 import { PricingComparisonTable } from "@/components/billing/PricingComparisonTable";
+import { getServerI18n } from "@/i18n/server";
 
-export default function PricingPage() {
+export async function generateMetadata(): Promise<Metadata> {
+  const { m } = await getServerI18n();
+  return {
+    title: m.meta.pricing.title,
+    description: m.meta.pricing.description,
+  };
+}
+
+export default async function PricingPage() {
+  const { m } = await getServerI18n();
+
   return (
-    <main className="relative flex-1">
-      <LandingHeader />
+    <>
+      <SiteHeader />
 
-      <div className="relative overflow-hidden">
-        <div className="page-glow page-glow-top" />
-        <div className="page-glow page-glow-bottom" />
+      <main className="flex-1">
+        <section className="border-b border-line">
+          <div className="mx-auto w-full max-w-6xl px-5 py-12 sm:px-8 sm:py-16">
+            <div className="rail-row">
+              <div className="rail-label">{m.pricing.eyebrow}</div>
+              <div>
+                <h1 className="max-w-2xl text-3xl sm:text-4xl">{m.pricing.title}</h1>
+                <p className="measure mt-4 text-base leading-7 text-muted">
+                  {m.pricing.lede}
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
 
-        <section className="mx-auto w-full max-w-6xl px-6 pb-16 pt-14 sm:px-8 lg:pt-20">
-          <div className="glass-panel p-10">
-            <div className="section-eyebrow">Pricing</div>
-            <h1 className="mt-4 text-3xl font-semibold text-white sm:text-4xl">
-              Chọn gói phù hợp với nhịp làm việc của bạn
-            </h1>
-            <p className="mt-4 max-w-3xl text-sm leading-7 text-white/68 sm:text-base">
-              Bạn có thể bắt đầu miễn phí, nâng cấp Pro khi cần dual audio, TTS và
-              workflow đầy đủ. Enterprise dành cho tổ chức có yêu cầu bảo mật và
-              procurement riêng.
-            </p>
+        <section className="border-b border-line py-12 sm:py-14">
+          <div className="mx-auto w-full max-w-6xl px-5 sm:px-8">
             <PricingCards />
+          </div>
+        </section>
+
+        <section className="border-b border-line py-12 sm:py-16">
+          <div className="mx-auto w-full max-w-6xl px-5 sm:px-8">
             <PricingComparisonTable />
           </div>
         </section>
-      </div>
-    </main>
+      </main>
+
+      <LandingFooter m={m} />
+    </>
   );
 }

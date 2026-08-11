@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { AuthActions } from "@/components/landing/AuthActions";
+import { vi as messages } from "@/i18n/messages/vi";
 
 const { useSession, signOut } = vi.hoisted(() => ({
   useSession: vi.fn(),
@@ -23,12 +24,12 @@ describe("AuthActions", () => {
 
     render(<AuthActions />);
 
-    expect(screen.queryByText("Sign in")).toBeNull();
-    expect(screen.queryByText("Create account")).toBeNull();
-    expect(screen.getByText("Checking session…")).not.toBeNull();
+    expect(screen.queryByText(messages.nav.signIn)).toBeNull();
+    expect(screen.queryByText(messages.nav.createAccount)).toBeNull();
+    expect(screen.getByText(messages.nav.checkingSession)).not.toBeNull();
   });
 
-  it("shows logout actions when authenticated", () => {
+  it("shows the signed-in state with a sign-out action", () => {
     useSession.mockReturnValue({
       data: { user: { email: "user@example.com" } },
       status: "authenticated",
@@ -36,7 +37,22 @@ describe("AuthActions", () => {
 
     render(<AuthActions />);
 
-    expect(screen.getByText(/Active session/)).not.toBeNull();
-    expect(screen.getByText("Sign out")).not.toBeNull();
+    expect(
+      screen.getByText(messages.nav.activeSession("user@example.com")),
+    ).not.toBeNull();
+    expect(screen.getByText(messages.nav.signOutShort)).not.toBeNull();
+  });
+
+  it("offers sign in and sign up when signed out", () => {
+    useSession.mockReturnValue({ data: null, status: "unauthenticated" });
+
+    render(<AuthActions />);
+
+    expect(
+      screen.getByRole("link", { name: messages.nav.signIn }).getAttribute("href"),
+    ).toBe("/auth?mode=login");
+    expect(
+      screen.getByRole("link", { name: messages.nav.createAccount }).getAttribute("href"),
+    ).toBe("/auth?mode=register");
   });
 });

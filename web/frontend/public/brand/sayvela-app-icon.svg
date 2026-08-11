@@ -1,55 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <defs>
-    <radialGradient id="sayvela-app-bg" cx="50%" cy="22%" r="90%">
-      <stop offset="0%" stop-color="#16233b" />
-      <stop offset="100%" stop-color="#050816" />
-    </radialGradient>
-    <linearGradient id="sayvela-app-grad-a" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#22d3ee" />
-      <stop offset="100%" stop-color="#38bdf8" />
-    </linearGradient>
-    <linearGradient id="sayvela-app-grad-b" x1="100%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#818cf8" />
-      <stop offset="100%" stop-color="#a855f7" />
-    </linearGradient>
-  </defs>
-  <rect width="512" height="512" rx="118" fill="url(#sayvela-app-bg)" />
-  <rect
-    x="16"
-    y="16"
-    width="480"
-    height="480"
-    rx="102"
-    stroke="#ffffff"
-    stroke-opacity="0.08"
-    stroke-width="2"
-  />
-  <path
-    d="M132 194 C191 137 263 151 324 222 C369 274 339 358 255 358 C201 358 164 337 144 306"
-    stroke="url(#sayvela-app-grad-a)"
-    stroke-width="50"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  />
-  <path
-    d="M132 287 C189 346 264 346 329 285 C377 237 356 156 275 156 C219 156 173 179 147 219"
-    stroke="url(#sayvela-app-grad-b)"
-    stroke-width="50"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  />
-  <path
-    d="M160 196 C209 176 248 182 291 228"
-    stroke="#ffffff"
-    stroke-width="12"
-    stroke-linecap="round"
-    opacity="0.45"
-  />
-  <path
-    d="M160 287 C209 321 247 323 291 274"
-    stroke="#ffffff"
-    stroke-width="12"
-    stroke-linecap="round"
-    opacity="0.4"
-  />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Sayvela">
+  <!--
+    Biểu tượng ứng dụng: nền than cố định để dấu hiệu giữ đúng tương phản
+    trên mọi màn hình nền, kể cả thanh tác vụ sáng màu.
+  -->
+  <rect width="512" height="512" rx="112" fill="#0b0c0e" />
+  <rect x="8" y="8" width="496" height="496" rx="106" fill="none" stroke="#ffffff" stroke-opacity="0.07" stroke-width="2" />
+  <g transform="translate(38.4 38.4) scale(6.8)">
+    <path d="M9 25C19 10 39 7 55 14c-9 4-16 7-23 13-7 6-16 6-23-2z" fill="#7fa7f5" />
+    <path d="M55 39C45 54 25 57 9 50c9-4 16-7 23-13 7-6 16-6 23 2z" fill="#f3a950" />
+  </g>
 </svg>

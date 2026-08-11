@@ -1,5 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { AuthForm } from "@/components/auth/AuthForm";
+import { vi as messages } from "@/i18n/messages/vi";
+
+const t = messages.auth;
 
 const { push, replace, refresh, signIn } = vi.hoisted(() => ({
   push: vi.fn(),
@@ -20,6 +23,11 @@ vi.mock("next-auth/react", () => ({
   signIn,
 }));
 
+function submitButton(name: string) {
+  const matches = screen.getAllByRole("button", { name });
+  return matches[matches.length - 1];
+}
+
 describe("AuthForm", () => {
   beforeEach(() => {
     push.mockReset();
@@ -32,15 +40,11 @@ describe("AuthForm", () => {
   it("shows validation errors for invalid register input", async () => {
     render(<AuthForm initialMode="register" />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Create account" }));
+    fireEvent.click(submitButton(t.submitSignUp));
 
-    expect(await screen.findByText("Please enter your email.")).not.toBeNull();
-    expect(
-      screen.getByText("Please enter your password."),
-    ).not.toBeNull();
-    expect(
-      screen.getByText("Please confirm your password."),
-    ).not.toBeNull();
+    expect(await screen.findByText(t.validation.emailRequired)).not.toBeNull();
+    expect(screen.getByText(t.validation.passwordRequired)).not.toBeNull();
+    expect(screen.getByText(t.validation.confirmRequired)).not.toBeNull();
   });
 
   it("submits register form and switches back to login", async () => {
@@ -51,42 +55,35 @@ describe("AuthForm", () => {
 
     render(<AuthForm initialMode="register" />);
 
-    fireEvent.change(screen.getByLabelText("Email"), {
+    fireEvent.change(screen.getByLabelText(t.email), {
       target: { value: "demo@sayvela.local" },
     });
-    fireEvent.change(screen.getByLabelText("Password"), {
+    fireEvent.change(screen.getByLabelText(t.password), {
       target: { value: "Admin@1234!" },
     });
-    fireEvent.change(screen.getByLabelText("Confirm password"), {
+    fireEvent.change(screen.getByLabelText(t.confirmPassword), {
       target: { value: "Admin@1234!" },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Create account" }));
+    fireEvent.click(submitButton(t.submitSignUp));
 
-    expect(
-      await screen.findByText("Account created successfully. You can sign in now."),
-    ).not.toBeNull();
-
+    expect(await screen.findByText(t.registered)).not.toBeNull();
     expect(replace).toHaveBeenCalledWith("/auth?mode=login");
   });
 
   it("submits login form successfully", async () => {
-    signIn.mockResolvedValue({
-      ok: true,
-      error: null,
-      url: "/",
-    });
+    signIn.mockResolvedValue({ ok: true, error: null, url: "/" });
 
     render(<AuthForm initialMode="login" />);
 
-    fireEvent.change(screen.getByLabelText("Email"), {
+    fireEvent.change(screen.getByLabelText(t.email), {
       target: { value: "demo@sayvela.local" },
     });
-    fireEvent.change(screen.getByLabelText("Password"), {
+    fireEvent.change(screen.getByLabelText(t.password), {
       target: { value: "Admin@1234!" },
     });
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Sign in" })[1]);
+    fireEvent.click(submitButton(t.submitSignIn));
 
     await waitFor(() => {
       expect(signIn).toHaveBeenCalledWith("credentials", {
@@ -101,22 +98,18 @@ describe("AuthForm", () => {
   });
 
   it("submits login form with callbackUrl when provided", async () => {
-    signIn.mockResolvedValue({
-      ok: true,
-      error: null,
-      url: "/settings/billing",
-    });
+    signIn.mockResolvedValue({ ok: true, error: null, url: "/settings/billing" });
 
     render(<AuthForm initialMode="login" callbackUrl="/settings/billing" />);
 
-    fireEvent.change(screen.getByLabelText("Email"), {
+    fireEvent.change(screen.getByLabelText(t.email), {
       target: { value: "demo@sayvela.local" },
     });
-    fireEvent.change(screen.getByLabelText("Password"), {
+    fireEvent.change(screen.getByLabelText(t.password), {
       target: { value: "Admin@1234!" },
     });
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Sign in" })[1]);
+    fireEvent.click(submitButton(t.submitSignIn));
 
     await waitFor(() => {
       expect(signIn).toHaveBeenCalledWith("credentials", {
@@ -131,25 +124,19 @@ describe("AuthForm", () => {
   });
 
   it("shows login error from auth provider", async () => {
-    signIn.mockResolvedValue({
-      ok: false,
-      error: "invalid credentials",
-      url: null,
-    });
+    signIn.mockResolvedValue({ ok: false, error: "invalid credentials", url: null });
 
     render(<AuthForm initialMode="login" />);
 
-    fireEvent.change(screen.getByLabelText("Email"), {
+    fireEvent.change(screen.getByLabelText(t.email), {
       target: { value: "demo@sayvela.local" },
     });
-    fireEvent.change(screen.getByLabelText("Password"), {
+    fireEvent.change(screen.getByLabelText(t.password), {
       target: { value: "wrong-password" },
     });
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Sign in" })[1]);
+    fireEvent.click(submitButton(t.submitSignIn));
 
-    expect(
-      await screen.findByText("Incorrect email or password."),
-    ).not.toBeNull();
+    expect(await screen.findByText(t.validation.badCredentials)).not.toBeNull();
   });
 });

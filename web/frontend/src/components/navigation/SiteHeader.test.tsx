@@ -1,14 +1,15 @@
-import { createElement, type ImgHTMLAttributes } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { SiteHeader } from "@/components/navigation/SiteHeader";
+import { vi as messages } from "@/i18n/messages/vi";
 
 const { useSession, signOut } = vi.hoisted(() => ({
   useSession: vi.fn(),
   signOut: vi.fn(),
 }));
 
-const { usePathname } = vi.hoisted(() => ({
+const { usePathname, useRouter } = vi.hoisted(() => ({
   usePathname: vi.fn(),
+  useRouter: vi.fn(() => ({ refresh: vi.fn() })),
 }));
 
 const { useEntitlement } = vi.hoisted(() => ({
@@ -22,22 +23,11 @@ vi.mock("next-auth/react", () => ({
 
 vi.mock("next/navigation", () => ({
   usePathname,
+  useRouter,
 }));
 
 vi.mock("@/lib/entitlement", () => ({
   useEntitlement,
-}));
-
-vi.mock("next/image", () => ({
-  default: (props: ImgHTMLAttributes<HTMLImageElement> & { priority?: boolean }) => {
-    const nextImageProps = { ...props };
-    delete nextImageProps.priority;
-
-    return createElement("img", {
-      ...nextImageProps,
-      alt: props.alt ?? "",
-    });
-  },
 }));
 
 describe("SiteHeader", () => {
@@ -49,19 +39,19 @@ describe("SiteHeader", () => {
     useEntitlement.mockReset();
   });
 
-  it("shows skeleton while session is loading", () => {
+  it("shows a session placeholder while the session is loading", () => {
     usePathname.mockReturnValue("/");
     useSession.mockReturnValue({ data: null, status: "loading" });
     useEntitlement.mockReturnValue({ state: { kind: "unauthenticated" }, refresh: vi.fn() });
 
     render(<SiteHeader />);
 
-    expect(screen.getByText("Checking session…")).not.toBeNull();
-    expect(screen.queryByText("Sign in")).toBeNull();
-    expect(screen.queryByText("Create account")).toBeNull();
+    expect(screen.getByText(messages.nav.checkingSession)).not.toBeNull();
+    expect(screen.queryByText(messages.nav.signIn)).toBeNull();
+    expect(screen.queryByText(messages.nav.createAccount)).toBeNull();
   });
 
-  it("renders app header with soon nav items and user menu when authenticated", () => {
+  it("renders the app navigation, quota chip and user menu when authenticated", () => {
     usePathname.mockReturnValue("/settings/billing");
     useSession.mockReturnValue({
       data: { user: { email: "user@example.com" } },
@@ -87,15 +77,18 @@ describe("SiteHeader", () => {
 
     render(<SiteHeader />);
 
-    const dashboardLink = screen.getByRole("link", { name: "Dashboard" });
-    expect(dashboardLink.getAttribute("href")).toBe("/dashboard");
-    const billingLink = screen.getByRole("link", { name: "Billing & usage" });
-    expect(billingLink.getAttribute("href")).toBe("/settings/billing");
+    expect(
+      screen.getByRole("link", { name: messages.nav.dashboard }).getAttribute("href"),
+    ).toBe("/dashboard");
+    expect(
+      screen.getByRole("link", { name: messages.nav.billing }).getAttribute("href"),
+    ).toBe("/settings/billing");
 
-    expect(screen.getByText(/Free · 10\/60 phút/)).not.toBeNull();
-    expect(screen.queryByRole("link", { name: "Nâng cấp" })).toBeNull();
+    expect(
+      screen.getByText(`${messages.plan.free} · ${messages.plan.usage(10, 60)}`),
+    ).not.toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "user@example.com" }));
-    expect(screen.getByText("Đăng xuất")).not.toBeNull();
+    expect(screen.getByText(messages.nav.signOut)).not.toBeNull();
   });
 });

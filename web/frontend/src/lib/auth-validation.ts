@@ -3,6 +3,23 @@ export const passwordPattern =
 
 export type AuthMode = "login" | "register";
 
+/**
+ * Việc kiểm tra dữ liệu trả về khóa thông báo, không trả về câu chữ — nhờ vậy
+ * cùng một quy tắc dùng được cho cả ba ngôn ngữ giao diện.
+ */
+export type ValidationKey =
+  | "emailRequired"
+  | "emailInvalid"
+  | "passwordRequired"
+  | "passwordTooShort"
+  | "passwordWeak"
+  | "confirmRequired"
+  | "confirmMismatch"
+  | "emailTaken"
+  | "badCredentials"
+  | "network"
+  | "unknown";
+
 export interface LoginValues {
   email: string;
   password: string;
@@ -13,56 +30,39 @@ export interface RegisterValues extends LoginValues {
 }
 
 export type AuthErrors<T extends object> = Partial<
-  Record<keyof T | "form", string>
+  Record<keyof T | "form", ValidationKey>
 >;
 
 export function normalizeAuthMode(value?: string): AuthMode {
   return value === "register" ? "register" : "login";
 }
 
-export function validateEmail(email: string) {
-  if (!email.trim()) {
-    return "Please enter your email.";
-  }
+export function validateEmail(email: string): ValidationKey | null {
+  if (!email.trim()) return "emailRequired";
 
   const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailPattern.test(email)) {
-    return "Enter a valid email address.";
-  }
+  if (!emailPattern.test(email)) return "emailInvalid";
 
-  return "";
+  return null;
 }
 
-export function validatePassword(password: string, mode: AuthMode) {
-  if (!password) {
-    return "Please enter your password.";
-  }
-
-  if (mode === "register" && password.length < 8) {
-    return "Password must be at least 8 characters.";
-  }
-
-  if (mode === "register" && !passwordPattern.test(password)) {
-    return "Password must include uppercase and lowercase letters, a number, and a special character.";
-  }
-
-  return "";
+export function validatePassword(
+  password: string,
+  mode: AuthMode,
+): ValidationKey | null {
+  if (!password) return "passwordRequired";
+  if (mode === "register" && password.length < 8) return "passwordTooShort";
+  if (mode === "register" && !passwordPattern.test(password)) return "passwordWeak";
+  return null;
 }
 
-export function validateLoginValues(
-  values: LoginValues,
-): AuthErrors<LoginValues> {
+export function validateLoginValues(values: LoginValues): AuthErrors<LoginValues> {
   const errors: AuthErrors<LoginValues> = {};
   const emailError = validateEmail(values.email);
   const passwordError = validatePassword(values.password, "login");
 
-  if (emailError) {
-    errors.email = emailError;
-  }
-
-  if (passwordError) {
-    errors.password = passwordError;
-  }
+  if (emailError) errors.email = emailError;
+  if (passwordError) errors.password = passwordError;
 
   return errors;
 }
@@ -75,37 +75,34 @@ export function validateRegisterValues(
   };
 
   const passwordError = validatePassword(values.password, "register");
-  if (passwordError) {
-    errors.password = passwordError;
-  }
+  if (passwordError) errors.password = passwordError;
 
   if (!values.confirmPassword) {
-    errors.confirmPassword = "Please confirm your password.";
+    errors.confirmPassword = "confirmRequired";
   } else if (values.confirmPassword !== values.password) {
-    errors.confirmPassword = "Passwords do not match.";
+    errors.confirmPassword = "confirmMismatch";
   }
 
   return errors;
 }
 
-export function getAuthErrorMessage(input: string) {
+/** Ánh xạ lỗi thô từ backend sang khóa thông báo hiển thị được. */
+export function getAuthErrorKey(input: string): ValidationKey {
   const error = input.toLowerCase();
 
-  if (error.includes("email already exists")) {
-    return "This email is already in use.";
-  }
+  if (error.includes("email already exists")) return "emailTaken";
 
   if (
     error.includes("invalid credentials") ||
     error.includes("credentials") ||
     error.includes("unauthorized")
   ) {
-    return "Incorrect email or password.";
+    return "badCredentials";
   }
 
   if (error.includes("failed to fetch") || error.includes("network")) {
-    return "Unable to connect to the server. Please try again.";
+    return "network";
   }
 
-  return "Something went wrong. Please try again later.";
+  return "unknown";
 }

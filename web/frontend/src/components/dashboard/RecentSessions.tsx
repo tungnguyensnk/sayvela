@@ -2,63 +2,76 @@
 
 import Link from "next/link";
 import { useSessions } from "@/hooks/useSessions";
+import { useI18n } from "@/i18n/client";
+import { formatDuration, formatShortDateTime } from "@/lib/format";
+import { SectionHeading, Skeleton } from "@/components/ui/primitives";
+import { ChevronRightIcon } from "@/components/ui/icons";
 
-function formatDate(value: string | null) {
-  if (!value) return "";
-  return new Intl.DateTimeFormat("vi-VN", {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Asia/Ho_Chi_Minh",
-  }).format(new Date(value));
-}
-
-// renders the 5 most recent sessions as a compact list
 export function RecentSessions() {
-  const { state } = useSessions(1, 5);
-
-  if (state.kind === "loading" || state.kind === "idle") {
-    return (
-      <div className="glass-panel p-6 flex flex-col gap-3">
-        <p className="text-xs text-white/50 uppercase tracking-wider">Recent Sessions</p>
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-10 rounded-lg bg-white/4 animate-pulse" />
-        ))}
-      </div>
-    );
-  }
-
-  if (state.kind !== "ready") return null;
-
-  const { items } = state.data;
+  const { state } = useSessions(1, 6);
+  const { locale, m } = useI18n();
 
   return (
-    <div className="glass-panel p-6 flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-white/50 uppercase tracking-wider">Recent Sessions</p>
-        <Link href="/sessions" className="text-xs text-sky-400 hover:text-sky-300">
-          View all →
-        </Link>
-      </div>
-      {items.length === 0 ? (
-        <p className="text-white/35 text-sm py-4 text-center">No sessions yet.</p>
-      ) : (
-        <div className="flex flex-col divide-y divide-white/6">
-          {items.map((s) => (
+    <section className="card flex flex-col">
+      <div className="border-b border-line px-5 py-4">
+        <SectionHeading
+          title={m.dashboard.recent.title}
+          action={
             <Link
-              key={s.id}
-              href={`/sessions/${s.id}`}
-              className="flex items-center justify-between py-3 hover:text-white/90 transition-colors group"
+              href="/sessions"
+              className="font-display text-xs font-semibold text-accent hover:underline"
             >
-              <span className="truncate text-sm text-white/75 group-hover:text-white/90">
-                {s.title ?? "Untitled session"}
-              </span>
-              <span className="shrink-0 text-xs text-white/35 ml-4">{formatDate(s.createdAt)}</span>
+              {m.common.viewAll} →
             </Link>
+          }
+        />
+      </div>
+
+      {state.kind === "loading" || state.kind === "idle" ? (
+        <div className="flex flex-col gap-2 p-5">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-11" />
           ))}
         </div>
+      ) : state.kind === "error" ? (
+        <p className="px-5 py-10 text-center text-sm text-muted">
+          {m.dashboard.recent.failed}
+        </p>
+      ) : state.data.items.length === 0 ? (
+        <div className="px-5 py-12 text-center">
+          <p className="font-display text-sm font-semibold">{m.dashboard.recent.empty}</p>
+          <p className="mt-1 text-sm text-muted">{m.dashboard.recent.emptyHint}</p>
+        </div>
+      ) : (
+        <ul className="flex flex-col">
+          {state.data.items.map((session) => (
+            <li key={session.id} className="border-b border-line last:border-b-0">
+              <Link
+                href={`/sessions/${session.id}`}
+                className="group flex items-center gap-3 px-5 py-3 transition-colors hover:bg-raised"
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-medium">
+                    {session.title ?? m.sessions.untitled}
+                  </span>
+                  <span className="tabular mt-0.5 block text-xs text-faint">
+                    {formatShortDateTime(session.createdAt, locale)} ·{" "}
+                    {formatDuration(session.durationSeconds, locale)}
+                  </span>
+                </span>
+                {session.status === "active" ? (
+                  <span className="chip chip-ok shrink-0">{m.sessions.live}</span>
+                ) : null}
+                <ChevronRightIcon
+                  width={16}
+                  height={16}
+                  className="shrink-0 text-faint transition-transform group-hover:translate-x-0.5"
+                />
+              </Link>
+            </li>
+          ))}
+        </ul>
       )}
-    </div>
+    </section>
   );
 }

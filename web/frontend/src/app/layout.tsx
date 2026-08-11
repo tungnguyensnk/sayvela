@@ -1,9 +1,37 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
+import { IBM_Plex_Mono, IBM_Plex_Sans_Condensed, Source_Serif_4 } from "next/font/google";
 import { getServerSession } from "next-auth/next";
 import "./globals.css";
 import { AppProviders } from "./providers";
+import { ThemeScript } from "@/components/theme/ThemeScript";
 import { authOptions } from "@/lib/auth";
+import { getServerI18n } from "@/i18n/server";
+import { LOCALE_TAGS } from "@/i18n/config";
 import { getSessionToken, BACKEND_URL } from "@/lib/server-token";
+
+// Nhãn thiết bị: sans hẹp cho tiêu đề, số liệu và nút.
+const display = IBM_Plex_Sans_Condensed({
+  subsets: ["latin", "latin-ext", "vietnamese"],
+  weight: ["500", "600"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+// Phần đọc: biên bản là văn bản để đọc, không phải nhãn để liếc.
+const body = Source_Serif_4({
+  subsets: ["latin", "latin-ext", "vietnamese"],
+  weight: ["400", "600"],
+  variable: "--font-body",
+  display: "swap",
+});
+
+// Dữ liệu: dấu thời gian, quota, giá — luôn xếp thẳng cột.
+const mono = IBM_Plex_Mono({
+  subsets: ["latin", "latin-ext", "vietnamese"],
+  weight: ["400", "500"],
+  variable: "--font-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXTAUTH_URL ?? "http://localhost"),
@@ -12,7 +40,7 @@ export const metadata: Metadata = {
     template: "%s",
   },
   description:
-    "Sayvela là nền tảng voice translation và transcription thời gian thực cho các cuộc họp đa ngôn ngữ.",
+    "Sayvela captures both audio channels of a meeting and turns them into a bilingual transcript in real time.",
   applicationName: "Sayvela",
   icons: {
     icon: [
@@ -28,6 +56,13 @@ export const metadata: Metadata = {
   category: "productivity",
 };
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#eaece6" },
+    { media: "(prefers-color-scheme: dark)", color: "#0b0c0e" },
+  ],
+};
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -35,6 +70,7 @@ export default async function RootLayout({
 }>) {
   const session = await getServerSession(authOptions);
   const accessToken = await getSessionToken();
+  const { locale } = await getServerI18n();
   let initialEntitlement: { plan: "free" | "lite" | "pro" } | null = null;
 
   if (accessToken) {
@@ -53,9 +89,20 @@ export default async function RootLayout({
   }
 
   return (
-    <html lang="vi" className="h-full antialiased">
-      <body className="min-h-full bg-slate-950 text-white">
-        <AppProviders session={session} initialEntitlement={initialEntitlement}>
+    <html
+      lang={LOCALE_TAGS[locale]}
+      className={`h-full antialiased ${display.variable} ${body.variable} ${mono.variable}`}
+      suppressHydrationWarning
+    >
+      <head>
+        <ThemeScript />
+      </head>
+      <body className="flex min-h-full flex-col bg-canvas text-ink">
+        <AppProviders
+          session={session}
+          locale={locale}
+          initialEntitlement={initialEntitlement}
+        >
           {children}
         </AppProviders>
       </body>

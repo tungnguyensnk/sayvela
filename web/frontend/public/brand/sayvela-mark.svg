@@ -1,40 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" fill="none">
-  <defs>
-    <linearGradient id="sayvela-mark-grad-a" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#22d3ee" />
-      <stop offset="100%" stop-color="#38bdf8" />
-    </linearGradient>
-    <linearGradient id="sayvela-mark-grad-b" x1="100%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#818cf8" />
-      <stop offset="100%" stop-color="#a855f7" />
-    </linearGradient>
-  </defs>
-  <path
-    d="M122 182 C180 128 250 142 308 208 C350 258 322 338 242 338 C190 338 154 318 134 288"
-    stroke="url(#sayvela-mark-grad-a)"
-    stroke-width="48"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  />
-  <path
-    d="M122 278 C178 334 252 334 314 276 C360 230 340 154 262 154 C208 154 164 176 138 214"
-    stroke="url(#sayvela-mark-grad-b)"
-    stroke-width="48"
-    stroke-linecap="round"
-    stroke-linejoin="round"
-  />
-  <path
-    d="M150 184 C198 164 236 170 278 214"
-    stroke="#ffffff"
-    stroke-width="12"
-    stroke-linecap="round"
-    opacity="0.45"
-  />
-  <path
-    d="M150 278 C198 310 236 312 278 266"
-    stroke="#ffffff"
-    stroke-width="12"
-    stroke-linecap="round"
-    opacity="0.4"
-  />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Sayvela">
+  <!--
+    Sayvela — dấu hiệu "nét bút".
+    Hai nét là bản sao quay 180° của nhau quanh tâm (32,32): nét trên là kênh
+    âm thanh hệ thống, nét dưới là micro. Nền trong suốt, màu tự đổi theo
+    giao diện của trình duyệt nên dùng được cả trên giấy lẫn trên nền tối.
+  -->
+  <style>
+    .sys { fill: #1f3f66; }
+    .mic { fill: #935c11; }
+    @media (prefers-color-scheme: dark) {
+      .sys { fill: #7fa7f5; }
+      .mic { fill: #f3a950; }
+    }
+  </style>
+  <path class="sys" d="M9 25C19 10 39 7 55 14c-9 4-16 7-23 13-7 6-16 6-23-2z" />
+  <path class="mic" d="M55 39C45 54 25 57 9 50c9-4 16-7 23-13 7-6 16-6 23 2z" />
 </svg>

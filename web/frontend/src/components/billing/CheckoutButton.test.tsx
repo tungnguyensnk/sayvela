@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { CheckoutButton } from "@/components/billing/CheckoutButton";
+import { vi as messages } from "@/i18n/messages/vi";
 
 const { useSession } = vi.hoisted(() => ({
   useSession: vi.fn(),
@@ -8,6 +9,9 @@ const { useSession } = vi.hoisted(() => ({
 vi.mock("next-auth/react", () => ({
   useSession,
 }));
+
+const proLabel = messages.billing.checkout.upgradeTo(messages.plan.pro);
+const liteLabel = messages.billing.checkout.upgradeTo(messages.plan.lite);
 
 describe("CheckoutButton", () => {
   beforeEach(() => {
@@ -23,7 +27,7 @@ describe("CheckoutButton", () => {
     useSession.mockReturnValue({ data: null, status: "unauthenticated" });
 
     render(<CheckoutButton plan="pro" />);
-    fireEvent.click(screen.getByRole("button", { name: "Nâng cấp Pro" }));
+    fireEvent.click(screen.getByRole("button", { name: proLabel }));
 
     await waitFor(() => {
       expect(window.location.href).toBe("/auth?mode=login");
@@ -31,10 +35,7 @@ describe("CheckoutButton", () => {
   });
 
   it("redirects to stripe checkout when session is created", async () => {
-    useSession.mockReturnValue({
-      data: {},
-      status: "authenticated",
-    });
+    useSession.mockReturnValue({ data: {}, status: "authenticated" });
 
     vi.spyOn(global, "fetch").mockResolvedValue({
       ok: true,
@@ -42,7 +43,7 @@ describe("CheckoutButton", () => {
     } as Response);
 
     render(<CheckoutButton plan="pro" interval="month" />);
-    fireEvent.click(screen.getByRole("button", { name: "Nâng cấp Pro" }));
+    fireEvent.click(screen.getByRole("button", { name: proLabel }));
 
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
@@ -58,10 +59,10 @@ describe("CheckoutButton", () => {
     });
   });
 
-  it("uses lite label when plan is lite", async () => {
+  it("uses the lite label when plan is lite", () => {
     useSession.mockReturnValue({ data: null, status: "unauthenticated" });
 
     render(<CheckoutButton plan="lite" />);
-    expect(screen.getByRole("button", { name: "Nâng cấp Lite" })).not.toBeNull();
+    expect(screen.getByRole("button", { name: liteLabel })).not.toBeNull();
   });
 });

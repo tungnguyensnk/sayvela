@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { PricingComparisonTable } from "@/components/billing/PricingComparisonTable";
 import { EntitlementProvider } from "@/lib/entitlement";
+import { vi as messages } from "@/i18n/messages/vi";
 
 const { useSession } = vi.hoisted(() => ({
   useSession: vi.fn(),
@@ -17,22 +18,19 @@ describe("PricingComparisonTable", () => {
     useSession.mockReturnValue({ data: null, status: "unauthenticated" });
   });
 
-  it("renders comparison section", () => {
+  it("renders the comparison table", () => {
     render(
       <EntitlementProvider>
         <PricingComparisonTable />
       </EntitlementProvider>,
     );
 
-    expect(screen.getByText("So sánh chi tiết các gói")).not.toBeNull();
-    expect(screen.getByText("Phút mỗi tháng")).not.toBeNull();
+    expect(screen.getByText(messages.pricing.comparison.title)).not.toBeNull();
+    expect(screen.getByText(messages.pricing.comparison.rows.minutes)).not.toBeNull();
   });
 
-  it("shows upgrade hint when entitlement is free", () => {
-    useSession.mockReturnValue({
-      data: { accessToken: "token" },
-      status: "authenticated",
-    });
+  it("shows the upgrade hint when entitlement is free", () => {
+    useSession.mockReturnValue({ data: { accessToken: "token" }, status: "authenticated" });
 
     render(
       <EntitlementProvider initialEntitlement={{ plan: "free" }}>
@@ -40,7 +38,8 @@ describe("PricingComparisonTable", () => {
       </EntitlementProvider>,
     );
 
-    expect(screen.getByRole("link", { name: "Nâng cấp ngay" })).not.toBeNull();
+    expect(
+      screen.getByRole("link", { name: messages.pricing.comparison.upgradeCta }),
+    ).not.toBeNull();
   });
 });
-

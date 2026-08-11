@@ -1,4 +1,7 @@
+"use client";
+
 import type { BillingInterval } from "@/lib/billing-catalog";
+import { useI18n } from "@/i18n/client";
 
 export function IntervalToggle({
   interval,
@@ -7,32 +10,37 @@ export function IntervalToggle({
   interval: BillingInterval;
   onChange: (interval: BillingInterval) => void;
 }) {
+  const { m } = useI18n();
+  const options: { value: BillingInterval; label: string }[] = [
+    { value: "month", label: m.pricing.monthly },
+    { value: "year", label: m.pricing.yearly },
+  ];
+
   return (
-    <div className="relative inline-flex rounded-full bg-white/8 p-1 ring-1 ring-white/10 backdrop-blur">
-      <div
-        className={`absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] transform-gpu rounded-full bg-gradient-to-r from-cyan-300 via-sky-300 to-violet-400 shadow-[0_10px_24px_-18px_rgba(56,189,248,0.8)] will-change-transform transition-transform duration-200 ease-out ${
+    <div
+      role="group"
+      aria-label={m.pricing.intervalGroup}
+      className="relative inline-flex border border-line bg-raised p-0.5"
+    >
+      <span
+        aria-hidden="true"
+        className={`absolute inset-y-0.5 left-0.5 w-[calc(50%-0.125rem)] border border-line bg-surface transition-transform duration-200 ease-out ${
           interval === "year" ? "translate-x-full" : "translate-x-0"
         }`}
-        aria-hidden="true"
       />
-      <button
-        type="button"
-        onClick={() => onChange("month")}
-        className={`relative z-10 min-w-24 rounded-full px-4 py-2 text-sm font-medium transition-colors duration-300 ${
-          interval === "month" ? "text-slate-950" : "text-white/70"
-        }`}
-      >
-        Tháng
-      </button>
-      <button
-        type="button"
-        onClick={() => onChange("year")}
-        className={`relative z-10 min-w-24 rounded-full px-4 py-2 text-sm font-medium transition-colors duration-300 ${
-          interval === "year" ? "text-slate-950" : "text-white/70"
-        }`}
-      >
-        Năm
-      </button>
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          onClick={() => onChange(option.value)}
+          aria-pressed={interval === option.value}
+          className={`relative z-10 min-w-20 px-4 py-1.5 font-display text-sm font-medium transition-colors ${
+            interval === option.value ? "text-ink" : "text-muted hover:text-ink"
+          }`}
+        >
+          {option.label}
+        </button>
+      ))}
     </div>
   );
 }

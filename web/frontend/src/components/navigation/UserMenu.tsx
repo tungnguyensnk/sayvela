@@ -4,15 +4,23 @@ import { useEffect, useId, useRef, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { NavItemLink } from "@/components/navigation/NavItemLink";
 import { userMenuItems } from "@/components/navigation/nav-items";
+import { useI18n } from "@/i18n/client";
+import { ChevronDownIcon, LogoutIcon } from "@/components/ui/icons";
 
 type UserMenuProps = {
   compact?: boolean;
   onNavigate?: () => void;
 };
 
+function initials(label: string) {
+  const cleaned = label.replace(/[^a-zA-Z0-9]/g, " ").trim();
+  return (cleaned.slice(0, 2) || "SV").toUpperCase();
+}
+
 export function UserMenu({ compact = false, onNavigate }: UserMenuProps) {
   const { data: session } = useSession();
-  const userLabel = session?.user?.email ?? session?.user?.name ?? "người dùng";
+  const { m } = useI18n();
+  const userLabel = session?.user?.email ?? session?.user?.name ?? m.nav.account;
   const [open, setOpen] = useState(false);
   const menuId = useId();
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -21,15 +29,13 @@ export function UserMenu({ compact = false, onNavigate }: UserMenuProps) {
     if (!open) return;
 
     function onMouseDown(event: MouseEvent) {
-      if (!rootRef.current) return;
-      if (!event.target) return;
+      if (!rootRef.current || !event.target) return;
       if (rootRef.current.contains(event.target as Node)) return;
       setOpen(false);
     }
 
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
-      setOpen(false);
+      if (event.key === "Escape") setOpen(false);
     }
 
     window.addEventListener("mousedown", onMouseDown);
@@ -40,58 +46,69 @@ export function UserMenu({ compact = false, onNavigate }: UserMenuProps) {
     };
   }, [open]);
 
-  const triggerClassName = compact
-    ? "glass-button w-full justify-between"
-    : "glass-button";
-
   return (
     <div ref={rootRef} className="relative">
       <button
         type="button"
-        className={triggerClassName}
+        className={`btn btn-ghost gap-2 ${compact ? "w-full justify-between" : "px-1.5"}`}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={menuId}
         onClick={() => setOpen((prev) => !prev)}
       >
-        <span className="max-w-[14rem] truncate text-left text-sm font-semibold text-white/90">
+        <span
+          aria-hidden="true"
+          className="tabular flex h-6 w-6 shrink-0 items-center justify-center bg-ai-soft text-[0.6rem] font-semibold text-ai"
+        >
+          {initials(userLabel)}
+        </span>
+        <span className="max-w-[11rem] truncate text-sm font-medium text-ink">
           {userLabel}
         </span>
-        <span aria-hidden="true" className="text-white/70">
-          ▾
-        </span>
+        <ChevronDownIcon
+          aria-hidden="true"
+          className={`shrink-0 text-faint transition-transform ${open ? "rotate-180" : ""}`}
+          width={14}
+          height={14}
+        />
       </button>
 
       {open ? (
         <div
           id={menuId}
           role="menu"
-          className="absolute right-0 mt-2 w-64 rounded-2xl border border-white/12 bg-slate-950/78 p-2 shadow-2xl backdrop-blur-xl"
+          className={`card absolute right-0 z-50 mt-1 w-60 p-1 shadow-float ${
+            compact ? "left-0" : ""
+          }`}
         >
-          <div className="px-3 py-2 text-xs font-semibold uppercase tracking-widest text-white/50">
-            Account
+          <div className="px-2.5 py-2">
+            <div className="eyebrow">{m.nav.account}</div>
+            <div className="mt-1 truncate text-sm font-medium">{userLabel}</div>
           </div>
-          <div className="flex flex-col gap-1">
+          <div className="my-1 h-px bg-line" />
+          <div className="flex flex-col gap-0.5">
             {userMenuItems.map((item) => (
               <NavItemLink
-                key={`${item.label}-${item.href}`}
+                key={`${item.id}-${item.href}`}
                 item={item}
-                className="w-full justify-between px-3 py-2 text-sm"
+                variant="row"
                 onNavigate={() => {
                   setOpen(false);
                   onNavigate?.();
                 }}
               />
             ))}
-            <button
-              type="button"
-              role="menuitem"
-              className="nav-link inline-flex w-full items-center justify-between rounded-full border border-transparent px-3 py-2 text-sm transition hover:border-white/14 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200/30"
-              onClick={() => signOut({ callbackUrl: "/" })}
-            >
-              Đăng xuất
-            </button>
           </div>
+          <div className="my-1 h-px bg-line" />
+          <button
+            type="button"
+            role="menuitem"
+            className="flex w-full items-center gap-2.5 rounded-sm px-3 py-2.5 font-display text-sm font-medium text-muted transition-colors hover:bg-raised hover:text-ink"
+            onClick={() => signOut({ callbackUrl: "/" })}
+          >
+            <LogoutIcon className="shrink-0 opacity-80" />
+            {m.nav.signOut}
+          </button>
         </div>
       ) : null}
     </div>

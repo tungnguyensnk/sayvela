@@ -1,3 +1,5 @@
+import { AlertIcon } from "@/components/ui/icons";
+
 export function FormMessage({
   children,
   tone,
@@ -8,11 +10,12 @@ export function FormMessage({
   return (
     <div
       role="alert"
-      className={`rounded-3xl px-4 py-3 text-sm ${
-        tone === "danger" ? "border border-rose-300/18 bg-rose-400/10 text-rose-100" : ""
+      className={`flex items-start gap-2 rounded-md border px-3 py-2.5 text-sm ${
+        tone === "danger" ? "border-crit/30 bg-crit-soft text-crit" : ""
       }`}
     >
-      {children}
+      <AlertIcon width={16} height={16} className="mt-0.5 shrink-0" />
+      <span>{children}</span>
     </div>
   );
 }

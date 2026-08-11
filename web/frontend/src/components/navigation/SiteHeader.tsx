@@ -10,6 +10,9 @@ import { NavItemLink } from "@/components/navigation/NavItemLink";
 import { MobileHeaderMenu } from "@/components/navigation/MobileHeaderMenu";
 import { PlanStatus } from "@/components/navigation/PlanStatus";
 import { UserMenu } from "@/components/navigation/UserMenu";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
+import { useI18n } from "@/i18n/client";
 import { appPrimaryNavItems, marketingNavItems } from "@/components/navigation/nav-items";
 
 function isActiveInternalLink(pathname: string, hash: string, href: string) {
@@ -23,6 +26,7 @@ function isActiveInternalLink(pathname: string, hash: string, href: string) {
 export function SiteHeader() {
   const pathname = usePathname();
   const { status } = useSession();
+  const { m } = useI18n();
   const variant = status === "authenticated" ? "app" : "marketing";
   const [activeHash, setActiveHash] = useState("");
 
@@ -41,58 +45,75 @@ export function SiteHeader() {
     };
   }, []);
 
+  const isActive = (href: string, availability: string, kind: string) =>
+    availability === "available" && kind === "internal"
+      ? isActiveInternalLink(pathname, activeHash, href)
+      : false;
+
   return (
-    <header className="sticky top-0 z-30 border-b border-white/10 bg-slate-950/48 backdrop-blur-xl">
-      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-6 py-4 sm:px-8">
+    <header className="sticky top-0 z-40 border-b border-line bg-canvas/92 backdrop-blur">
+      <div className="mx-auto flex h-[var(--header-h)] w-full max-w-6xl items-center gap-4 px-5 sm:px-8">
         <Link href="/" className="flex min-w-0 items-center leading-none">
-          <SayvelaBrand size="sm" priority />
+          <SayvelaBrand size="sm" />
         </Link>
 
-        <nav className="hidden flex-1 items-center justify-center gap-3 text-sm text-white/68 lg:flex">
-          {variant === "app"
-            ? appPrimaryNavItems.map((item) => (
-                <NavItemLink
-                  key={`${item.label}-${item.href}`}
-                  item={item}
-                  indicatorLayoutId="desktop-nav-selection"
-                  isActive={item.availability === "available" && item.kind === "internal"
-                    ? isActiveInternalLink(pathname, activeHash, item.href)
-                    : false}
-                />
-              ))
-            : marketingNavItems.map((item) => (
-                <NavItemLink
-                  key={`${item.label}-${item.href}`}
-                  item={item}
-                  indicatorLayoutId="desktop-nav-selection"
-                  isActive={item.availability === "available" && item.kind === "internal"
-                    ? isActiveInternalLink(pathname, activeHash, item.href)
-                    : false}
-                />
-              ))}
-        </nav>
+        {variant === "marketing" ? (
+          <nav className="hidden flex-1 items-center justify-center gap-1 lg:flex">
+            {marketingNavItems.map((item) => (
+              <NavItemLink
+                key={item.id}
+                item={item}
+                variant="pill"
+                isActive={isActive(item.href, item.availability, item.kind)}
+              />
+            ))}
+          </nav>
+        ) : (
+          <div className="flex-1" />
+        )}
 
-        <div className="hidden items-center gap-3 lg:flex">
+        <div className="hidden items-center gap-2 lg:flex">
           {status === "loading" ? (
-            <div className="flex flex-wrap items-center gap-3" aria-busy="true">
-              <div className="glass-chip text-center text-sm text-white/80 animate-pulse">
-                Checking session…
-              </div>
-              <div className="glass-button w-44 opacity-60 pointer-events-none" aria-hidden="true" />
-              <div className="glass-button w-32 opacity-60 pointer-events-none" aria-hidden="true" />
+            <div className="flex items-center gap-2" aria-busy="true">
+              <span className="chip">{m.nav.checkingSession}</span>
             </div>
           ) : variant === "app" ? (
-            <div className="flex flex-wrap items-center gap-3">
+            <>
               <PlanStatus />
+              <LanguageSwitcher />
+              <ThemeToggle />
+              <div className="mx-1 h-5 w-px bg-line" />
               <UserMenu />
-            </div>
+            </>
           ) : (
-            <AuthActions />
+            <>
+              <LanguageSwitcher />
+              <ThemeToggle />
+              <AuthActions />
+            </>
           )}
         </div>
 
         <MobileHeaderMenu variant={variant} activePathname={pathname} activeHash={activeHash} />
       </div>
+
+      {variant === "app" ? (
+        <div className="border-t border-line bg-surface">
+          <div className="mx-auto w-full max-w-6xl px-5 sm:px-8">
+            <nav className="no-scrollbar flex items-center gap-6 overflow-x-auto">
+              {appPrimaryNavItems.map((item) => (
+                <NavItemLink
+                  key={item.id}
+                  item={item}
+                  variant="tab"
+                  indicatorLayoutId="app-nav-selection"
+                  isActive={isActive(item.href, item.availability, item.kind)}
+                />
+              ))}
+            </nav>
+          </div>
+        </div>
+      ) : null}
     </header>
   );
 }

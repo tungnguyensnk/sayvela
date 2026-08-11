@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Field } from "@/components/auth/form/Field";
 import { FormMessage } from "@/components/auth/form/FormMessage";
 import { useAuthForm } from "@/components/auth/use-auth-form";
+import { useI18n } from "@/i18n/client";
+import type { ValidationKey } from "@/lib/auth-validation";
 
 interface AuthFormProps {
   initialMode?: string;
@@ -15,15 +17,16 @@ interface AuthFormProps {
 
 export function AuthForm({ initialMode, callbackUrl, desktop, desktopCode }: AuthFormProps) {
   const router = useRouter();
+  const { m } = useI18n();
+  const t = m.auth;
   const {
     mode,
     loginValues,
     registerValues,
     loginErrors,
     registerErrors,
-    successMessage,
+    registered,
     isSubmitting,
-    passwordHint,
     setLoginValues,
     setRegisterValues,
     setLoginErrors,
@@ -43,184 +46,189 @@ export function AuthForm({ initialMode, callbackUrl, desktop, desktopCode }: Aut
     },
   });
 
+  const say = (key?: ValidationKey) => (key ? t.validation[key] : undefined);
+
+  const tabClass = (active: boolean) =>
+    `flex-1 rounded-sm px-4 py-1.5 font-display text-sm font-medium transition-colors ${
+      active ? "bg-surface text-ink shadow-card" : "text-muted hover:text-ink"
+    }`;
+
   return (
-    <div className="glass-panel w-full max-w-xl p-7 sm:p-8">
+    <div className="card w-full max-w-md p-6 sm:p-7">
       {desktop ? (
-        <div className="mb-5 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-200">
-          Sign in from the Sayvela desktop app. You will automatically return to the app after signing in.
-        </div>
+        <p className="mb-5 border border-ai-line bg-ai-soft px-3 py-2.5 text-sm text-ai">
+          {t.desktopNotice}
+        </p>
       ) : null}
-      <div className="inline-flex rounded-full border border-white/10 bg-white/6 p-1">
+
+      <div
+        role="group"
+        aria-label={t.modeGroup}
+        className="flex border border-line bg-raised p-0.5"
+      >
         <button
           type="button"
-          className={`rounded-full px-4 py-2 text-sm transition ${
-            mode === "login"
-              ? "bg-white text-slate-950"
-              : "text-white/68 hover:text-white"
-          }`}
+          className={tabClass(mode === "login")}
+          aria-pressed={mode === "login"}
           onClick={() => switchMode("login")}
         >
-          Sign in
+          {t.tabSignIn}
         </button>
         <button
           type="button"
-          className={`rounded-full px-4 py-2 text-sm transition ${
-            mode === "register"
-              ? "bg-white text-slate-950"
-              : "text-white/68 hover:text-white"
-          }`}
+          className={tabClass(mode === "register")}
+          aria-pressed={mode === "register"}
           onClick={() => switchMode("register")}
         >
-          Sign up
+          {t.tabSignUp}
         </button>
       </div>
 
       <div className="mt-6">
-        <div className="section-eyebrow">
-          {mode === "login" ? "Welcome back" : "Create your account"}
-        </div>
-        <h1 className="mt-4 text-3xl font-semibold text-white">
-          {mode === "login"
-            ? "Sign in to continue with Sayvela"
-            : "Sign up to start your multilingual workflow"}
-        </h1>
-        <p className="mt-3 text-sm leading-7 text-white/68">
-          {mode === "login"
-            ? "Continue with your account to access real-time translation and transcripts."
-            : "Create an account with a strong password to sync transcripts, translations, and privacy settings."}
+        <h1 className="text-2xl">{mode === "login" ? t.signInTitle : t.signUpTitle}</h1>
+        <p className="mt-2 text-sm leading-6 text-muted">
+          {mode === "login" ? t.signInLede : t.signUpLede}
         </p>
       </div>
 
-      {successMessage ? (
-        <div
+      {registered ? (
+        <p
           role="status"
-          className="mt-6 rounded-3xl border border-emerald-300/20 bg-emerald-300/10 px-4 py-3 text-sm text-emerald-100"
+          className="mt-5 border border-ok/30 bg-ok-soft px-3 py-2.5 text-sm text-ok"
         >
-          {successMessage}
-        </div>
+          {t.registered}
+        </p>
       ) : null}
 
       {mode === "login" ? (
-        <form className="mt-6 space-y-5" onSubmit={handleLoginSubmit}>
+        <form className="mt-6 flex flex-col gap-4" onSubmit={handleLoginSubmit}>
           <Field
-            label="Email"
+            label={t.email}
             type="email"
             autoComplete="email"
             value={loginValues.email}
-            error={loginErrors.email}
+            error={say(loginErrors.email)}
             onChange={(value) => {
               setLoginValues((current) => ({ ...current, email: value }));
-              setLoginErrors((current) => ({ ...current, email: "", form: "" }));
+              setLoginErrors((current) => ({
+                ...current,
+                email: undefined,
+                form: undefined,
+              }));
             }}
           />
 
           <Field
-            label="Password"
+            label={t.password}
             type="password"
             autoComplete="current-password"
             value={loginValues.password}
-            error={loginErrors.password}
+            error={say(loginErrors.password)}
             onChange={(value) => {
               setLoginValues((current) => ({ ...current, password: value }));
-              setLoginErrors((current) => ({ ...current, password: "", form: "" }));
+              setLoginErrors((current) => ({
+                ...current,
+                password: undefined,
+                form: undefined,
+              }));
             }}
           />
 
           {loginErrors.form ? (
-            <FormMessage tone="danger">{loginErrors.form}</FormMessage>
+            <FormMessage tone="danger">{t.validation[loginErrors.form]}</FormMessage>
           ) : null}
 
           <button
             type="submit"
-            className="primary-button w-full justify-center"
+            className="btn btn-primary btn-lg btn-block mt-1"
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Signing in..." : "Sign in"}
+            {isSubmitting ? t.submitSignInBusy : t.submitSignIn}
           </button>
         </form>
       ) : (
-        <form className="mt-6 space-y-5" onSubmit={handleRegisterSubmit}>
+        <form className="mt-6 flex flex-col gap-4" onSubmit={handleRegisterSubmit}>
           <Field
-            label="Email"
+            label={t.email}
             type="email"
             autoComplete="email"
             value={registerValues.email}
-            error={registerErrors.email}
+            error={say(registerErrors.email)}
             onChange={(value) => {
               setRegisterValues((current) => ({ ...current, email: value }));
-              setRegisterErrors((current) => ({ ...current, email: "", form: "" }));
+              setRegisterErrors((current) => ({
+                ...current,
+                email: undefined,
+                form: undefined,
+              }));
             }}
           />
 
           <Field
-            label="Password"
+            label={t.password}
             type="password"
             autoComplete="new-password"
             value={registerValues.password}
-            hint={passwordHint}
-            error={registerErrors.password}
+            hint={t.passwordHint}
+            error={say(registerErrors.password)}
             onChange={(value) => {
               setRegisterValues((current) => ({ ...current, password: value }));
               setRegisterErrors((current) => ({
                 ...current,
-                password: "",
-                confirmPassword: "",
-                form: "",
+                password: undefined,
+                confirmPassword: undefined,
+                form: undefined,
               }));
             }}
           />
 
           <Field
-            label="Confirm password"
+            label={t.confirmPassword}
             type="password"
             autoComplete="new-password"
             value={registerValues.confirmPassword}
-            error={registerErrors.confirmPassword}
+            error={say(registerErrors.confirmPassword)}
             onChange={(value) => {
-              setRegisterValues((current) => ({
-                ...current,
-                confirmPassword: value,
-              }));
+              setRegisterValues((current) => ({ ...current, confirmPassword: value }));
               setRegisterErrors((current) => ({
                 ...current,
-                confirmPassword: "",
-                form: "",
+                confirmPassword: undefined,
+                form: undefined,
               }));
             }}
           />
 
           {registerErrors.form ? (
-            <FormMessage tone="danger">{registerErrors.form}</FormMessage>
+            <FormMessage tone="danger">{t.validation[registerErrors.form]}</FormMessage>
           ) : null}
 
           <button
             type="submit"
-            className="primary-button w-full justify-center"
+            className="btn btn-primary btn-lg btn-block mt-1"
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Creating account..." : "Create account"}
+            {isSubmitting ? t.submitSignUpBusy : t.submitSignUp}
           </button>
         </form>
       )}
 
-      <div className="mt-6 text-sm text-white/64">
-        {mode === "login" ? "Don't have an account?" : "Already have an account?"}{" "}
+      <p className="mt-6 text-sm text-muted">
+        {mode === "login" ? t.noAccount : t.hasAccount}{" "}
         <button
           type="button"
-          className="font-medium text-cyan-200 transition hover:text-cyan-100"
+          className="font-display font-semibold text-accent hover:underline"
           onClick={() => switchMode(mode === "login" ? "register" : "login")}
         >
-          {mode === "login" ? "Sign up now" : "Sign in"}
+          {mode === "login" ? t.switchToSignUp : t.switchToSignIn}
         </button>
-      </div>
+      </p>
 
-      <div className="mt-4 text-sm leading-7 text-white/50">
-        By continuing, you agree to Sayvela&apos;s data protection and secure authentication practices.
-        <span className="mx-2 text-white/25">•</span>
-        <Link href="/" className="text-white/70 transition hover:text-white">
-          Back to the landing page
+      <p className="mt-4 border-t border-line pt-4 text-xs leading-5 text-faint">
+        {t.legal}{" "}
+        <Link href="/" className="text-muted hover:text-ink">
+          {t.backHome}
         </Link>
-      </div>
+      </p>
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { LandingHeader } from "@/components/landing/LandingHeader";
+import { AppShell } from "@/components/layout/AppShell";
 import { BillingSuccessGate } from "@/components/billing/BillingSuccessGate";
 import { buildPathWithQuery, requireAuth } from "@/lib/auth-guard";
 
@@ -12,19 +12,8 @@ export default async function BillingSuccessPage({ searchParams }: BillingSucces
   await requireAuth(callbackUrl);
 
   return (
-    <main className="relative flex-1">
-      <LandingHeader />
-
-      <div className="relative overflow-hidden">
-        <div className="page-glow page-glow-top" />
-        <div className="page-glow page-glow-bottom" />
-
-        <section className="mx-auto w-full max-w-6xl px-6 pb-16 pt-14 sm:px-8 lg:pt-20">
-          <div className="glass-panel p-10">
-            <BillingSuccessGate />
-          </div>
-        </section>
-      </div>
-    </main>
+    <AppShell width="narrow">
+      <BillingSuccessGate />
+    </AppShell>
   );
 }

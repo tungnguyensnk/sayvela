@@ -1,3 +1,7 @@
+"use client";
+
+import { useId } from "react";
+
 interface FieldProps {
   autoComplete?: string;
   error?: string;
@@ -17,14 +21,14 @@ export function Field({
   type = "text",
   value,
 }: FieldProps) {
-  const fieldId = `field-${label.toLowerCase().replace(/\s+/g, "-")}`;
+  const fieldId = useId();
   const hintId = `${fieldId}-hint`;
   const errorId = `${fieldId}-error`;
   const describedBy = [hint ? hintId : "", error ? errorId : ""].filter(Boolean).join(" ");
 
   return (
-    <div>
-      <label htmlFor={fieldId} className="mb-2 block text-sm font-medium text-white/82">
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={fieldId} className="font-display text-sm font-medium">
         {label}
       </label>
       <input
@@ -35,19 +39,15 @@ export function Field({
         onChange={(event) => onChange(event.target.value)}
         aria-invalid={Boolean(error)}
         aria-describedby={describedBy || undefined}
-        className={`w-full rounded-3xl border bg-white/8 px-4 py-3.5 text-base text-white outline-none transition placeholder:text-white/30 ${
-          error
-            ? "border-rose-300/50 shadow-[0_0_0_1px_rgba(251,113,133,0.35)]"
-            : "border-white/12 focus:border-cyan-200/44 focus:bg-white/10"
-        }`}
+        className="field"
       />
       {hint ? (
-        <p id={hintId} className="mt-2 text-sm text-white/46">
+        <p id={hintId} className="text-xs leading-5 text-faint">
           {hint}
         </p>
       ) : null}
       {error ? (
-        <p id={errorId} className="mt-2 text-sm text-rose-200">
+        <p id={errorId} className="text-xs font-medium text-crit">
           {error}
         </p>
       ) : null}

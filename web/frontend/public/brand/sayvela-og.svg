@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#0b0c0e" />
+
+  <!-- vạch chia mảnh, gợi thang đo -->
+  <g stroke="#23272d" stroke-width="1">
+    <line x1="0" y1="118" x2="1200" y2="118" />
+    <line x1="0" y1="512" x2="1200" y2="512" />
+    <line x1="92" y1="0" x2="92" y2="630" />
+  </g>
+
+  <!-- mark -->
+  <g transform="translate(140 58) scale(1.25)">
+    <path d="M9 25C19 10 39 7 55 14c-9 4-16 7-23 13-7 6-16 6-23-2z" fill="#7fa7f5" />
+    <path d="M55 39C45 54 25 57 9 50c9-4 16-7 23-13 7-6 16-6 23 2z" fill="#f3a950" />
+  </g>
+  <text x="235" y="98" fill="#eceef0" font-family="Arial Narrow, Arial, Helvetica, sans-serif"
+        font-size="34" font-weight="bold" letter-spacing="3.4">SAYVELA</text>
+
+  <!-- luận đề -->
+  <text x="140" y="252" fill="#eceef0" font-family="Arial Narrow, Arial, Helvetica, sans-serif"
+        font-size="68" font-weight="bold">Everyone in the room,</text>
+  <text x="140" y="326" fill="#eceef0" font-family="Arial Narrow, Arial, Helvetica, sans-serif"
+        font-size="68" font-weight="bold">in your language —</text>
+  <text x="140" y="400" fill="#f3a950" font-family="Arial Narrow, Arial, Helvetica, sans-serif"
+        font-size="68" font-weight="bold">as they speak.</text>
+
+  <!-- dải chân -->
+  <text x="140" y="570" fill="#9aa2aa" font-family="Consolas, Menlo, monospace"
+        font-size="23" letter-spacing="1.6">DUAL CAPTURE · SPEAKER LABELLING · TRANSLATION PLAYBACK</text>
+
+  <!-- đo mức hai làn -->
+  <g transform="translate(872 208) scale(0.92)">
+    <line x1="0" y1="130" x2="300" y2="130" stroke="#23272d" stroke-width="2" />
+    <g fill="#7fa7f5">
+      <rect x="6" y="66" width="10" height="56" /><rect x="30" y="34" width="10" height="88" />
+      <rect x="54" y="86" width="10" height="36" /><rect x="78" y="50" width="10" height="72" />
+      <rect x="102" y="94" width="10" height="28" /><rect x="126" y="42" width="10" height="80" />
+      <rect x="150" y="74" width="10" height="48" /><rect x="174" y="26" width="10" height="96" />
+      <rect x="198" y="82" width="10" height="40" /><rect x="222" y="58" width="10" height="64" />
+      <rect x="246" y="90" width="10" height="32" /><rect x="270" y="46" width="10" height="76" />
+    </g>
+    <g fill="#f3a950">
+      <rect x="6" y="138" width="10" height="40" /><rect x="30" y="138" width="10" height="68" />
+      <rect x="54" y="138" width="10" height="24" /><rect x="78" y="138" width="10" height="84" />
+      <rect x="102" y="138" width="10" height="46" /><rect x="126" y="138" width="10" height="30" />
+      <rect x="150" y="138" width="10" height="72" /><rect x="174" y="138" width="10" height="38" />
+      <rect x="198" y="138" width="10" height="90" /><rect x="222" y="138" width="10" height="28" />
+      <rect x="246" y="138" width="10" height="60" /><rect x="270" y="138" width="10" height="44" />
+    </g>
+  </g>
+</svg>

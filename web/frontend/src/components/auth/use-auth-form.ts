@@ -1,12 +1,12 @@
 import { signIn } from "next-auth/react";
-import { useMemo, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { getPublicApiUrl } from "@/lib/api";
 import {
   type AuthErrors,
   type AuthMode,
   type LoginValues,
   type RegisterValues,
-  getAuthErrorMessage,
+  getAuthErrorKey,
   normalizeAuthMode,
   validateLoginValues,
   validateRegisterValues,
@@ -47,19 +47,14 @@ export function useAuthForm({
   const [registerValues, setRegisterValues] = useState(defaultRegisterValues);
   const [loginErrors, setLoginErrors] = useState<AuthErrors<LoginValues>>({});
   const [registerErrors, setRegisterErrors] = useState<AuthErrors<RegisterValues>>({});
-  const [successMessage, setSuccessMessage] = useState("");
+  const [registered, setRegistered] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const safeCallbackUrl = callbackUrl?.trim() ? callbackUrl.trim() : "/";
-
-  const passwordHint = useMemo(
-    () => "At least 8 characters, including uppercase and lowercase letters, a number, and a special character.",
-    [],
-  );
 
   const switchMode = (nextMode: AuthMode, preserveMessage = false) => {
     setMode(nextMode);
     if (!preserveMessage) {
-      setSuccessMessage("");
+      setRegistered(false);
     }
     const nextCallbackParam = safeCallbackUrl === "/" ? "" : `&callbackUrl=${encodeURIComponent(safeCallbackUrl)}`;
     router.replace(`/auth?mode=${nextMode}${nextCallbackParam}`);
@@ -69,7 +64,7 @@ export function useAuthForm({
     event.preventDefault();
     const errors = validateLoginValues(loginValues);
     setLoginErrors(errors);
-    setSuccessMessage("");
+    setRegistered(false);
 
     if (Object.keys(errors).length > 0) {
       return;
@@ -86,7 +81,7 @@ export function useAuthForm({
 
       if (!result || result.error || result.ok === false) {
         setLoginErrors({
-          form: getAuthErrorMessage(result?.error ?? "invalid credentials"),
+          form: getAuthErrorKey(result?.error ?? "invalid credentials"),
         });
         return;
       }
@@ -114,7 +109,7 @@ export function useAuthForm({
       router.refresh();
     } catch (error) {
       setLoginErrors({
-        form: getAuthErrorMessage(error instanceof Error ? error.message : "unknown error"),
+        form: getAuthErrorKey(error instanceof Error ? error.message : "unknown error"),
       });
     } finally {
       setIsSubmitting(false);
@@ -125,7 +120,7 @@ export function useAuthForm({
     event.preventDefault();
     const errors = validateRegisterValues(registerValues);
     setRegisterErrors(errors);
-    setSuccessMessage("");
+    setRegistered(false);
 
     if (Object.keys(errors).length > 0) {
       return;
@@ -146,7 +141,7 @@ export function useAuthForm({
 
       if (!response.ok) {
         const message = await response.text();
-        setRegisterErrors({ form: getAuthErrorMessage(message) });
+        setRegisterErrors({ form: getAuthErrorKey(message) });
         return;
       }
 
@@ -156,11 +151,11 @@ export function useAuthForm({
         email: registerValues.email,
       }));
       setRegisterErrors({});
-      setSuccessMessage("Account created successfully. You can sign in now.");
+      setRegistered(true);
       switchMode("login", true);
     } catch (error) {
       setRegisterErrors({
-        form: getAuthErrorMessage(error instanceof Error ? error.message : "network error"),
+        form: getAuthErrorKey(error instanceof Error ? error.message : "network error"),
       });
     } finally {
       setIsSubmitting(false);
@@ -173,9 +168,8 @@ export function useAuthForm({
     registerValues,
     loginErrors,
     registerErrors,
-    successMessage,
+    registered,
     isSubmitting,
-    passwordHint,
     setLoginValues,
     setRegisterValues,
     setLoginErrors,

@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { ActionButton } from "../astryx/AstryxControls";
 import { TranscriptGrid } from "./TranscriptGrid";
 
+// how far from the bottom still counts as following the conversation
+const NEAR_BOTTOM_PX = 24;
+
 // main component for displaying transcript segments and managing auto-scroll behavior
 export function TranscriptPanel({
   transcriptGroups,
@@ -18,7 +21,6 @@ export function TranscriptPanel({
   const [autoScroll, setAutoScroll] = useState(true);
   const [streamingSince, setStreamingSince] = useState({ loopback: 0, mic: 0 });
   const scrollRef = useRef(null);
-  const autoScrollingRef = useRef(false);
 
   // formats byte counts into compact kilobyte labels
   const kbLabel = (bytes) => `${Math.round((bytes || 0) / 1024)} KB`;
@@ -30,15 +32,19 @@ export function TranscriptPanel({
     return since && Date.now() - since >= 1000 ? kbLabel(bytes) : status;
   };
 
-  // smoothly scrolls the transcript view to the bottom
+  // scrolls the transcript view to the bottom
   const scrollToBottom = () => {
     const el = scrollRef.current;
     if (!el) return;
-    autoScrollingRef.current = true;
     el.scrollTop = el.scrollHeight;
-    requestAnimationFrame(() => {
-      autoScrollingRef.current = false;
-    });
+  };
+
+  // auto scroll always parks the view at the bottom, so sitting away from it can
+  // only be the result of the reader scrolling inside the transcript themselves
+  const isNearBottom = () => {
+    const el = scrollRef.current;
+    if (!el) return true;
+    return el.scrollHeight - el.scrollTop - el.clientHeight <= NEAR_BOTTOM_PX;
   };
 
   useEffect(() => {
@@ -93,14 +99,11 @@ export function TranscriptPanel({
           className="transcript-scroll"
           ref={scrollRef}
           onScroll={() => {
-            if (autoScrollingRef.current) return;
-            if (autoScroll) setAutoScroll(false);
+            if (autoScroll && !isNearBottom()) setAutoScroll(false);
           }}
-          onWheel={() => {
-            if (autoScroll) setAutoScroll(false);
-          }}
-          onTouchStart={() => {
-            if (autoScroll) setAutoScroll(false);
+          onWheel={(e) => {
+            // scrolling up inside the transcript means the reader wants to look back
+            if (autoScroll && e.deltaY < 0) setAutoScroll(false);
           }}
         >
           <div className="transcript-grid">

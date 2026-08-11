@@ -1,9 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
-export function BillingSuccessRedirect({ delayMs = 5000 }: { delayMs?: number }) {
+/**
+ * Đếm ngược rồi chuyển trang. Câu chữ do phía gọi quyết định qua `render`,
+ * để mỗi ngôn ngữ đặt con số vào đúng chỗ trong câu.
+ */
+export function BillingSuccessRedirect({
+  delayMs = 5000,
+  render,
+}: {
+  delayMs?: number;
+  render?: (secondsLeft: number) => ReactNode;
+}) {
   const { replace } = useRouter();
   const endAtRef = useRef<number | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(() =>
@@ -29,7 +39,7 @@ export function BillingSuccessRedirect({ delayMs = 5000 }: { delayMs?: number })
 
   return (
     <span aria-live="polite" aria-atomic="true">
-      {secondsLeft}
+      {render ? render(secondsLeft) : secondsLeft}
     </span>
   );
 }

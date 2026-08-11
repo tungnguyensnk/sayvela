@@ -1,5 +1,5 @@
 import {
-  getAuthErrorMessage,
+  getAuthErrorKey,
   normalizeAuthMode,
   validateLoginValues,
   validateRegisterValues,
@@ -19,8 +19,8 @@ describe("auth-validation", () => {
         password: "",
       }),
     ).toEqual({
-      email: "Enter a valid email address.",
-      password: "Please enter your password.",
+      email: "emailInvalid",
+      password: "passwordRequired",
     });
   });
 
@@ -32,20 +32,15 @@ describe("auth-validation", () => {
         confirmPassword: "different",
       }),
     ).toEqual({
-      password: "Password must include uppercase and lowercase letters, a number, and a special character.",
-      confirmPassword: "Passwords do not match.",
+      password: "passwordWeak",
+      confirmPassword: "confirmMismatch",
     });
   });
 
-  it("maps auth errors to user-friendly messages", () => {
-    expect(getAuthErrorMessage("email already exists")).toBe(
-      "This email is already in use.",
-    );
-    expect(getAuthErrorMessage("invalid credentials")).toBe(
-      "Incorrect email or password.",
-    );
-    expect(getAuthErrorMessage("failed to fetch")).toBe(
-      "Unable to connect to the server. Please try again.",
-    );
+  it("maps backend errors to message keys", () => {
+    expect(getAuthErrorKey("email already exists")).toBe("emailTaken");
+    expect(getAuthErrorKey("invalid credentials")).toBe("badCredentials");
+    expect(getAuthErrorKey("failed to fetch")).toBe("network");
+    expect(getAuthErrorKey("teapot")).toBe("unknown");
   });
 });

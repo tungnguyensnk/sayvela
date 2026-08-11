@@ -3,46 +3,41 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { LandingPage } from "@/components/landing/LandingPage";
 import { authOptions } from "@/lib/auth";
+import { getServerI18n } from "@/i18n/server";
+import { LOCALE_TAGS } from "@/i18n/config";
 
-export const metadata: Metadata = {
-  title: "Sayvela | Real-Time Voice Translation & Transcription",
-  description:
-    "Translate speech, transcribe in real time, identify speakers, and play back translations in one modern workspace.",
-  keywords: [
-    "real-time voice translation",
-    "speech transcription",
-    "speaker diarization",
-    "multilingual meetings",
-    "Sayvela",
-  ],
-  alternates: {
-    canonical: "/",
-  },
-  openGraph: {
-    title: "Sayvela | Real-time voice translation",
-    description:
-      "Real-time transcription and translation for multilingual meetings.",
-    url: "/",
-    siteName: "Sayvela",
-    images: [
-      {
-        url: "/sayvela-og.svg",
-        width: 1200,
-        height: 630,
-        alt: "Sayvela realtime translation platform",
-      },
-    ],
-    locale: "en_US",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Sayvela | Real-time voice translation",
-    description:
-      "Dual-audio capture, transcription, translation, speaker diarization, and TTS in one workflow.",
-    images: ["/sayvela-og.svg"],
-  },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { locale, m } = await getServerI18n();
+
+  return {
+    title: m.meta.home.title,
+    description: m.meta.home.description,
+    alternates: { canonical: "/" },
+    openGraph: {
+      title: m.meta.home.ogTitle,
+      description: m.meta.home.ogDescription,
+      url: "/",
+      siteName: "Sayvela",
+      images: [
+        {
+          url: "/sayvela-og.png",
+          type: "image/png",
+          width: 1200,
+          height: 630,
+          alt: m.meta.home.ogTitle,
+        },
+      ],
+      locale: LOCALE_TAGS[locale].replace("-", "_"),
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: m.meta.home.ogTitle,
+      description: m.meta.home.ogDescription,
+      images: ["/sayvela-og.png"],
+    },
+  };
+}
 
 export default async function Home() {
   const session = await getServerSession(authOptions);

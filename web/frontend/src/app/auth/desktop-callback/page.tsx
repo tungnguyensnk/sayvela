@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { DesktopCallbackView } from "./DesktopCallbackView";
+import { getServerI18n } from "@/i18n/server";
 
-export const metadata: Metadata = {
-  title: "Mở lại Sayvela | Đăng nhập thành công",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const { m } = await getServerI18n();
+  return {
+    title: m.meta.desktopCallback,
+    robots: { index: false, follow: false },
+  };
+}
 
 export default function DesktopCallbackPage() {
   return (
-    <main className="relative flex min-h-screen flex-1 items-center justify-center overflow-hidden px-6 py-10">
-      <div className="page-glow page-glow-top" />
-      <div className="page-glow page-glow-bottom" />
+    <main className="flex min-h-dvh flex-1 items-center justify-center px-5 py-10">
       <Suspense>
         <DesktopCallbackView />
       </Suspense>

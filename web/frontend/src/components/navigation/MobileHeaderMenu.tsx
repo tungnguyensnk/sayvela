@@ -12,6 +12,11 @@ import {
 import { AuthActions } from "@/components/landing/AuthActions";
 import { PlanStatus } from "@/components/navigation/PlanStatus";
 import { UserMenu } from "@/components/navigation/UserMenu";
+import { SayvelaBrand } from "@/components/brand/SayvelaBrand";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { LanguageSwitcher } from "@/components/i18n/LanguageSwitcher";
+import { useI18n } from "@/i18n/client";
+import { CloseIcon, MenuIcon } from "@/components/ui/icons";
 
 type MobileHeaderMenuProps = {
   variant: "marketing" | "app";
@@ -30,8 +35,13 @@ function isItemActive(item: NavItem, pathname: string | null, hash: string = "")
   return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 
-export function MobileHeaderMenu({ variant, activePathname, activeHash = "" }: MobileHeaderMenuProps) {
+export function MobileHeaderMenu({
+  variant,
+  activePathname,
+  activeHash = "",
+}: MobileHeaderMenuProps) {
   const { status } = useSession();
+  const { m } = useI18n();
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -40,8 +50,7 @@ export function MobileHeaderMenu({ variant, activePathname, activeHash = "" }: M
     if (!open) return;
 
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
-      setOpen(false);
+      if (event.key === "Escape") setOpen(false);
     }
 
     window.addEventListener("keydown", onKeyDown);
@@ -52,24 +61,27 @@ export function MobileHeaderMenu({ variant, activePathname, activeHash = "" }: M
   const secondaryItems = variant === "app" ? appSecondaryNavItems : [];
 
   return (
-    <div className="lg:hidden">
+    <div className="ml-auto flex items-center gap-1 lg:hidden">
+      <LanguageSwitcher />
+      <ThemeToggle />
       <button
         type="button"
-        className="glass-button min-h-[3.25rem] px-4"
+        className="btn btn-ghost h-8 w-8 px-0"
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={panelId}
+        aria-label={m.nav.openMenu}
         onClick={() => setOpen(true)}
       >
-        Menu
+        <MenuIcon />
       </button>
 
       {open ? (
         <div className="fixed inset-0 z-50">
           <button
             type="button"
-            className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
-            aria-label="Close menu"
+            className="absolute inset-0 bg-ink/35 backdrop-blur-sm"
+            aria-label={m.nav.closeMenu}
             onClick={() => setOpen(false)}
           />
           <div
@@ -77,43 +89,42 @@ export function MobileHeaderMenu({ variant, activePathname, activeHash = "" }: M
             ref={panelRef}
             role="dialog"
             aria-modal="true"
-            className="absolute left-4 right-4 top-4 rounded-3xl border border-white/12 bg-slate-950/78 p-5 shadow-2xl backdrop-blur-xl"
+            className="absolute inset-x-0 top-0 max-h-full overflow-y-auto border-b border-line bg-surface p-5 shadow-float"
           >
             <div className="flex items-center justify-between gap-3">
-              <div className="text-sm font-semibold text-white/90">Navigation</div>
+              <SayvelaBrand size="sm" />
               <button
                 type="button"
-                className="glass-button min-h-[2.75rem] px-4 text-sm"
+                className="btn btn-ghost h-8 w-8 px-0"
+                aria-label={m.nav.closeMenu}
                 onClick={() => setOpen(false)}
               >
-                Close
+                <CloseIcon />
               </button>
             </div>
 
-            <div className="mt-4 flex flex-col gap-2">
+            <div className="mt-5 flex flex-col gap-1">
               {navItems.map((item) => (
                 <NavItemLink
-                  key={`${item.label}-${item.href}`}
+                  key={item.id}
                   item={item}
+                  variant="row"
                   isActive={isItemActive(item, activePathname, activeHash)}
-                  className="w-full justify-between px-4 py-3"
                   onNavigate={() => setOpen(false)}
                 />
               ))}
             </div>
 
             {secondaryItems.length > 0 ? (
-              <div className="mt-5 border-t border-white/10 pt-5">
-                <div className="mb-2 text-xs font-semibold uppercase tracking-widest text-white/50">
-                  More
-                </div>
-                <div className="flex flex-col gap-2">
+              <div className="mt-5 border-t border-line pt-4">
+                <div className="eyebrow mb-2 px-3">{m.nav.comingSoon}</div>
+                <div className="flex flex-col gap-1">
                   {secondaryItems.map((item) => (
                     <NavItemLink
-                      key={`${item.label}-${item.href}`}
+                      key={item.id}
                       item={item}
+                      variant="row"
                       isActive={isItemActive(item, activePathname, activeHash)}
-                      className="w-full justify-between px-4 py-3"
                       onNavigate={() => setOpen(false)}
                     />
                   ))}
@@ -121,7 +132,7 @@ export function MobileHeaderMenu({ variant, activePathname, activeHash = "" }: M
               </div>
             ) : null}
 
-            <div className="mt-5 border-t border-white/10 pt-5">
+            <div className="mt-5 border-t border-line pt-4">
               {variant === "app" ? (
                 <div className="flex flex-col gap-3">
                   <PlanStatus compact />

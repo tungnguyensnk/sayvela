@@ -20,8 +20,8 @@ vi.mock("@/lib/auth", () => ({
   authOptions: {},
 }));
 
-vi.mock("@/components/landing/LandingHeader", () => ({
-  LandingHeader: () => null,
+vi.mock("@/components/layout/AppShell", () => ({
+  AppShell: ({ children }: { children: unknown }) => children,
 }));
 
 vi.mock("@/components/billing/BillingSuccessGate", () => ({

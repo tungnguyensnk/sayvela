@@ -1,99 +1,66 @@
 import Link from "next/link";
-import type { LandingTrustStat } from "@/components/landing/landing-content";
+import type { Messages } from "@/i18n/messages";
+import { ConsolePreview } from "@/components/landing/ConsolePreview";
+import { ArrowRightIcon } from "@/components/ui/icons";
 
-export function HeroSection({ trustStats }: { trustStats: LandingTrustStat[] }) {
+/**
+ * Tiêu đề là một chuỗi duy nhất trong từ điển, phần được nhấn nằm giữa [[…]].
+ * Nhờ vậy mỗi ngôn ngữ tự quyết định dấu câu và khoảng trắng của mình.
+ */
+function splitHeadline(title: string) {
+  const match = title.match(/^([\S\s]*?)\[\[([\S\s]+?)\]\]([\S\s]*)$/);
+  if (!match) return { lead: title, accent: "", tail: "" };
+  return { lead: match[1], accent: match[2], tail: match[3] };
+}
+
+export function HeroSection({ m }: { m: Messages }) {
+  const hero = m.landing.hero;
+  const { lead, accent, tail } = splitHeadline(hero.title);
+  const stats = [m.landing.stats.latency, m.landing.stats.channels, m.landing.stats.security];
+
   return (
-    <section className="mx-auto grid w-full max-w-6xl gap-12 px-6 pb-12 pt-14 sm:px-8 lg:grid-cols-[1.1fr_0.9fr] lg:pt-20">
-      <div className="flex flex-col justify-center">
-        <div className="glass-chip w-fit border-cyan-500/30 text-cyan-200">🚀 AI Voice Intelligence Platform</div>
-        <h1 className="mt-6 max-w-3xl text-4xl font-bold tracking-tight text-white sm:text-5xl lg:text-6xl leading-[1.1]">
-          Break language barriers with <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-400 to-violet-400">real-time AI</span>
-        </h1>
-        <p className="mt-6 max-w-2xl text-base leading-8 text-white/72 sm:text-lg">
-          Analyze, translate, and synthesize speech with near-zero latency and enterprise-grade security.
-        </p>
+    <section id="hero" className="border-b border-line">
+      <div className="mx-auto grid w-full max-w-6xl items-center gap-12 px-5 pb-16 pt-14 sm:px-8 lg:grid-cols-[1fr_minmax(0,25rem)] lg:gap-14 lg:pb-24 lg:pt-20">
+        <div className="flex flex-col items-start">
+          <span className="eyebrow text-accent">{hero.eyebrow}</span>
 
-        <div className="mt-8 flex flex-wrap gap-4">
-          <Link href="/auth?mode=register" className="primary-button">
-            Start free
-          </Link>
-          <Link href="/pricing" className="glass-button">
-            View pricing
-          </Link>
-          <a href="#features" className="glass-button">
-            Explore features
-          </a>
-        </div>
+          <h1 className="mt-4 text-4xl sm:text-5xl lg:text-[3.375rem]">
+            {lead}
+            <span className="text-accent">{accent}</span>
+            {tail}
+          </h1>
 
-        <div className="mt-10 grid gap-4 sm:grid-cols-3">
-          {trustStats.map((stat) => (
-            <div key={stat.label} className="glass-panel-muted p-5">
-              <div className="text-2xl font-semibold text-white">{stat.value}</div>
-              <div className="mt-2 text-sm text-white/62">{stat.label}</div>
-            </div>
-          ))}
-        </div>
-      </div>
+          <p className="measure mt-5 text-base leading-7 text-muted sm:text-[1.0625rem]">
+            {hero.lede}
+          </p>
 
-      <div className="relative">
-        <div className="floating-orb left-5 top-5" />
-        <div className="floating-orb floating-orb-secondary bottom-10 right-8" />
-
-        <div className="glass-panel hero-visual relative overflow-hidden p-6 sm:p-8">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <div className="text-xs uppercase tracking-[0.24em] text-cyan-200/72">Live workspace</div>
-              <div className="mt-2 text-2xl font-semibold text-white">Real-time transcription workspace</div>
-            </div>
-            <div className="glass-chip">Speaker lanes</div>
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link href="/auth?mode=register" className="btn btn-primary btn-lg">
+              {hero.primary}
+              <ArrowRightIcon width={16} height={16} />
+            </Link>
+            <Link href="/pricing" className="btn btn-secondary btn-lg">
+              {hero.secondary}
+            </Link>
           </div>
 
-          <div className="mt-8 grid gap-4">
-            <div className="glass-panel-muted p-5">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-sm font-medium text-white/70">System audio</div>
-                  <div className="mt-2 text-lg text-white">
-                    “We need the Japanese translation for the meeting notes.”
-                  </div>
-                </div>
-                <div className="h-11 w-11 rounded-2xl bg-cyan-400/14 ring-1 ring-cyan-200/28" />
+          <dl className="mt-10 grid w-full grid-cols-1 border-t border-line sm:grid-cols-3">
+            {stats.map((stat) => (
+              <div
+                key={stat.label}
+                className="border-b border-line py-4 sm:border-b-0 sm:border-l sm:px-5 sm:first:border-l-0 sm:first:pl-0"
+              >
+                <dt className="text-xs text-faint">{stat.label}</dt>
+                <dd className="tabular mt-1.5 text-base font-medium text-ink">
+                  {stat.value}
+                </dd>
               </div>
-              <div className="mt-4 h-1.5 rounded-full bg-white/10">
-                <div className="h-full w-3/4 rounded-full bg-gradient-to-r from-cyan-300 via-sky-300 to-violet-400" />
-              </div>
-            </div>
+            ))}
+          </dl>
+        </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="glass-panel-muted p-5">
-                <div className="text-sm text-white/62">Transcript</div>
-                <div className="mt-3 text-sm leading-7 text-white/80">
-                  こんにちは。会議メモの翻訳をすぐに共有します。
-                </div>
-              </div>
-              <div className="glass-panel-muted p-5">
-                <div className="text-sm text-white/62">Translation</div>
-                <div className="mt-3 text-sm leading-7 text-white/80">
-                  Hello, I’ll share the translated meeting notes now.
-                </div>
-              </div>
-            </div>
-
-            <div className="glass-panel-muted p-5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <div className="text-sm text-white/62">Mic translation TTS</div>
-                  <div className="mt-2 text-base text-white">
-                    Japanese voice output · 1.0x · privacy protection enabled
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="h-2.5 w-2.5 rounded-full bg-emerald-300" />
-                  <span className="text-sm text-white/70">Live</span>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="w-full lg:justify-self-end">
+          <ConsolePreview />
         </div>
       </div>
     </section>

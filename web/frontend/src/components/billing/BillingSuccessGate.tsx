@@ -1,14 +1,63 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import { BillingSuccessRedirect } from "@/components/billing/BillingSuccessRedirect";
+import { useI18n } from "@/i18n/client";
+import { AlertIcon, CheckIcon, ClockIcon } from "@/components/ui/icons";
 
 type ViewState = "missing" | "verifying" | "paid" | "unpaid" | "invalid";
+type Tone = "ok" | "warn" | "crit" | "pending";
+
+const TONE: Record<Tone, { ring: string; icon: ReactNode }> = {
+  ok: { ring: "border-ok/30 bg-ok-soft text-ok", icon: <CheckIcon width={22} height={22} /> },
+  warn: {
+    ring: "border-warn/30 bg-warn-soft text-warn",
+    icon: <AlertIcon width={22} height={22} />,
+  },
+  crit: {
+    ring: "border-crit/30 bg-crit-soft text-crit",
+    icon: <AlertIcon width={22} height={22} />,
+  },
+  pending: {
+    ring: "border-line bg-raised text-muted",
+    icon: <ClockIcon width={22} height={22} />,
+  },
+};
+
+function StatusPanel({
+  tone,
+  eyebrow,
+  title,
+  description,
+  actions,
+}: {
+  tone: Tone;
+  eyebrow: string;
+  title: string;
+  description: ReactNode;
+  actions: ReactNode;
+}) {
+  return (
+    <div className="card p-8 sm:p-10">
+      <span
+        className={`flex h-12 w-12 items-center justify-center border ${TONE[tone].ring}`}
+      >
+        {TONE[tone].icon}
+      </span>
+      <div className="eyebrow mt-5">{eyebrow}</div>
+      <h1 className="mt-3 text-2xl sm:text-3xl">{title}</h1>
+      <p className="measure mt-3 text-sm leading-6 text-muted">{description}</p>
+      <div className="mt-7 flex flex-wrap gap-3">{actions}</div>
+    </div>
+  );
+}
 
 export function BillingSuccessGate() {
   const searchParams = useSearchParams();
+  const { m } = useI18n();
+  const s = m.billing.success;
   const [viewState, setViewState] = useState<ViewState>("verifying");
   const [canRetry, setCanRetry] = useState(false);
   const inflight = useRef(false);
@@ -62,89 +111,85 @@ export function BillingSuccessGate() {
 
   if (viewState === "missing") {
     return (
-      <>
-        <div className="section-eyebrow">Link không hợp lệ</div>
-        <h1 className="mt-4 text-3xl font-semibold text-white sm:text-4xl">Thiếu session_id</h1>
-        <p className="mt-4 max-w-3xl text-sm leading-7 text-white/68 sm:text-base">
-          Không tìm thấy thông tin phiên thanh toán. Vui lòng quay lại trang Pricing để thực hiện
-          thanh toán.
-        </p>
-        <div className="mt-8 flex flex-wrap gap-4">
-          <Link href="/pricing" className="primary-button">
-            Quay lại Pricing
-          </Link>
-          <Link href="/settings/billing" className="glass-button">
-            Tới Billing
-          </Link>
-        </div>
-      </>
+      <StatusPanel
+        tone="crit"
+        eyebrow={s.missingEyebrow}
+        title={s.missingTitle}
+        description={s.missingBody}
+        actions={
+          <>
+            <Link href="/pricing" className="btn btn-primary">
+              {s.backToPricing}
+            </Link>
+            <Link href="/settings/billing" className="btn btn-secondary">
+              {s.goBilling}
+            </Link>
+          </>
+        }
+      />
     );
   }
 
   if (viewState === "verifying") {
     return (
-      <>
-        <div className="section-eyebrow">Đang xác minh</div>
-        <h1 className="mt-4 text-3xl font-semibold text-white sm:text-4xl">
-          Đang kiểm tra thanh toán…
-        </h1>
-        <p className="mt-4 max-w-3xl text-sm leading-7 text-white/68 sm:text-base">
-          Hệ thống đang xác thực phiên thanh toán từ Stripe và đồng bộ subscription cho tài khoản.
-        </p>
-        <div className="mt-8 flex flex-wrap gap-4">
-          <Link href="/settings/billing" className="glass-button">
-            Tới Billing
+      <StatusPanel
+        tone="pending"
+        eyebrow={s.verifyingEyebrow}
+        title={s.verifyingTitle}
+        description={s.verifyingBody}
+        actions={
+          <Link href="/settings/billing" className="btn btn-secondary">
+            {s.goBilling}
           </Link>
-        </div>
-      </>
+        }
+      />
     );
   }
 
   if (viewState === "paid") {
     return (
-      <>
-        <div className="section-eyebrow">Xong rồi — thanh toán đã được ghi nhận</div>
-        <h1 className="mt-4 text-3xl font-semibold text-white sm:text-4xl">Gói của bạn đã sẵn sàng</h1>
-        <p className="mt-4 max-w-3xl text-sm leading-7 text-white/68 sm:text-base">
-          Bạn sẽ được tự động chuyển về Billing sau <BillingSuccessRedirect /> giây.
-        </p>
-        <div className="mt-8 flex flex-wrap gap-4">
-          <Link href="/settings/billing" className="primary-button">
-            Đi tới Billing
-          </Link>
-          <Link href="/" className="glass-button">
-            Về trang chủ
-          </Link>
-        </div>
-      </>
+      <StatusPanel
+        tone="ok"
+        eyebrow={s.paidEyebrow}
+        title={s.paidTitle}
+        description={<BillingSuccessRedirect render={(seconds) => s.paidBody(seconds)} />}
+        actions={
+          <>
+            <Link href="/settings/billing" className="btn btn-primary">
+              {s.goBilling}
+            </Link>
+            <Link href="/" className="btn btn-secondary">
+              {s.goHome}
+            </Link>
+          </>
+        }
+      />
     );
   }
 
-  const title =
-    viewState === "unpaid" ? "Thanh toán chưa hoàn tất" : "Không thể xác thực phiên thanh toán";
-  const description =
-    viewState === "unpaid"
-      ? "Phiên thanh toán này chưa ở trạng thái paid. Nếu bạn vừa thanh toán, hãy thử lại sau vài giây."
-      : "Link này không hợp lệ hoặc không thuộc về tài khoản hiện tại. Vui lòng quay lại Pricing để tạo phiên thanh toán mới.";
+  const unpaid = viewState === "unpaid";
 
   return (
-    <>
-      <div className="section-eyebrow">{viewState === "unpaid" ? "Chưa hoàn tất" : "Không hợp lệ"}</div>
-      <h1 className="mt-4 text-3xl font-semibold text-white sm:text-4xl">{title}</h1>
-      <p className="mt-4 max-w-3xl text-sm leading-7 text-white/68 sm:text-base">{description}</p>
-      <div className="mt-8 flex flex-wrap gap-4">
-        {canRetry ? (
-          <button type="button" className="primary-button" onClick={verify}>
-            Thử lại
-          </button>
-        ) : null}
-        <Link href="/pricing" className="glass-button">
-          Quay lại Pricing
-        </Link>
-        <Link href="/settings/billing" className="glass-button">
-          Tới Billing
-        </Link>
-      </div>
-    </>
+    <StatusPanel
+      tone={unpaid ? "warn" : "crit"}
+      eyebrow={unpaid ? s.unpaidEyebrow : s.invalidEyebrow}
+      title={unpaid ? s.unpaidTitle : s.invalidTitle}
+      description={unpaid ? s.unpaidBody : s.invalidBody}
+      actions={
+        <>
+          {canRetry ? (
+            <button type="button" className="btn btn-primary" onClick={verify}>
+              {m.common.retry}
+            </button>
+          ) : null}
+          <Link href="/pricing" className="btn btn-secondary">
+            {s.backToPricing}
+          </Link>
+          <Link href="/settings/billing" className="btn btn-ghost">
+            {s.goBilling}
+          </Link>
+        </>
+      }
+    />
   );
 }

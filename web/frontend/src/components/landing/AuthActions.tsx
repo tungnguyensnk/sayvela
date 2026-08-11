@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
+import { useI18n } from "@/i18n/client";
 
 interface AuthActionsProps {
   compact?: boolean;
@@ -9,66 +10,47 @@ interface AuthActionsProps {
 
 export function AuthActions({ compact = false }: AuthActionsProps) {
   const { data: session, status } = useSession();
-  const userEmail = session?.user?.email ?? session?.user?.name ?? "user";
+  const { m } = useI18n();
+  const userEmail = session?.user?.email ?? session?.user?.name ?? m.nav.account;
+  const wrapper = compact
+    ? "flex flex-col items-stretch gap-2"
+    : "flex flex-wrap items-center gap-2";
 
   if (status === "loading") {
     return (
-      <div
-        className={`flex ${
-          compact ? "flex-col items-stretch" : "flex-wrap items-center"
-        } gap-3`}
-        aria-busy="true"
-      >
-        <div className="glass-chip text-center text-sm text-white/80 animate-pulse">
-          Checking session…
-        </div>
-        <div
-          className="glass-button w-48 opacity-60 pointer-events-none"
-          aria-hidden="true"
-        />
-        <div
-          className="primary-button w-40 opacity-60 pointer-events-none"
-          aria-hidden="true"
-        />
+      <div className={wrapper} aria-busy="true">
+        <span className="chip">{m.nav.checkingSession}</span>
       </div>
     );
   }
 
   if (status === "authenticated") {
     return (
-      <div
-        className={`flex ${
-          compact ? "flex-col items-stretch" : "flex-wrap items-center"
-        } gap-3`}
-      >
-        <div className="glass-chip text-center text-sm text-white/80">
-          Active session · {userEmail}
-        </div>
-        <Link href="/settings/billing" className="glass-button text-center">
-          Manage
+      <div className={wrapper}>
+        <span className="chip chip-ok max-w-[16rem] truncate">
+          {m.nav.activeSession(userEmail)}
+        </span>
+        <Link href="/settings/billing" className="btn btn-secondary btn-sm">
+          {m.common.manage}
         </Link>
         <button
           type="button"
-          className="glass-button"
+          className="btn btn-ghost btn-sm"
           onClick={() => signOut({ callbackUrl: "/" })}
         >
-          Sign out
+          {m.nav.signOutShort}
         </button>
       </div>
     );
   }
 
   return (
-    <div
-      className={`flex ${
-        compact ? "flex-col items-stretch" : "flex-wrap items-center"
-      } gap-3`}
-    >
-      <Link href="/auth?mode=login" className="glass-button text-center">
-        Sign in
+    <div className={wrapper}>
+      <Link href="/auth?mode=login" className="btn btn-ghost">
+        {m.nav.signIn}
       </Link>
-      <Link href="/auth?mode=register" className="primary-button text-center">
-        Create account
+      <Link href="/auth?mode=register" className="btn btn-primary">
+        {m.nav.createAccount}
       </Link>
     </div>
   );

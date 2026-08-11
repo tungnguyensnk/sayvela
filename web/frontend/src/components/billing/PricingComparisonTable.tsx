@@ -6,143 +6,108 @@ import {
   BILLING_PLAN_MINUTES,
 } from "@/lib/billing-catalog";
 import { useEntitlement } from "@/lib/entitlement";
+import { useI18n } from "@/i18n/client";
 import { type Value, renderValue } from "@/components/billing/comparison-values";
 
-const rows: Array<{
-  label: string;
-  free: Value;
-  lite: Value;
-  pro: Value;
-  enterprise: Value;
-}> = [
-  {
-    label: "Phút mỗi tháng",
-    free: { kind: "text", text: `${BILLING_PLAN_MINUTES.free}` },
-    lite: { kind: "text", text: `${BILLING_PLAN_MINUTES.lite}` },
-    pro: { kind: "text", text: `${BILLING_PLAN_MINUTES.pro}` },
-    enterprise: { kind: "custom" },
-  },
-  {
-    label: "Transcription + translation",
-    free: { kind: "yes" },
-    lite: { kind: "yes" },
-    pro: { kind: "yes" },
-    enterprise: { kind: "custom" },
-  },
-  {
-    label: "Dual audio",
-    free: { kind: "no" },
-    lite: { kind: "no" },
-    pro: { kind: "yes" },
-    enterprise: { kind: "custom" },
-  },
-  {
-    label: "Speaker diarization",
-    free: { kind: "no" },
-    lite: { kind: "no" },
-    pro: { kind: "yes" },
-    enterprise: { kind: "custom" },
-  },
-  {
-    label: "Mic translation TTS",
-    free: { kind: "no" },
-    lite: { kind: "no" },
-    pro: { kind: "yes" },
-    enterprise: { kind: "custom" },
-  },
-  {
-    label: "Content protection",
-    free: { kind: "no" },
-    lite: { kind: "no" },
-    pro: { kind: "yes" },
-    enterprise: { kind: "custom" },
-  },
-  {
-    label: "Lưu history",
-    free: { kind: "text", text: `${BILLING_PLAN_HISTORY_DAYS.free} ngày` },
-    lite: { kind: "text", text: `${BILLING_PLAN_HISTORY_DAYS.lite} ngày` },
-    pro: { kind: "text", text: `${BILLING_PLAN_HISTORY_DAYS.pro} ngày` },
-    enterprise: { kind: "custom" },
-  },
-  {
-    label: "Billing portal self-serve",
-    free: { kind: "no" },
-    lite: { kind: "yes" },
-    pro: { kind: "yes" },
-    enterprise: { kind: "custom" },
-  },
-  {
-    label: "SSO/SAML",
-    free: { kind: "no" },
-    lite: { kind: "no" },
-    pro: { kind: "no" },
-    enterprise: { kind: "yes" },
-  },
-  {
-    label: "Audit log",
-    free: { kind: "no" },
-    lite: { kind: "no" },
-    pro: { kind: "no" },
-    enterprise: { kind: "yes" },
-  },
-  {
-    label: "Invoice / hợp đồng",
-    free: { kind: "no" },
-    lite: { kind: "no" },
-    pro: { kind: "no" },
-    enterprise: { kind: "yes" },
-  },
-];
+const YES: Value = { kind: "yes" };
+const NO: Value = { kind: "no" };
+const CUSTOM: Value = { kind: "custom" };
 
 export function PricingComparisonTable() {
   const { state } = useEntitlement();
+  const { m } = useI18n();
+  const c = m.pricing.comparison;
+
   const showUpgradeHint =
     state.kind === "ready" &&
     (state.entitlement.plan === "free" || state.entitlement.plan === "lite");
 
+  const rows: Array<{
+    label: string;
+    free: Value;
+    lite: Value;
+    pro: Value;
+    enterprise: Value;
+  }> = [
+    {
+      label: c.rows.minutes,
+      free: { kind: "text", text: `${BILLING_PLAN_MINUTES.free}` },
+      lite: { kind: "text", text: `${BILLING_PLAN_MINUTES.lite}` },
+      pro: { kind: "text", text: `${BILLING_PLAN_MINUTES.pro}` },
+      enterprise: CUSTOM,
+    },
+    { label: c.rows.transcription, free: YES, lite: YES, pro: YES, enterprise: CUSTOM },
+    { label: c.rows.dualAudio, free: NO, lite: NO, pro: YES, enterprise: CUSTOM },
+    { label: c.rows.diarization, free: NO, lite: NO, pro: YES, enterprise: CUSTOM },
+    { label: c.rows.tts, free: NO, lite: NO, pro: YES, enterprise: CUSTOM },
+    { label: c.rows.protection, free: NO, lite: NO, pro: YES, enterprise: CUSTOM },
+    {
+      label: c.rows.retention,
+      free: { kind: "text", text: m.common.days(BILLING_PLAN_HISTORY_DAYS.free) },
+      lite: { kind: "text", text: m.common.days(BILLING_PLAN_HISTORY_DAYS.lite) },
+      pro: { kind: "text", text: m.common.days(BILLING_PLAN_HISTORY_DAYS.pro) },
+      enterprise: CUSTOM,
+    },
+    { label: c.rows.portal, free: NO, lite: YES, pro: YES, enterprise: CUSTOM },
+    { label: c.rows.sso, free: NO, lite: NO, pro: NO, enterprise: YES },
+    { label: c.rows.audit, free: NO, lite: NO, pro: NO, enterprise: YES },
+    { label: c.rows.invoice, free: NO, lite: NO, pro: NO, enterprise: YES },
+  ];
+
+  const labels = { yes: c.yes, no: c.no, custom: c.customValue };
+
   return (
-    <div className="mt-12">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold text-white">So sánh chi tiết các gói</h2>
-          <p className="mt-3 max-w-3xl text-sm leading-7 text-white/62">
-            Đối chiếu nhanh quota và tính năng để chọn gói phù hợp nhất.
-          </p>
+          <h2 className="text-2xl">{c.title}</h2>
+          <p className="measure mt-2 text-sm leading-6 text-muted">{c.lede}</p>
         </div>
         {showUpgradeHint ? (
-          <Link href="/settings/billing" className="glass-button">
-            Nâng cấp ngay
+          <Link href="/settings/billing" className="btn btn-secondary">
+            {c.upgradeCta}
           </Link>
         ) : null}
       </div>
 
-      <div className="mt-6 overflow-x-auto">
-        <div className="min-w-[900px] glass-panel-muted p-2">
-          <table className="w-full border-separate border-spacing-0">
-            <thead>
-              <tr className="text-left text-xs font-medium uppercase tracking-wide text-white/55">
-                <th className="px-4 py-3">Tính năng</th>
-                <th className="px-4 py-3 text-center">Free</th>
-                <th className="px-4 py-3 text-center">Lite</th>
-                <th className="px-4 py-3 text-center">Pro</th>
-                <th className="px-4 py-3 text-center">Enterprise</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.label} className="border-t border-white/8">
-                  <td className="px-4 py-4 text-sm font-medium text-white/80">
-                    {row.label}
-                  </td>
-                  <td className="px-4 py-4 text-center">{renderValue(row.free)}</td>
-                  <td className="px-4 py-4 text-center">{renderValue(row.lite)}</td>
-                  <td className="px-4 py-4 text-center">{renderValue(row.pro)}</td>
-                  <td className="px-4 py-4 text-center">{renderValue(row.enterprise)}</td>
-                </tr>
+      <div className="scroll-x mt-6 border border-line bg-surface">
+        <table className="w-full min-w-[46rem] border-collapse text-left">
+          <thead>
+            <tr className="border-b border-line bg-raised">
+              <th scope="col" className="eyebrow px-5 py-3">
+                {c.feature}
+              </th>
+              {[m.plan.free, m.plan.lite, m.plan.pro, m.plan.enterprise].map((plan) => (
+                <th
+                  key={plan}
+                  scope="col"
+                  className={`px-5 py-3 text-center font-display text-xs font-semibold ${
+                    plan === m.plan.pro ? "text-accent" : "text-muted"
+                  }`}
+                >
+                  {plan}
+                </th>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.label} className="border-b border-line last:border-b-0">
+                <th scope="row" className="px-5 py-3.5 text-sm font-medium text-ink">
+                  {row.label}
+                </th>
+                <td className="px-5 py-3.5 text-center">{renderValue(row.free, labels)}</td>
+                <td className="px-5 py-3.5 text-center">{renderValue(row.lite, labels)}</td>
+                <td className="bg-ai-soft/60 px-5 py-3.5 text-center">
+                  {renderValue(row.pro, labels)}
+                </td>
+                <td className="px-5 py-3.5 text-center">
+                  {renderValue(row.enterprise, labels)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );
