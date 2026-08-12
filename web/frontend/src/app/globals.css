@@ -253,6 +253,10 @@
     font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", YuGothic, "Noto Sans JP",
       Meiryo, var(--font-display), sans-serif;
     letter-spacing: 0;
+    /* Tiếng Nhật vốn ngắt dòng ở gần như mọi ký tự, nên tiêu đề dễ bị cắt giữa
+       một từ. auto-phrase ngắt theo cụm từ; trình duyệt chưa hỗ trợ thì rơi về
+       hành vi mặc định, không tệ hơn hiện tại. */
+    word-break: auto-phrase;
   }
 
   p {

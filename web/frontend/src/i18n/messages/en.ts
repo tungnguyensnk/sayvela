@@ -8,7 +8,7 @@ export const en = {
         "Capture your microphone and system audio on separate channels, transcribe, translate and label speakers while the meeting runs. The bilingual transcript is ready the moment you hang up.",
       ogTitle: "Sayvela — Real-time meeting translation",
       ogDescription:
-        "Dual-channel capture, live transcription, translation and speaker labelling for multilingual meetings.",
+        "Their words land as text in your language; yours are spoken aloud in theirs.",
     },
     dashboard: "Overview — Sayvela",
     sessions: "Sessions — Sayvela",
@@ -101,8 +101,8 @@ export const en = {
   landing: {
     hero: {
       eyebrow: "Real-time meeting translation",
-      title: "Everyone in the room, in your language — [[as they speak]].",
-      lede: "Sayvela records your microphone and the call audio on two separate channels, then transcribes, translates and labels every speaker while the meeting is still running.",
+      title: "They speak theirs. You speak yours. [[Nobody waits]].",
+      lede: "Their words land as text in your language the moment they finish; yours are spoken aloud in theirs. No interpreter, and nobody has to fall back on a third language.",
       primary: "Start for free",
       secondary: "See pricing",
     },

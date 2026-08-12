@@ -6,7 +6,7 @@ export const vi = {
         "Thu song song micro và âm thanh hệ thống, ghi lời, dịch và gán người nói ngay trong cuộc họp. Biên bản song ngữ có ngay khi cuộc họp kết thúc.",
       ogTitle: "Sayvela — Phiên dịch hội thoại theo thời gian thực",
       ogDescription:
-        "Thu hai kênh, ghi lời, dịch và gán người nói cho các cuộc họp đa ngôn ngữ.",
+        "Lời họ hiện thành chữ trong tiếng của bạn; lời bạn được đọc ra bằng tiếng của họ.",
     },
     dashboard: "Tổng quan — Sayvela",
     sessions: "Phiên làm việc — Sayvela",
@@ -99,8 +99,8 @@ export const vi = {
   landing: {
     hero: {
       eyebrow: "Phiên dịch hội thoại theo thời gian thực",
-      title: "Cả phòng họp nói ngôn ngữ của bạn, [[ngay khi họ nói]].",
-      lede: "Sayvela thu micro và âm thanh cuộc gọi trên hai kênh riêng, ghi lời, dịch và gán người nói trong lúc cuộc họp đang diễn ra. Kết thúc là có ngay biên bản song ngữ.",
+      title: "Họ nói tiếng của họ. Bạn nói tiếng của bạn. [[Không ai phải đợi]].",
+      lede: "Lời họ hiện thành chữ trong tiếng của bạn ngay khi vừa dứt câu; lời bạn được đọc ra bằng tiếng của họ. Không phiên dịch viên, không ai phải đổi sang ngôn ngữ thứ ba.",
       primary: "Dùng thử miễn phí",
       secondary: "Xem bảng giá",
     },

@@ -17,16 +17,16 @@
         font-size="34" font-weight="bold" letter-spacing="3.4">SAYVELA</text>
 
   <!-- luận đề -->
-  <text x="140" y="252" fill="#eceef0" font-family="Arial Narrow, Arial, Helvetica, sans-serif"
-        font-size="68" font-weight="bold">Everyone in the room,</text>
-  <text x="140" y="326" fill="#eceef0" font-family="Arial Narrow, Arial, Helvetica, sans-serif"
-        font-size="68" font-weight="bold">in your language —</text>
-  <text x="140" y="400" fill="#f3a950" font-family="Arial Narrow, Arial, Helvetica, sans-serif"
-        font-size="68" font-weight="bold">as they speak.</text>
+  <text x="140" y="248" fill="#eceef0" font-family="Arial Narrow, Arial, Helvetica, sans-serif"
+        font-size="64" font-weight="bold">They speak theirs.</text>
+  <text x="140" y="318" fill="#eceef0" font-family="Arial Narrow, Arial, Helvetica, sans-serif"
+        font-size="64" font-weight="bold">You speak yours.</text>
+  <text x="140" y="388" fill="#f3a950" font-family="Arial Narrow, Arial, Helvetica, sans-serif"
+        font-size="64" font-weight="bold">Nobody waits.</text>
 
   <!-- dải chân -->
   <text x="140" y="570" fill="#9aa2aa" font-family="Consolas, Menlo, monospace"
-        font-size="23" letter-spacing="1.6">DUAL CAPTURE · SPEAKER LABELLING · TRANSLATION PLAYBACK</text>
+        font-size="21" letter-spacing="1.4">THEIR WORDS AS TEXT · YOUR WORDS SPOKEN ALOUD</text>
 
   <!-- đo mức hai làn -->
   <g transform="translate(872 208) scale(0.92)">
