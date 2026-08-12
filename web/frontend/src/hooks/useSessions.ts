@@ -13,15 +13,22 @@ export type Session = {
   updatedAt: string | null;
 };
 
+export type SessionSegment = {
+  id: string;
+  speaker: string | null;
+  source: string | null;
+  language: string | null;
+  translationStatus: string | null;
+  /** set on translated segments, points at the original segment */
+  originId: string | null;
+  text: string;
+  startMs: number;
+  endMs: number;
+  createdAt: string | null;
+};
+
 export type SessionDetail = Session & {
-  segments: {
-    id: string;
-    speaker: string | null;
-    text: string;
-    startMs: number;
-    endMs: number;
-    createdAt: string | null;
-  }[];
+  segments: SessionSegment[];
 };
 
 type ListResult = {

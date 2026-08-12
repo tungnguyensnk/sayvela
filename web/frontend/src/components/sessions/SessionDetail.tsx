@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useSessionDetail } from "@/hooks/useSessions";
+import { useSessionDetail, type SessionSegment } from "@/hooks/useSessions";
 import { useI18n } from "@/i18n/client";
 import { formatDateTime, formatDuration, formatTimecode } from "@/lib/format";
 import { EmptyState, Skeleton } from "@/components/ui/primitives";
@@ -14,6 +14,31 @@ const LANE = [
   { text: "text-crit", bar: "bg-crit" },
 ];
 
+/** an original turn plus the translations derived from it */
+type Turn = { original: SessionSegment; translations: SessionSegment[] };
+
+// translated segments carry no timing of their own, so they are attached to their
+// original instead of being sorted as standalone turns at 00:00
+function toTurns(segments: SessionSegment[]): Turn[] {
+  const known = new Set(segments.map((segment) => segment.id));
+  const byOriginal = new Map<string, Turn>();
+  const turns: Turn[] = [];
+
+  for (const segment of segments) {
+    if (segment.originId && known.has(segment.originId)) continue;
+    const turn: Turn = { original: segment, translations: [] };
+    byOriginal.set(segment.id, turn);
+    turns.push(turn);
+  }
+
+  for (const segment of segments) {
+    if (!segment.originId) continue;
+    byOriginal.get(segment.originId)?.translations.push(segment);
+  }
+
+  return turns.sort((a, b) => a.original.startMs - b.original.startMs);
+}
+
 export function SessionDetail({ id }: { id: string }) {
   const { session, loading, error } = useSessionDetail(id);
   const { locale, m } = useI18n();
@@ -21,6 +46,7 @@ export function SessionDetail({ id }: { id: string }) {
   const [copied, setCopied] = useState(false);
 
   const segments = useMemo(() => session?.segments ?? [], [session]);
+  const turns = useMemo(() => toTurns(segments), [segments]);
 
   const speakerMeta = useMemo(
     () => (speaker?: string | null, source?: string | null) => {
@@ -41,32 +67,30 @@ export function SessionDetail({ id }: { id: string }) {
 
   const speakers = useMemo(() => {
     const seen = new Map<string, { label: string; text: string; bar: string }>();
-    for (const segment of segments) {
-      const meta = speakerMeta(
-        segment.speaker,
-        (segment as Record<string, unknown>).source as string,
-      );
+    for (const turn of turns) {
+      const meta = speakerMeta(turn.original.speaker, turn.original.source);
       if (!seen.has(meta.label)) seen.set(meta.label, meta);
     }
     return [...seen.values()];
-  }, [segments, speakerMeta]);
+  }, [turns, speakerMeta]);
 
   const visible = activeSpeaker
-    ? segments.filter(
-        (segment) =>
-          speakerMeta(segment.speaker, (segment as Record<string, unknown>).source as string)
-            .label === activeSpeaker,
+    ? turns.filter(
+        (turn) => speakerMeta(turn.original.speaker, turn.original.source).label === activeSpeaker,
       )
-    : segments;
+    : turns;
 
   async function copyTranscript() {
-    const text = segments
-      .map((segment) => {
-        const meta = speakerMeta(
-          segment.speaker,
-          (segment as Record<string, unknown>).source as string,
-        );
-        return `[${formatTimecode(segment.startMs)}] ${meta.label}: ${segment.text}`;
+    const text = turns
+      .flatMap((turn) => {
+        const meta = speakerMeta(turn.original.speaker, turn.original.source);
+        return [
+          `[${formatTimecode(turn.original.startMs)}] ${meta.label}: ${turn.original.text}`,
+          ...turn.translations.map(
+            (translation) =>
+              `    ${translation.language ? `${translation.language}: ` : ""}${translation.text}`,
+          ),
+        ];
       })
       .join("\n");
 
@@ -109,7 +133,7 @@ export function SessionDetail({ id }: { id: string }) {
               <span className="text-faint">·</span>
               <span>{formatDateTime(session.createdAt, locale)}</span>
               <span className="text-faint">·</span>
-              <span>{m.sessions.detail.segments(segments.length)}</span>
+              <span>{m.sessions.detail.segments(turns.length)}</span>
             </div>
           </div>
           <button
@@ -172,23 +196,33 @@ export function SessionDetail({ id }: { id: string }) {
           </p>
         ) : (
           <ol className="max-h-[62vh] overflow-y-auto">
-            {visible.map((segment) => {
-              const meta = speakerMeta(
-                segment.speaker,
-                (segment as Record<string, unknown>).source as string,
-              );
+            {visible.map((turn) => {
+              const meta = speakerMeta(turn.original.speaker, turn.original.source);
               return (
                 <li
-                  key={segment.id}
+                  key={turn.original.id}
                   className="flex gap-3 border-b border-line px-5 py-3 last:border-b-0 hover:bg-raised"
                 >
                   <span className="tabular w-11 shrink-0 pt-0.5 text-[0.7rem] text-faint">
-                    {formatTimecode(segment.startMs)}
+                    {formatTimecode(turn.original.startMs)}
                   </span>
                   <span aria-hidden="true" className={`w-0.5 shrink-0 ${meta.bar}`} />
                   <div className="min-w-0 flex-1">
                     <span className={`eyebrow ${meta.text}`}>{meta.label}</span>
-                    <p className="mt-1 text-sm leading-6">{segment.text}</p>
+                    <p className="mt-1 text-sm leading-6">{turn.original.text}</p>
+                    {turn.translations.map((translation) => (
+                      <p
+                        key={translation.id}
+                        className="mt-1 flex gap-2 text-sm leading-6 text-muted"
+                      >
+                        {translation.language ? (
+                          <span className="eyebrow shrink-0 pt-1 text-faint">
+                            {translation.language}
+                          </span>
+                        ) : null}
+                        <span className="min-w-0">{translation.text}</span>
+                      </p>
+                    ))}
                   </div>
                 </li>
               );

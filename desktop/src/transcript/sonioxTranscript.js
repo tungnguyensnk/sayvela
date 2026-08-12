@@ -79,6 +79,16 @@ export function createTranscriptMapper({ languageHints, targetLanguage, speakerO
     }
   };
 
+  // emits translations still waiting when the utterance closes; keeping them would
+  // let a later, unrelated original of the same speaker adopt them
+  const releasePending = () => {
+    for (const pending of pendingTranslations.splice(0)) {
+      const orphan = { ...pending, seq: nextSeq++ };
+      completed.push(orphan);
+      onTurnEnd?.(orphan);
+    }
+  };
+
   const emitSnapshot = (live = []) => {
     const groups = [...completed, ...live].sort((a, b) => a.seq - b.seq || (a.translationStatus === "original" ? -1 : 1));
     onText?.({ groups });
@@ -122,6 +132,7 @@ export function createTranscriptMapper({ languageHints, targetLanguage, speakerO
   // closes the current utterance so later speech starts a new message
   const endpoint = () => {
     for (const buffer of buffers.values()) buffer.flushAll().filter(allowed).map(toGroup).forEach(emitCompleted);
+    releasePending();
     activeFinalTokens.clear();
     identities.clear();
     originalsBySpeaker.clear();
