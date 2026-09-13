@@ -10,7 +10,7 @@ import { BillingModule } from './billing/billing.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { SettingsModule } from './settings/settings.module';
 import { ContextsModule } from './contexts/contexts.module';
-import { ChatgptTokenModule } from './chatgpt-token/chatgpt-token.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -22,7 +22,7 @@ import { ChatgptTokenModule } from './chatgpt-token/chatgpt-token.module';
     SessionsModule,
     SettingsModule,
     ContextsModule,
-    ChatgptTokenModule,
+    AiModule,
   ],
   controllers: [AppController],
   providers: [

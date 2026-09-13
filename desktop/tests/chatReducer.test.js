@@ -40,20 +40,6 @@ describe("chatReducer", () => {
     expect(state.active).toBe(null);
   });
 
-  it("should store content references on finish", () => {
-    const requestId = "r1b";
-    const refs = [{ matched_text: "citeturn0news3", type: "grouped_webpages" }];
-    const user = createChatMessage({ id: "u1b", role: "user", text: "hi", source: CHAT_SOURCES.MANUAL, status: CHAT_STATUSES.DONE, createdAt: 1 });
-    const assistant = createChatMessage({ id: "a1b", role: "assistant", text: "", source: CHAT_SOURCES.MANUAL, status: CHAT_STATUSES.STREAMING, createdAt: 2 });
-
-    let state = initialChatState();
-    state = chatReducer(state, { type: "chat/start", payload: { requestId, userMessage: user, assistantMessage: assistant } });
-    state = chatReducer(state, { type: "chat/finish", payload: { requestId, text: "hello", contentReferences: refs } });
-
-    const a = state.messages.find((m) => m.id === "a1b");
-    expect(a.contentReferences).toEqual(refs);
-  });
-
   it("should mark cancelled", () => {
     const requestId = "r2";
     const user = createChatMessage({ id: "u2", role: "user", text: "x", source: CHAT_SOURCES.AUTO, status: CHAT_STATUSES.DONE, createdAt: 1 });

@@ -1,6 +1,6 @@
+mod ai;
 mod api;
 mod audio;
-mod chatgpt;
 mod secure_store;
 mod soniox;
 mod tts_native;
@@ -132,7 +132,7 @@ pub fn run() {
     let _ = dotenvy::dotenv();
     let mut builder = tauri::Builder::default()
         .manage(AppState::default())
-        .manage(chatgpt::ChatgptState::default())
+        .manage(ai::AiState::default())
         .manage(tts_native::TtsState::default())
         .plugin(
             tauri_plugin_log::Builder::new()
@@ -180,10 +180,8 @@ pub fn run() {
             soniox::soniox_get_temp_key,
             soniox::soniox_list_voices,
             auth_poll_pending_token,
-            chatgpt::chatgpt_start_stream,
-            chatgpt::chatgpt_cancel_stream,
-            chatgpt::chatgpt_hide_conversation,
-            chatgpt::chatgpt_prepare_stop,
+            ai::ai_start_stream,
+            ai::ai_cancel_stream,
             tts_native::tts_list_voices,
             tts_native::tts_start,
             tts_native::tts_speak,

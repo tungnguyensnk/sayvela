@@ -95,7 +95,7 @@ export function AIChatPanel({
                     {m.createdAt ? <span className="ai-msg-time">{formatTime(m.createdAt)}</span> : null}
                   </div>
                   <div className="ai-msg-text">
-                    <ChatMessageContent text={m.text || ""} contentReferences={m.contentReferences} isStreaming={m.status === "streaming"} />
+                    <ChatMessageContent text={m.text || ""} isStreaming={m.status === "streaming"} />
                   </div>
                   </div>
                 </div>

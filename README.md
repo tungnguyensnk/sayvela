@@ -7,7 +7,7 @@ Sayvela is a real-time speech transcription, translation, and AI conversation pl
 - Capture microphone or system audio.
 - Transcribe and translate speech in real time with Soniox.
 - Play translated speech using TTS.
-- Chat with AI through ChatGPT.
+- Chat with AI through an OpenAI-compatible API (proxied by the backend).
 - Manage sessions, contexts, settings, and usage.
 - Handle authentication, authorization, and subscriptions through Stripe.
 
@@ -35,7 +35,7 @@ Desktop → WASAPI → Soniox → transcript/translation → TTS
 - Desktop: React 19, Redux Toolkit, Vite 7, Tauri 2, Rust.
 - Web: Next.js 16, React 19, NextAuth, Tailwind CSS 4.
 - Backend: NestJS 11, Drizzle ORM, PostgreSQL 15.
-- Services: Soniox, ChatGPT, Stripe.
+- Services: Soniox, OpenAI-compatible AI API, Stripe.
 - Testing: Vitest, Testing Library, Jest.
 - Infrastructure: Docker Compose, Nginx.
 
@@ -45,7 +45,7 @@ Desktop → WASAPI → Soniox → transcript/translation → TTS
 - Docker Desktop for running the web stack with Docker.
 - Rust stable, Tauri prerequisites, and WebView2 for the desktop app.
 - Windows 10/11 for WASAPI and Windows TTS.
-- Soniox, ChatGPT/Groq, and Stripe credentials for their respective features.
+- Soniox, AI API (`AI_BASE_URL`/`AI_API_KEY`/`AI_MODEL`), Groq, and Stripe credentials for their respective features.
 
 ## Run the Web Stack with Docker
 

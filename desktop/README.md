@@ -20,7 +20,7 @@ sayvela captures audio from two simultaneous sources — system loopback and mic
 | **Intelligent Translation** | Automatic translation to your target language |
 | **Speaker Diarization** | Automatic speaker identification and separation |
 | **TTS Output** | Text-to-speech playback of mic translations |
-| **AI Chat** | ChatGPT backend-api integration for manual chat |
+| **AI Chat** | OpenAI-compatible chat streamed through the Sayvela backend |
 | **Content Protection** | Screenshot/screen-share protection for privacy |
 
 ## Architecture
@@ -37,7 +37,7 @@ graph TB
         E[audio.rs] --> F[WASAPI]
         E --> G[Events]
         H[soniox.rs] --> I[Soniox API]
-        J[chatgpt.rs] --> K[ChatGPT backend-api]
+        J[ai.rs] --> K[Sayvela backend /ai/chat]
         L[tts_native.rs] --> M[Windows TTS]
     end
 
@@ -73,7 +73,7 @@ sequenceDiagram
 - **OS**: Windows 10/11 (WASAPI audio capture)
 - **Rust**: Latest stable
 - **Node.js**: 18+
-- **Backend**: Sayvela backend with user-scoped `chatgpt_access_token` records
+- **Backend**: Sayvela backend configured with `AI_BASE_URL`, `AI_API_KEY`, `AI_MODEL`
 
 ## Installation
 
@@ -126,7 +126,7 @@ desktop/
 │   ├── languages.js
 │   └── main.jsx
 ├── src-tauri/
-│   │   ├── chatgpt.rs        # ChatGPT backend-api client
+│   │   ├── ai.rs             # AI chat stream client (backend proxy)
 │   │   ├── lib.rs            # Tauri command handlers
 │   │   ├── tts_native.rs     # Windows TTS
 │   │   └── types.rs
@@ -189,7 +189,7 @@ Full list available in `src/languages.js`
 
 ### External Services
 - [Soniox](https://soniox.com/) — Speech-to-text & translation
-- ChatGPT backend-api — AI chat responses
+- OpenAI-compatible API (via backend proxy) — AI chat responses
 
 ## Notes
 
@@ -207,9 +207,9 @@ Full list available in `src/languages.js`
 1. Check internet connectivity
 2. Verify Soniox backend access is available
 
-### ChatGPT not responding
+### AI chat not responding
 1. Verify internet connectivity
-2. Check runtime logs for ChatGPT bridge command failures
+2. Check backend `AI_*` env vars and runtime logs for `ai_start_stream` failures
 
 ## Contributing
 

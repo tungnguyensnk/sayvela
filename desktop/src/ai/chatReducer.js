@@ -10,7 +10,7 @@ export const CHAT_STATUSES = {
   CANCELLED: "cancelled",
 };
 
-export function createChatMessage({ id, role, text, source, status, createdAt, contentReferences }) {
+export function createChatMessage({ id, role, text, source, status, createdAt }) {
   return {
     id,
     role,
@@ -18,7 +18,6 @@ export function createChatMessage({ id, role, text, source, status, createdAt, c
     source: source || "",
     status: status || CHAT_STATUSES.DONE,
     createdAt: createdAt || Date.now(),
-    contentReferences: Array.isArray(contentReferences) ? contentReferences : [],
   };
 }
 
@@ -58,7 +57,7 @@ export function chatReducer(state, action) {
     }
 
     case "chat/finish": {
-      const { requestId, text, contentReferences } = action.payload;
+      const { requestId, text } = action.payload;
       if (!state.active || state.active.requestId !== requestId) return state;
       const mid = state.active.assistantMessageId;
       return {
@@ -70,7 +69,6 @@ export function chatReducer(state, action) {
             ...m,
             text: text || m.text || "",
             status: CHAT_STATUSES.DONE,
-            contentReferences: Array.isArray(contentReferences) ? contentReferences : m.contentReferences || [],
           };
         }),
       };
