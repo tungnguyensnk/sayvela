@@ -91,6 +91,25 @@ pub fn list_audio_devices() -> Result<Vec<AudioDevice>> {
 }
 
 #[cfg(windows)]
+const CAPTURE_RATE_ENV: &str = "SAYVELA_CAPTURE_RATE";
+
+#[cfg(windows)]
+const DEFAULT_CAPTURE_RATE: u32 = 16_000;
+
+#[cfg(windows)]
+// picks the rate requested from wasapi; "native" keeps the device mix format so
+// both paths can be compared, and an unusable value falls back to it as well
+fn parse_capture_rate(value: Option<&str>) -> Option<u32> {
+    let Some(value) = value.map(str::trim).filter(|value| !value.is_empty()) else {
+        return Some(DEFAULT_CAPTURE_RATE);
+    };
+    if value.eq_ignore_ascii_case("native") {
+        return None;
+    }
+    value.parse().ok().filter(|rate| *rate > 0)
+}
+
+#[cfg(windows)]
 pub struct CaptureHandle {
     stop: Arc<AtomicBool>,
     join: Option<thread::JoinHandle<()>>,
@@ -224,7 +243,7 @@ fn capture_thread(
         selected.ok_or_else(|| anyhow!("device not found"))?
     };
 
-    let mut client = device
+    let client = device
         .get_iaudioclient()
         .map_err(|e| anyhow!(e.to_string()))
         .context("get iaudioclient")?;
@@ -234,24 +253,66 @@ fn capture_thread(
         .map_err(|e| anyhow!(e.to_string()))
         .context("get mixformat")?;
 
-    let desired = WaveFormat::new(
+    let mode = StreamMode::PollingShared {
+        autoconvert: true,
+        buffer_duration_hns: 200_000,
+    };
+
+    // wasapi converts with its own anti-aliased resampler, so speech recognition
+    // can be fed 16 khz mono without a hand written one; a device that rejects
+    // the format falls back to its mix format
+    let mut formats = Vec::new();
+    if let Some(rate) = parse_capture_rate(std::env::var(CAPTURE_RATE_ENV).ok().as_deref()) {
+        formats.push(WaveFormat::new(
+            32,
+            32,
+            &SampleType::Float,
+            rate as usize,
+            1,
+            None,
+        ));
+    }
+    formats.push(WaveFormat::new(
         32,
         32,
         &SampleType::Float,
         mix.get_samplespersec() as usize,
         mix.get_nchannels() as usize,
         None,
+    ));
+
+    // a failed initialize leaves the client unusable, so each attempt gets its own
+    let mut pending = Some(client);
+    let mut selected = None;
+    let mut last_error = None;
+    for format in &formats {
+        let mut attempt = match pending.take() {
+            Some(existing) => existing,
+            None => device
+                .get_iaudioclient()
+                .map_err(|e| anyhow!(e.to_string()))
+                .context("get iaudioclient")?,
+        };
+        match attempt.initialize_client(format, &Direction::Capture, &mode) {
+            Ok(()) => {
+                selected = Some((attempt, format));
+                break;
+            }
+            Err(e) => last_error = Some(e.to_string()),
+        }
+    }
+    let (client, desired) = selected.ok_or_else(|| {
+        anyhow!(last_error.unwrap_or_else(|| "no capture format available".to_string()))
+    })
+    .context("initialize client")?;
+    // makes it visible whether the requested rate was accepted or fell back
+    log::info!(
+        "capture {kind}: {} Hz {} ch (device {} Hz {} ch)",
+        desired.get_samplespersec(),
+        desired.get_nchannels(),
+        mix.get_samplespersec(),
+        mix.get_nchannels()
     );
-
-    let mode = StreamMode::PollingShared {
-        autoconvert: true,
-        buffer_duration_hns: 200_000,
-    };
-
-    client
-        .initialize_client(&desired, &Direction::Capture, &mode)
-        .map_err(|e| anyhow!(e.to_string()))
-        .context("initialize client")?;
 
     let capture = client
         .get_audiocaptureclient()
@@ -272,8 +333,12 @@ fn capture_thread(
         CaptureState {
             state: "running".to_string(),
             message: Some(format!(
-                "inRate={} inCh={} outRate={} (pass-through)",
-                in_rate, in_ch, out_rate
+                "inRate={} inCh={} outRate={} deviceRate={} deviceCh={}",
+                in_rate,
+                in_ch,
+                out_rate,
+                mix.get_samplespersec(),
+                mix.get_nchannels()
             )),
             sample_rate: Some(out_rate),
         },
@@ -384,4 +449,21 @@ fn linear_resample_append(
         idx -= consumed as f32;
     }
     *carry_idx_f = idx;
+}
+
+#[cfg(windows)]
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    // verifies the a/b flag defaults to 16 khz and only opts out explicitly
+    fn reads_capture_rate_flag() {
+        assert_eq!(parse_capture_rate(None), Some(DEFAULT_CAPTURE_RATE));
+        assert_eq!(parse_capture_rate(Some("  ")), Some(DEFAULT_CAPTURE_RATE));
+        assert_eq!(parse_capture_rate(Some(" 24000 ")), Some(24_000));
+        assert_eq!(parse_capture_rate(Some("Native")), None);
+        assert_eq!(parse_capture_rate(Some("0")), None);
+        assert_eq!(parse_capture_rate(Some("abc")), None);
+    }
 }
