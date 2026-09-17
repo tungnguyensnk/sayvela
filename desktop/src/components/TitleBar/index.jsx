@@ -83,8 +83,8 @@ export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, ass
     } catch {}
   };
 
-  // mini mode halves the window and remembers the size to restore on the way out.
-  // both sizes are centred, otherwise growing back would push the window off screen
+  // mini mode halves the window, pins it on top and remembers the size to restore
+  // on the way out. both sizes are centred, so growing back stays on screen
   const toggleMiniMode = async () => {
     const next = !miniMode;
     try {
@@ -103,6 +103,8 @@ export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, ass
         await appWindow.setSize(fullSizeRef.current);
         await appWindow.center();
       }
+      // the mini window is meant to sit over whatever you are working in
+      await appWindow.setAlwaysOnTop(next);
     } catch (err) {
       // a blocked resize would otherwise flip the layout while the window stays put
       console.error("mini mode resize failed", err);
