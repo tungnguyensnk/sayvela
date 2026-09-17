@@ -12,8 +12,23 @@ export function AudioControlPanelContainer({ loopbackError, micError, onRefreshD
   const loopbackContext = useSelector(selectActiveContextJson);
   const { setAndSave } = usePreferenceActions(updateSetting);
 
+  const assistKeys = [
+    "assistAutoGate",
+    "assistSendScreenshot",
+    "assistMonitorId",
+    "assistHotkey",
+    "assistIntervalSec",
+    "assistWindowSec",
+    "assistMinGapSec",
+    "assistIdleExitSec",
+  ];
+  const assistValues = Object.fromEntries(assistKeys.map((k) => [k, preferences[k]]));
+  const assistHandlers = Object.fromEntries(assistKeys.map((k) => [k, setAndSave(k)]));
+
   return (
     <AudioControlPanel
+      assistValues={assistValues}
+      assistHandlers={assistHandlers}
       {...audio}
       {...preferences}
       contexts={contexts}

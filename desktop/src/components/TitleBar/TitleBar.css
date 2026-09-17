@@ -166,3 +166,63 @@
 .tb-icon-min {
   width: 14px;
 }
+
+.tb-assist {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 8px;
+  padding-right: 8px;
+  border-right: 1px solid color-mix(in srgb, var(--app-border) 70%, transparent);
+}
+
+.tb-assist-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--app-muted) 55%, transparent);
+}
+
+.tb-assist-dot--watching {
+  background: #e2b33c;
+  animation: tb-assist-blink 1.4s infinite;
+}
+
+.tb-assist-dot--assisting {
+  background: #3fb37f;
+}
+
+.tb-assist-dot--pending {
+  animation: tb-assist-blink 0.8s infinite;
+}
+
+@keyframes tb-assist-blink {
+  50% { opacity: 0.25; }
+}
+
+.tb-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 2px;
+  padding-left: 10px;
+  border-left: 1px solid var(--app-border);
+}
+
+.tb-nav-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  color: var(--app-muted);
+}
+
+.tb-nav-btn:hover {
+  color: var(--app-text);
+  background: color-mix(in srgb, var(--app-text) 7%, transparent);
+}
+
+.tb-nav-btn--active {
+  color: var(--app-text) !important;
+  background: var(--app-surface-muted) !important;
+  border: 1px solid var(--app-border);
+}

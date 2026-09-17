@@ -1,12 +1,99 @@
-.acp-body {
-  padding: 12px;
+.acp-panel {
+  height: 100%;
 }
 
-.acp-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
-  gap: 16px;
-  align-items: start;
+.acp-header {
+  min-height: 46px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--app-divider);
+}
+
+.acp-layout {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.acp-body {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  padding: 22px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--app-muted) 32%, transparent) transparent;
+}
+
+/* every outline entry maps to one card in the scroller */
+.acp-section {
+  border: 1px solid var(--app-border);
+  background: var(--app-surface);
+  border-radius: 12px;
+  padding: 16px 18px;
+  scroll-margin-top: 12px;
+}
+
+.acp-section:empty {
+  display: none;
+}
+
+.acp-outline {
+  width: 204px;
+  flex: 0 0 204px;
+  border-left: 1px solid var(--app-divider);
+  background: var(--app-rail);
+  padding: 22px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.acp-outline-title {
+  font-family: var(--app-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--app-muted);
+  padding-bottom: 10px;
+}
+
+.acp-outline-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--app-muted);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.acp-outline-item--active {
+  color: var(--app-text);
+}
+
+.acp-outline-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #2c322e;
+}
+
+.acp-outline-item--active .acp-outline-dot {
+  background: var(--app-accent);
+}
+
+.acp-outline-note {
+  margin-top: auto;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--app-muted);
 }
 
 .acp-source {
@@ -17,9 +104,10 @@
 
 .acp-sourceHeader {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
+  /* the title keeps its help bubble next to it; only the flow badge floats right */
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
 }
 
 .acp-sourceTitle {
@@ -52,29 +140,7 @@
   color: color-mix(in srgb, var(--app-muted) 90%, transparent);
 }
 
-.acp-langRow {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  align-items: end;
-}
-
-.acp-langField {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
 .acp-langField .astryx-multi-selector,
-.acp-langField .acp-select {
-  min-height: 36px;
-}
-
-.acp-langField .astryx-multi-selector button {
-  min-height: 36px;
-}
-
 .acp-pills {
   margin-top: 2px;
 }
@@ -111,7 +177,7 @@
   gap: 6px;
 }
 
-.acp-ttsHelp {
+.acp-help {
   position: relative;
   display: inline-grid;
   box-sizing: border-box;
@@ -126,7 +192,7 @@
   cursor: help;
 }
 
-.acp-ttsHelp::after {
+.acp-help::after {
   position: absolute;
   z-index: 20;
   top: calc(100% + 8px);
@@ -147,8 +213,8 @@
   transition: opacity 120ms ease, transform 120ms ease;
 }
 
-.acp-ttsHelp:hover::after,
-.acp-ttsHelp:focus-visible::after {
+.acp-help:hover::after,
+.acp-help:focus-visible::after {
   opacity: 1;
   transform: translate(-50%, 0);
 }
@@ -175,13 +241,13 @@
 
 .acp-ttsSelectRow {
   display: grid;
-  grid-template-columns: minmax(180px, 0.8fr) minmax(180px, 1fr);
-  gap: 8px;
-  align-items: center;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 12px;
+  align-items: end;
 }
 
-.acp-ttsVoiceSelect {
-  max-width: 220px;
+.acp-ttsProviderRow .select {
+  min-width: 0;
 }
 
 .acp-ttsControls {
@@ -198,9 +264,9 @@
 }
 
 .acp-ttsSliders {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 8px 18px;
   min-width: 0;
 }
 
@@ -218,12 +284,16 @@
 
 .acp-sliderRow {
   display: grid;
-  grid-template-columns: 64px 1fr 56px;
-  gap: 10px;
+  /* the value rides along with the name, so the row is just label and track */
+  grid-template-columns: auto 1fr;
+  gap: 8px;
   align-items: center;
+  min-width: 0;
 }
 
 .acp-sliderLabel {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
   font-size: 12px;
   color: var(--app-muted);
 }
@@ -256,7 +326,6 @@
 }
 
 @media (max-width: 620px) {
-  .acp-langRow,
   .acp-ttsSelectRow {
     grid-template-columns: 1fr;
   }
@@ -271,12 +340,221 @@
 }
 
 @media (max-width: 460px) {
-  .acp-grid {
-    grid-template-columns: 1fr;
-  }
-
   .acp-sourceMeta {
     max-width: 100%;
     white-space: normal;
   }
+}
+
+.acp-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.acp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.acp-sourceFlow {
+  margin-left: auto;
+  font-family: var(--app-mono);
+  font-size: 10px;
+  color: var(--app-speaker);
+}
+
+.acp-source .acp-sourceMeta--error {
+  color: var(--app-danger);
+}
+
+@media (max-width: 900px) {
+  .acp-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+.acp-assistError {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--app-danger);
+}
+
+.acp-hotkeyButton {
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--app-mono);
+}
+
+.acp-hotkeyModal .acp-hotkeyCapture {
+  padding: 18px 12px;
+  border: 1px dashed var(--app-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--app-bg) 55%, transparent);
+  font-family: var(--app-mono);
+  font-size: 15px;
+  text-align: center;
+  color: var(--app-text);
+}
+
+.acp-monitorPicker {
+  position: relative;
+}
+
+.acp-monitorButton {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+
+.acp-monitorList {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid var(--app-border);
+  border-radius: 10px;
+  background: var(--app-surface-muted);
+  box-shadow: 0 14px 30px color-mix(in srgb, #000 45%, transparent);
+}
+
+.acp-monitorItem {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--app-text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.acp-monitorItem:hover {
+  background: color-mix(in srgb, var(--app-accent) 16%, transparent);
+}
+
+.acp-monitorItem--active {
+  color: var(--app-accent);
+}
+
+.acp-monitorTag {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--app-muted);
+}
+
+.acp-toggleRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  align-items: center;
+}
+
+.acp-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.acp-toggle-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.acp-toggle-track {
+  position: relative;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  border: 1px solid var(--app-border);
+  background: color-mix(in srgb, var(--app-bg) 70%, transparent);
+  transition: background 140ms, border-color 140ms;
+}
+
+.acp-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--app-muted) 80%, transparent);
+  transition: transform 140ms, background 140ms;
+}
+
+.acp-toggle-input:checked + .acp-toggle-track {
+  border-color: color-mix(in srgb, var(--app-accent) 55%, transparent);
+  background: var(--app-accent);
+}
+
+.acp-toggle-input:checked + .acp-toggle-track .acp-toggle-thumb {
+  transform: translateX(14px);
+  background: #08090a;
+}
+
+.acp-toggle-input:focus-visible + .acp-toggle-track {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--app-accent) 22%, transparent);
+}
+
+.acp-toggle-label {
+  font-size: 13px;
+  color: var(--app-text);
+}
+
+.acp-toggle--off {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.acp-toggleWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+/* line the language picker up with the selects it shares a row with */
+.acp-field .astryx-multi-selector {
+  min-height: 36px;
+  height: 36px;
+  box-sizing: border-box;
+}
+
+.acp-field .astryx-multi-selector > [role="combobox"] {
+  height: 100%;
+}
+
+/* with no second field on the first row, the device select takes the whole width */
+.acp-field--wide {
+  grid-column: 1 / -1;
+}
+
+.acp-labelRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* the four timings read as one band rather than a 2x2 block */
+.acp-numberRow {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
 }

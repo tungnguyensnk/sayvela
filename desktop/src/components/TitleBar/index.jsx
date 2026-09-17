@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ActionButton, ActionIconButton } from "../astryx/AstryxControls";
 import { IconMinimize, IconMaximize, IconRestore, IconClose } from "./Icons";
+import { AssistControls } from "./AssistControls";
+import { NavTabs } from "./NavTabs";
 import "./TitleBar.css";
 
 function SyncLoadingIcon() {
@@ -32,7 +34,7 @@ function UsageBadge({ entitlement }) {
 }
 
 // custom title bar component with window controls (minimize, maximize, close)
-export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, onLogoutClick }) {
+export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, assist, activeTab, onTabChange, onLogoutClick }) {
   const appWindow = useMemo(() => getCurrentWindow(), []);
   const [isMaximized, setIsMaximized] = useState(false);
 
@@ -98,6 +100,7 @@ export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, onL
         <div className="tb-title" data-tauri-drag-region>
           {title}
         </div>
+        {onTabChange ? <NavTabs activeTab={activeTab} onTabChange={onTabChange} /> : null}
         <UsageBadge entitlement={entitlement} />
         {syncStatus === "syncing" && <span className="tb-sync-badge syncing" title="saving"><SyncLoadingIcon /></span>}
         {syncStatus === "synced" && <span className="tb-sync-badge synced" title="saved"><SyncDoneIcon /></span>}
@@ -105,6 +108,7 @@ export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, onL
       </div>
 
       <div className="tb-controls" data-tauri-drag-region="false">
+        {assist ? <AssistControls {...assist} /> : null}
         {user ? (
           <div className="tb-user">
             <span className="tb-user-email">{user.email}</span>

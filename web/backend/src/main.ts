@@ -2,11 +2,16 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { WsAdapter } from '@nestjs/platform-ws';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { runMigrations } from './db';
 
 async function bootstrap() {
   await runMigrations();
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+  });
+  // screenshots sent to the assist endpoint exceed the default 100kb json limit
+  app.useBodyParser('json', { limit: '5mb' });
   app.useWebSocketAdapter(new WsAdapter(app));
   const allowedOrigins = process.env.CORS_ORIGINS
     ? process.env.CORS_ORIGINS.split(',').map((o) => o.trim())

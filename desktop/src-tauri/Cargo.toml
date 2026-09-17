@@ -38,7 +38,10 @@ keyring = { version = "3", features = ["windows-native"] }
 uuid = { version = "1", features = ["v4"] }
 sha2 = "0.10"
 zip = { version = "2", default-features = false, features = ["deflate"] }
+xcap = { version = "0.9.8", features = ["image"] }
+image = { version = "0.25", default-features = false, features = ["jpeg"] }
+tauri-plugin-global-shortcut = "2.3.2"
 
 [target.'cfg(windows)'.dependencies]
 wasapi = "0.17"
-windows = { version = "0.58", features = ["Foundation", "Foundation_Collections", "Media_SpeechSynthesis", "Storage_Streams"] }
+windows = { version = "0.58", features = ["Foundation", "Foundation_Collections", "Media_SpeechSynthesis", "Storage_Streams", "Win32_Foundation", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse"] }

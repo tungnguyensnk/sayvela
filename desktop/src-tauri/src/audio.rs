@@ -356,6 +356,13 @@ fn capture_thread(
     let ratio = out_rate as f32 / in_rate as f32;
     let chunk_ms = if kind == "microphone" { 50 } else { 100 };
     let chunk_bytes = out_rate as usize * 2 * chunk_ms / 1000;
+    // windows hands out no loopback packets while nothing is playing, so the
+    // speech socket would sit idle and get dropped; feed it silence instead
+    let feed_silence = kind != "microphone";
+    let silence = vec![0u8; chunk_bytes];
+    let chunk_span = Duration::from_millis(chunk_ms as u64);
+    let silence_after = chunk_span * 3;
+    let mut last_emit = Instant::now();
 
     while !stop.load(Ordering::SeqCst) {
         let frames = capture
@@ -410,6 +417,14 @@ fn capture_thread(
             while pcm_buf.len() >= chunk_bytes {
                 let chunk: Vec<u8> = pcm_buf.drain(..chunk_bytes).collect();
                 let _ = app.emit(&event_data, chunk);
+                last_emit = Instant::now();
+            }
+        }
+
+        if feed_silence {
+            while last_emit.elapsed() >= silence_after {
+                let _ = app.emit(&event_data, silence.clone());
+                last_emit += chunk_span;
             }
         }
 

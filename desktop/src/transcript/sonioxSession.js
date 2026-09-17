@@ -139,9 +139,12 @@ export async function startSonioxSession({
     }));
     recording.on("finished", () => emit(transcript.finish));
     recording.on("state_change", ({ new_state: state }) => {
+      console.debug(`[soniox] ${audioEventName} ${state}`);
       if (activeSession?.recording === recording) onState?.(state === "recording" ? "streaming" : state);
     });
     recording.on("error", (error) => {
+      // the reason a stream drops is otherwise invisible in the app
+      console.warn(`[soniox] ${audioEventName} error`, error?.message || error, error?.code ?? "");
       if (activeSession?.recording === recording) onError?.(error);
     });
     const connected = new Promise((resolve, reject) => {

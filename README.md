@@ -8,6 +8,7 @@ Sayvela is a real-time speech transcription, translation, and AI conversation pl
 - Transcribe and translate speech in real time with Soniox.
 - Play translated speech using TTS.
 - Chat with AI through an OpenAI-compatible API (proxied by the backend).
+- Auto Assist: a gate model watches the conversation and the main model opens answer, how-to and code panels.
 - Manage sessions, contexts, settings, and usage.
 - Handle authentication, authorization, and subscriptions through Stripe.
 

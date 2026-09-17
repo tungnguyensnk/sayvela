@@ -1,9 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ttsGetVoices } from "../../tts/ttsApi";
 import { getCachedSonioxVoices, hasSonioxApiKey, loadSonioxVoices, SONIOX_BUILTIN_VOICES } from "../../services/sonioxTtsService";
 import { ActionButton } from "../astryx/AstryxControls";
 import { SourceSection } from "./SourceSection";
 import { TtsSection } from "./TtsSection";
+import { AssistSection } from "./AssistSection";
+import { SettingsOutline } from "./SettingsOutline";
+import { Toggle } from "./Toggle";
 import "./AudioControlPanel.css";
 
 // main control panel for configuring audio inputs, outputs, languages, and tts settings
@@ -56,7 +59,10 @@ export function AudioControlPanel({
 
   loopbackError,
   micError,
+  assistValues,
+  assistHandlers,
 }) {
+  const scrollRef = useRef(null);
   const loopbackDevices = devices.filter((d) => d.kind === "loopback");
   const ttsOutputDevices = loopbackDevices
     .filter((d) => d.id !== "default-loopback")
@@ -120,14 +126,22 @@ export function AudioControlPanel({
   }, []);
 
   return (
-    <section className="panel">
-      <div className="panel-header">
-        <div>
-          <div className="panel-title">Settings</div>
-        </div>
+    <section className="panel acp-panel">
+      <div className="panel-header acp-header">
+        <div className="panel-title">Settings</div>
+        <ActionButton
+          className="acp-footer-btn"
+          type="button"
+          disabled={running}
+          onClick={onRefreshDevices}
+          size="sm"
+        >
+          Refresh Devices
+        </ActionButton>
       </div>
-      <div className="acp-body">
-        <div className="acp-grid">
+      <div className="acp-layout">
+      <div className="acp-body" ref={scrollRef}>
+        <section id="system-audio" className="acp-section">
           {/* Loopback Section */}
           <SourceSection
             title="System Audio (Speakers)"
@@ -140,43 +154,49 @@ export function AudioControlPanel({
             onChangeInputLangs={onChangeLoopbackInputLangs}
             outputLang={loopbackOutputLang}
             onChangeOutputLang={onChangeLoopbackOutputLang}
-          >
-            <div className="acp-subLabel">Context</div>
-            <div className="row">
-              <select
-                className="select"
-                value={loopbackContextId || ""}
-                disabled={running}
-                onChange={(e) => onChangeLoopbackContextId?.(e.target.value || null)}
-              >
-                <option value="">— none —</option>
-                {contexts.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-              <ActionButton
-                className="acp-manage-btn"
-                type="button"
-                disabled={running}
-                onClick={() => onChangeLoopbackContext?.()}
-                title="Manage Contexts"
-                size="sm"
-              >
-                Manage
-              </ActionButton>
-            </div>
-            {loopbackContext && (
-              <div className="hint">
-                {[
-                  loopbackContext.general && "general",
-                  loopbackContext.text && "text",
-                  loopbackContext.terms?.length && `${loopbackContext.terms.length} terms`,
-                  loopbackContext.translation_terms?.length && `${loopbackContext.translation_terms.length} translation_terms`,
-                ].filter(Boolean).join(" · ")}
+            subtitle="their voice"
+            aside={(
+              <div className="acp-field">
+                <div className="acp-subLabel">Context</div>
+                <div className="row">
+                  <select
+                    className="select"
+                    value={loopbackContextId || ""}
+                    disabled={running}
+                    onChange={(e) => onChangeLoopbackContextId?.(e.target.value || null)}
+                  >
+                    <option value="">— none —</option>
+                    {contexts.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  <ActionButton
+                    className="acp-manage-btn"
+                    type="button"
+                    disabled={running}
+                    onClick={() => onChangeLoopbackContext?.()}
+                    title="Manage Contexts"
+                    size="sm"
+                  >
+                    Manage
+                  </ActionButton>
+                </div>
+                {loopbackContext && (
+                  <div className="hint">
+                    {[
+                      loopbackContext.general && "general",
+                      loopbackContext.text && "text",
+                      loopbackContext.terms?.length && `${loopbackContext.terms.length} terms`,
+                      loopbackContext.translation_terms?.length && `${loopbackContext.translation_terms.length} translation_terms`,
+                    ].filter(Boolean).join(" · ")}
+                  </div>
+                )}
               </div>
             )}
-          </SourceSection>
+          />
+        </section>
 
+        <section id="microphone" className="acp-section">
           {/* Mic Section */}
           <SourceSection
             title="Microphone (Me)"
@@ -189,6 +209,7 @@ export function AudioControlPanel({
             onChangeInputLangs={onChangeMicInputLangs}
             outputLang={micOutputLang}
             onChangeOutputLang={onChangeMicOutputLang}
+            subtitle="your voice"
           >
             <TtsSection
               micOutputLang={micOutputLang}
@@ -220,30 +241,31 @@ export function AudioControlPanel({
               ttsError={ttsError}
             />
           </SourceSection>
-        </div>
+        </section>
+
+        <section id="ai-assist" className="acp-section">
+          {assistValues ? <AssistSection values={assistValues} onChange={assistHandlers} /> : null}
+        </section>
 
         {devicesError ? <div className="empty acp-error">{devicesError}</div> : null}
 
-        <div className="acp-footer">
-          <label className="acp-checkboxRow">
-            <input
-              type="checkbox"
-              checked={Boolean(contentProtectionEnabled)}
-              onChange={(e) => onChangeContentProtectionEnabled?.(e.target.checked)}
-            />
-            hide app in screen share/recording
-          </label>
-          <div className="actions">
-            <ActionButton
-              className="acp-footer-btn"
-              type="button"
-              disabled={running}
-              onClick={onRefreshDevices}
-            >
-              Refresh Devices
-            </ActionButton>
+        <section id="privacy" className="acp-section">
+          <div className="acp-source">
+            <div className="acp-sourceHeader">
+              <div className="acp-sourceTitle">Privacy</div>
+            </div>
+            <div className="acp-toggleRow">
+              <Toggle
+                checked={contentProtectionEnabled}
+                onChange={onChangeContentProtectionEnabled}
+                label="Hide from capture"
+                help="Keeps the Sayvela window out of screen sharing and recordings, so the people you share with see your screen without this app on it."
+              />
+            </div>
           </div>
-        </div>
+        </section>
+      </div>
+      <SettingsOutline scrollRef={scrollRef} />
       </div>
     </section>
   );

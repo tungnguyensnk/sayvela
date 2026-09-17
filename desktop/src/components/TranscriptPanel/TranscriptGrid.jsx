@@ -1,87 +1,70 @@
 import { TranscriptBubble } from "./TranscriptBubble";
 
-export function TranscriptGrid({ transcriptGroups, langLabelFn, speech }) {
-  const groups = Array.isArray(transcriptGroups) ? transcriptGroups : [];
-  
-  // 1. Group by Session+Seq to form "Turns"
+// formats the clock label shown next to a speaker
+function timeLabel(ts) {
+  if (!ts) return "";
+  try {
+    return new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "";
+  }
+}
+
+// groups raw segments into turns ordered from oldest to newest
+export function toTurns(groups) {
   const turnsMap = new Map();
   for (const g of groups) {
-    const key = `${g.sessionId || 'unknown'}-${g.seq}`;
+    const key = `${g.sessionId || "unknown"}-${g.seq}`;
     if (!turnsMap.has(key)) {
-      turnsMap.set(key, {
-        key,
-        sessionId: g.sessionId,
-        seq: g.seq,
-        createdAt: g.createdAt || 0,
-        segments: []
-      });
+      turnsMap.set(key, { key, sessionId: g.sessionId, createdAt: g.createdAt || 0, segments: [] });
     }
     const turn = turnsMap.get(key);
     turn.segments.push(g);
-    // Keep earliest timestamp for sorting
-    if (g.createdAt && g.createdAt < turn.createdAt) {
-      turn.createdAt = g.createdAt;
-    }
+    if (g.createdAt && g.createdAt < turn.createdAt) turn.createdAt = g.createdAt;
   }
+  return Array.from(turnsMap.values()).sort((a, b) => a.createdAt - b.createdAt);
+}
 
-  // 2. Sort turns by time
-  const turns = Array.from(turnsMap.values()).sort((a, b) => a.createdAt - b.createdAt);
-
+export function TranscriptGrid({ transcriptGroups, speech }) {
+  const turns = toTurns(Array.isArray(transcriptGroups) ? transcriptGroups : []);
   if (turns.length === 0) return null;
 
-  // extracts language label and finalization status from a list of segments
-  const bubbleMeta = (list) => {
-    if (!Array.isArray(list) || list.length === 0) return { langLabel: "-", isFinal: true };
-    const lang = list.length === 1 ? list[0]?.language : "";
-    return {
-      langLabel: langLabelFn?.(lang) || lang || "-",
-      isFinal: list.every((g) => Boolean(g?.isFinal)),
-    };
-  };
-
-  return turns.map((turn) => {
-    const row = turn.segments;
-    const original = row.filter((g) => g.translationStatus === "original");
-    const translated = row.filter((g) => g.translationStatus !== "original");
-    
-    // Determine speaker label
-    let speakerLabel = "SPEAKER ?";
-    const rawSpeaker = String(original[0]?.speaker ?? row[0]?.speaker ?? "0");
-    
-    if (turn.sessionId === 'mic') {
-      speakerLabel = "ME";
-    } else {
-      speakerLabel = `SPEAKER ${rawSpeaker}`;
-    }
-
-    const oMeta = bubbleMeta(original);
-    const tMeta = bubbleMeta(translated);
+  return turns.map((turn, index) => {
+    const original = turn.segments.filter((g) => g.translationStatus === "original");
+    const translated = turn.segments.filter((g) => g.translationStatus !== "original");
+    const isMe = turn.sessionId === "mic";
+    // the original always stays on top, but the line the reader actually
+    // understands gets the big type: their own words, or the translation.
+    // this does not wait for the translation to arrive, so the type never jumps
+    const leadIsTranslation = !isMe || !original.length;
+    const speaker = String(original[0]?.speaker ?? turn.segments[0]?.speaker ?? "0");
+    const live = turn.segments.some((g) => !g.isFinal);
+    const latest = index === turns.length - 1;
 
     return (
-      <div key={turn.key} className="tr-row">
-        <div className="tr-col">
-          <div className="speaker-line">
-            <span className="speaker-label">{speakerLabel}</span>
-            <span className="lang-pill">{oMeta.langLabel}</span>
-          </div>
-          <TranscriptBubble
-            segments={original}
-            isFinal={oMeta.isFinal}
-            isTranslation={false}
-          />
+      <div
+        key={turn.key}
+        className={`tr-turn${latest ? " tr-turn--latest" : ""}${isMe ? " tr-turn--me" : ""}`}
+      >
+        <div className="tr-turn-meta">
+          <span className="tr-speaker">{isMe ? "ME" : `SPEAKER ${speaker}`}</span>
+          <span className="tr-time">{live ? "đang nói" : timeLabel(turn.createdAt)}</span>
         </div>
-        <div className="tr-col">
-          <div className="speaker-line">
-            <span className="speaker-label">{speakerLabel}</span>
-            <span className="lang-pill">{tMeta.langLabel}</span>
+        {original.length ? (
+          <div className={leadIsTranslation ? "tr-sub" : "tr-lead"}>
+            <TranscriptBubble segments={original} isFinal={original.every((g) => g.isFinal)} />
           </div>
-          <TranscriptBubble
-            segments={translated}
-            isFinal={tMeta.isFinal}
-            isTranslation={true}
-            speech={speech}
-          />
-        </div>
+        ) : null}
+        {translated.length ? (
+          <div className={leadIsTranslation ? "tr-lead" : "tr-sub"}>
+            <TranscriptBubble
+              segments={translated}
+              isFinal={translated.every((g) => g.isFinal)}
+              isTranslation
+              speech={speech}
+            />
+          </div>
+        ) : null}
       </div>
     );
   });

@@ -8,11 +8,12 @@ import { useSpeechHighlight } from "./tts/useSpeechHighlight";
 import { TitleBar } from "./components/TitleBar";
 import { LoginPanel } from "./components/LoginPanel";
 import { QuotaExceededModal } from "./components/QuotaExceededModal";
-import { LeftBar } from "./components/LeftBar";
 import { StartStopCard } from "./components/StartStopCard";
 import { AppLeftContent } from "./components/AppLeftContent";
 import { ServerUnavailableScreen } from "./components/ServerUnavailableScreen";
+import { AssistFrame } from "./components/AssistFrame";
 import { useAI } from "./hooks/useAI";
+import { useAutoAssist } from "./hooks/useAutoAssist";
 import { useAuth } from "./hooks/useAuth";
 import { useSettings } from "./hooks/useSettings";
 import { useMergedTranscriptGroups } from "./hooks/useMergedTranscriptGroups";
@@ -21,8 +22,9 @@ import { useContentProtection } from "./hooks/useContentProtection";
 import { useEntitlement } from "./hooks/useEntitlement";
 import { useSessionRecorder } from "./hooks/useSessionRecorder";
 import { useTranscriptStreams } from "./hooks/useTranscriptStreams";
-import { hydratePreferences } from "./store/preferencesSlice";
+import { hydratePreferences, setPreference } from "./store/preferencesSlice";
 import { setActiveTab, setQuotaExceeded } from "./store/uiSlice";
+import { closeFrame } from "./store/assistSlice";
 import { clearContexts, fetchContextsThunk } from "./store/contextsSlice";
 import { clearSessions, fetchSessionsThunk } from "./store/sessionsSlice";
 import { SERVER_UNREACHABLE } from "./services/apiClient";
@@ -46,7 +48,7 @@ function App() {
     dispatch(hydratePreferences(settings));
   }, [dispatch, settings, settingsLoaded]);
 
-  const chatgpt = useAI();
+  const chatgpt = useAI({ screenMonitorId: preferences.assistMonitorId });
 
   const { entitlement, checkQuota } = useEntitlement({
     isAuthenticated,
@@ -102,6 +104,18 @@ function App() {
   const { refreshDevices } = useAudioCaptureController(handleAudioReady);
 
   const mergedGroups = useMergedTranscriptGroups(loopbackTranscript.groups, micTranscript.groups);
+  const assistFrames = useSelector((state) => state.assist.frames);
+  const assistSlots = useSelector((state) => state.assist.slots);
+  const assistPending = useSelector((state) => state.assist.pending);
+  const assist = useAutoAssist({
+    running,
+    preferences,
+    groups: mergedGroups,
+    context: activeContextName,
+    chat: chatgpt,
+  });
+  // assist panels stack above the chat so suggestions stay in view
+  const openKinds = assistSlots.filter(Boolean);
   useMicTranslationTts({
     enabled: preferences.micTtsEnabled,
     running,
@@ -159,6 +173,19 @@ function App() {
           user={user}
           entitlement={entitlement}
           syncStatus={syncStatus}
+          assist={{
+            status: assist.status,
+            pending: assist.pending,
+            autoGate: preferences.assistAutoGate,
+            hotkey: preferences.assistHotkey,
+            onToggleGate: (value) => {
+              dispatch(setPreference({ key: "assistAutoGate", value }));
+              updateSetting?.({ assistAutoGate: value });
+            },
+            onTrigger: assist.triggerNow,
+          }}
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
           onLogoutClick={logout}
         />
         {quotaExceeded && (
@@ -166,49 +193,71 @@ function App() {
         )}
 
         <div className="app-body">
-          <LeftBar activeTab={activeTab} onTabChange={handleTabChange}>
-            <AppLeftContent
-              entitlement={entitlement}
-              updateSetting={updateSetting}
-              audioRuntime={audioRuntime}
-            />
-          </LeftBar>
-
-          <main className="main main--center" onClick={() => activeTab && dispatch(setActiveTab(null))}>
+          {activeTab ? (
+            <main className="main main--page">
+              <AppLeftContent
+                entitlement={entitlement}
+                updateSetting={updateSetting}
+                audioRuntime={audioRuntime}
+              />
+            </main>
+          ) : (
+          <main className="main main--center">
             <div className="home-panels">
-              <TranscriptPanel
-                transcriptGroups={mergedGroups}
-                running={running}
-                loopbackStatus={loopbackTranscript.status}
-                loopbackBytes={loopbackBytes}
-                micStatus={micTranscript.status}
-                micBytes={micBytes}
-                speech={speechHighlight}
-                titleAction={(
-                  <StartStopCard
-                    running={running}
-                    onStart={recorder.start}
-                    onStop={recorder.stop}
-                    elapsed={recorder.isReadyToStop ? sessionElapsed : 0}
-                    preparing={recorder.isPreparing}
-                    readyToStop={recorder.isReadyToStop}
-                    progress={recorder.streamProgress}
-                    activeContextName={activeContextName}
-                    inline
-                  />
-                )}
-              />
-              <AIChatPanel
-                messages={chatgpt.chatMessages}
-                input={chatgpt.chatInput}
-                onChangeInput={chatgpt.setChatInput}
-                onSend={chatgpt.sendManual}
-                onCancel={chatgpt.cancel}
-                onClear={chatgpt.clearChat}
-                isStreaming={chatgpt.isStreaming}
-              />
+              <div className="home-col home-col--transcript">
+                <TranscriptPanel
+                  transcriptGroups={mergedGroups}
+                  running={running}
+                  loopbackStatus={loopbackTranscript.status}
+                  loopbackBytes={loopbackBytes}
+                  micStatus={micTranscript.status}
+                  micBytes={micBytes}
+                  speech={speechHighlight}
+                  titleAction={(
+                    <StartStopCard
+                      running={running}
+                      onStart={recorder.start}
+                      onStop={recorder.stop}
+                      elapsed={recorder.isReadyToStop ? sessionElapsed : 0}
+                      preparing={recorder.isPreparing}
+                      readyToStop={recorder.isReadyToStop}
+                      progress={recorder.streamProgress}
+                      activeContextName={activeContextName}
+                      inline
+                    />
+                  )}
+                />
+              </div>
+              <div className="home-col home-col--side">
+                {openKinds.length ? (
+                  <div className="assist-stack">
+                    {openKinds.map((kind) => (
+                      <AssistFrame
+                        key={kind}
+                        kind={kind}
+                        frame={assistFrames[kind]}
+                        pending={assistPending}
+                        onClose={(k) => dispatch(closeFrame(k))}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+                <AIChatPanel
+                  messages={chatgpt.chatMessages}
+                  input={chatgpt.chatInput}
+                  onChangeInput={chatgpt.setChatInput}
+                  onSend={chatgpt.sendManual}
+                  onCancel={chatgpt.cancel}
+                  onClear={chatgpt.clearChat}
+                  isStreaming={chatgpt.isStreaming}
+                  withScreenshot={chatgpt.withScreenshot}
+                  onToggleScreenshot={chatgpt.toggleScreenshot}
+                  compact={openKinds.length > 0}
+                />
+              </div>
             </div>
           </main>
+          )}
         </div>
       </div>
     </div>

@@ -140,17 +140,6 @@
   padding: var(--spacing-6);
 }
 
-.ai-chat-empty-icon {
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  border-radius: var(--radius-full);
-  color: var(--app-accent);
-  background: color-mix(in srgb, var(--app-accent) 13%, transparent);
-  border: 1px solid color-mix(in srgb, var(--app-accent) 32%, transparent);
-}
-
 .ai-chat-empty-title {
   color: var(--app-text);
   font-weight: 800;
@@ -160,8 +149,8 @@
 .ai-chat-input-row {
   display: flex;
   gap: var(--spacing-2);
-  align-items: flex-end;
-  padding: var(--spacing-4);
+  align-items: center;
+  padding: var(--spacing-3) var(--spacing-4);
   border-top: 1px solid var(--app-border);
   background: color-mix(in srgb, var(--app-surface) 92%, var(--app-bg));
   flex-shrink: 0;
@@ -170,12 +159,12 @@
 .ai-chat-input-shell {
   flex: 1;
   box-sizing: border-box;
-  padding: 12px 13px;
-  min-height: 46px;
-  max-height: 106px;
+  padding: 8px 12px;
+  min-height: 36px;
+  max-height: 100px;
   display: flex;
   align-items: center;
-  border-radius: 16px;
+  border-radius: 10px;
   border: 1px solid color-mix(in srgb, var(--app-border) 88%, transparent);
   background: color-mix(in srgb, var(--app-bg) 58%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--app-text) 3%, transparent);
@@ -207,14 +196,57 @@
   color: color-mix(in srgb, var(--app-muted) 72%, transparent);
 }
 
+.ai-chat-send,
+.ai-chat-clear,
+.ai-chat-shot {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+
 .ai-chat-send {
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--app-accent) 34%, transparent);
+  background: color-mix(in srgb, var(--app-accent) 14%, transparent);
+  color: var(--app-accent);
+}
+
+.ai-chat-send:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--app-accent) 22%, transparent);
+}
+
+.ai-chat-clear,
+.ai-chat-shot {
+  border: 1px solid var(--app-border);
+  color: var(--app-muted);
+}
+
+.ai-chat-shot--on {
+  border-color: color-mix(in srgb, var(--app-accent) 40%, transparent);
+  background: color-mix(in srgb, var(--app-accent) 14%, transparent);
+  color: var(--app-accent);
+}
+
+.ai-chat-clear:hover:not(:disabled),
+.ai-chat-shot:hover:not(:disabled) {
+  color: var(--app-text);
 }
 
 .ai-chat-stop {
   color: var(--app-text);
   border-color: color-mix(in srgb, var(--app-danger) 42%, var(--app-border));
   background: color-mix(in srgb, var(--app-danger) 18%, var(--app-surface-muted));
+}
+
+.ai-chat-panel--compact .ai-chat-scroll {
+  padding: var(--spacing-3);
+}
+
+.ai-msg-badge {
+  padding: 0 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--app-accent) 18%, transparent);
+  color: var(--app-accent);
+  font-size: 10px;
+  line-height: 14px;
 }

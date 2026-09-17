@@ -1,5 +1,33 @@
+/* cockpit palette — overrides the astryx theme tokens the app builds on */
+[data-astryx-theme="neutral"],
 :root {
-  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  --color-background-body: #0e100f;
+  --color-background-card: #131615;
+  --color-background-surface: #131615;
+  --color-background-popover: #1b1f1d;
+  --color-background-muted: #1b1f1d;
+  --color-text-primary: #e9eeeb;
+  --color-text-secondary: #8e9992;
+  --color-border: #272c29;
+  --color-border-emphasized: #3a413c;
+  --color-accent: #6ee7a7;
+  --color-error: #ef8080;
+  --font-family-body: "IBM Plex Sans", "Noto Sans JP", system-ui, sans-serif;
+  --font-family-heading: "IBM Plex Sans", "Noto Sans JP", system-ui, sans-serif;
+  --font-family-code: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+:root {
+  --app-shell: #0e100f;
+  --app-rail: #0b0d0c;
+  --app-divider: #1f2422;
+  --app-speaker: #8ab4ff;
+  --app-body-text: #c3ccc6;
+  --app-mono: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+:root {
+  font-family: "IBM Plex Sans", "Noto Sans JP", system-ui, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
   font-size: 14px;
   line-height: 20px;
   font-weight: 400;
@@ -41,7 +69,7 @@ body {
 
 .window {
   height: 100%;
-  background: radial-gradient(circle at top, color-mix(in srgb, var(--app-surface-muted) 72%, var(--app-bg)), var(--app-bg) 54%);
+  background: var(--app-shell);
   border-radius: var(--app-radius);
   overflow: hidden;
   border: 1px solid var(--app-border);
@@ -235,47 +263,79 @@ body {
   color: var(--app-text);
 }
 
-.transcript-empty {
-  grid-column: 1 / -1;
-}
-
 .transcript-grid {
   display: flex;
   flex-direction: column;
   gap: 14px;
+  min-height: 100%;
 }
 
-.tr-row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
+/* pushes the first turns down so the newest one sits at the bottom */
+.transcript-spacer {
+  flex: 1;
+  min-height: 0;
 }
 
-@media (max-width: 860px) {
-  .tr-row {
-    grid-template-columns: 1fr;
-  }
-}
-
-.tr-col {
+.tr-turn {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 3px;
+  padding-left: 12px;
+  border-left: 2px solid var(--app-divider);
 }
 
-.speaker-line {
+.tr-turn--latest {
+  gap: 4px;
+  border-left-color: var(--app-speaker);
+}
+
+.tr-turn--latest.tr-turn--me {
+  border-left-color: var(--app-accent);
+}
+
+.tr-turn-meta {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
+  font-family: var(--app-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
 }
 
-.speaker-label {
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: var(--app-success);
+.tr-speaker {
+  color: var(--app-speaker);
 }
+
+.tr-turn--me .tr-speaker {
+  color: var(--app-accent);
+}
+
+.tr-time {
+  letter-spacing: 0;
+  color: var(--app-muted);
+}
+
+.tr-lead {
+  font-size: 19px;
+  line-height: 1.35;
+  color: var(--app-body-text);
+}
+
+.tr-turn--latest .tr-lead {
+  font-size: 26px;
+  color: var(--app-text);
+}
+
+.tr-sub {
+  font-size: 13px;
+  line-height: 1.4;
+  color: #9aa5a0;
+}
+
+.tr-turn--latest .tr-sub {
+  font-size: 14px;
+}
+
 
 .bubble {
   border: 1px solid var(--app-border);
@@ -321,18 +381,6 @@ body {
   border-radius: 3px;
 }
 
-.lang-pill {
-  height: 20px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 8px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--app-text) 8%, transparent);
-  color: var(--app-muted);
-  font-size: 11px;
-  flex: 0 0 auto;
-}
-
 .bubble-text {
   white-space: pre-wrap;
   line-height: 20px;
@@ -355,27 +403,53 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
   overflow: hidden;
-  padding: 16px;
-  gap: 12px;
+  padding: 0;
 }
 
-/* home panels: transcript + ai side by side */
+/* full width section pages reached from the title bar nav */
+.main--page {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.main--page > .panel {
+  flex: 1;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+/* home panels: transcript and the assist side column, no boxes */
 .home-panels {
   display: flex;
   flex: 1;
-  gap: 12px;
   width: 100%;
   min-height: 0;
   overflow: hidden;
 }
 
-.home-panels > * {
-  flex: 1;
+.home-panels .panel {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
   height: 100%;
-  min-width: 0;
-  min-height: 0;
+}
+
+.home-panels .panel-header {
+  min-height: 52px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--app-divider);
+}
+
+.home-panels .panel-title {
+  font-size: 14px;
+  font-weight: 600;
 }
 
 /* stats panel inside leftbar */
@@ -567,46 +641,20 @@ body {
   height: 100%;
 }
 
-.transcript-title-row {
+.transcript-meters {
+  margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: nowrap;
-}
-
-.transcript-status-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: nowrap;
-}
-
-.status-badge {
-  font-size: 11px;
-  color: color-mix(in srgb, var(--app-muted) 70%, transparent);
-  background: color-mix(in srgb, var(--app-surface-muted) 70%, transparent);
-  border: 1px solid var(--app-border);
-  border-radius: 999px;
-  min-width: 86px;
-  padding: 1px 10px;
-  text-align: center;
+  gap: 10px;
+  font-family: var(--app-mono);
+  font-size: 10px;
+  color: #9aa5a0;
   white-space: nowrap;
-}
-
-.transcript-panel-header,
-.transcript-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
 }
 
 .transcript-panel-header {
   gap: 12px;
-}
-
-.transcript-actions {
-  gap: 6px;
-  position: relative;
+  justify-content: flex-start;
 }
 
 .transcript-action-btn {
@@ -618,11 +666,141 @@ body {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 12px;
+  padding: 14px 20px;
 }
 
 .transcript-scroll {
   flex: 1;
   min-height: 0;
   overflow: auto;
+}
+
+.transcript-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 10px;
+}
+
+/* cockpit home: transcript on the left, assist panels above the chat on the right */
+.home-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.home-col--transcript {
+  flex: 4 1 0;
+}
+
+.home-col--side {
+  position: relative;
+  flex: 6 1 0;
+  border-left: 1px solid var(--app-divider);
+  background: var(--app-rail);
+}
+
+/* assist panels float over the chat: they take the height their cards need and
+   scroll once they would cover the whole column */
+.assist-stack {
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  left: 0;
+  right: 0;
+  max-height: 100%;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--app-rail);
+  border-bottom: 1px solid var(--app-divider);
+  box-shadow: 0 12px 28px color-mix(in srgb, #000 42%, transparent);
+  opacity: 0.9;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--app-muted) 32%, transparent) transparent;
+}
+
+.assist-stack > .assist-frame {
+  /* panels stretch to the column by default; these size to their cards */
+  flex: 0 0 auto;
+  height: auto;
+}
+
+.assist-stack > .assist-frame + .assist-frame {
+  border-top: 1px solid var(--app-divider);
+}
+
+.home-col--side > .ai-chat-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.home-col--side .af-body {
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+/* cockpit: compact recorder control sitting in the transcript header */
+.home-panels .ssc--inline .ssc-btn {
+  height: 28px;
+  width: auto;
+  min-width: 0;
+  padding: 0 12px;
+  gap: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--app-accent) 34%, transparent);
+  background: color-mix(in srgb, var(--app-accent) 10%, transparent);
+  color: var(--app-accent);
+}
+
+.home-panels .ssc--inline .ssc-btn[class*="destructive"],
+.home-panels .ssc--inline .ssc-btn:where([data-variant="destructive"]) {
+  border-color: #3a2b2b;
+  background: #211918;
+  color: var(--app-danger);
+}
+
+.home-panels .ssc--inline .ssc-timer {
+  width: auto;
+  height: 28px;
+  font-family: var(--app-mono);
+  font-size: 13px;
+  color: var(--app-accent);
+}
+
+/* the right column labels read as quiet section tags, not panel titles */
+.home-col--side .panel-header {
+  min-height: 44px;
+}
+
+.home-col--side .panel-title {
+  font-family: var(--app-mono);
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #9aa5a0;
+}
+
+/* transcript turns are plain text, the bubble chrome belongs to the old layout */
+.tr-turn .bubble {
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+}
+
+.tr-turn .bubble.partial {
+  background: transparent;
+}
+
+.tr-turn .bubble-text {
+  line-height: inherit;
+  color: inherit;
+}
+
+.tr-turn .bubble-text.translation {
+  color: inherit;
 }

@@ -10,8 +10,8 @@ function abortError() {
   return e;
 }
 
-// streams a chat completion through the backend proxy via the tauri bridge
-export async function sendMessage(messages, onEvent, { requestId, signal } = {}) {
+// streams one ai endpoint through the backend proxy via the tauri bridge
+export async function startStream(path, body, onEvent, { requestId, signal } = {}) {
   if (!requestId) throw new Error("missing requestId");
   const authToken = getStoredAuth()?.token;
   if (!authToken) throw new Error("missing auth token");
@@ -59,11 +59,27 @@ export async function sendMessage(messages, onEvent, { requestId, signal } = {})
       }
 
       await invoke("ai_start_stream", {
-        request: { requestId, messages, apiUrl: API_URL, authToken },
+        request: { requestId, path, body, apiUrl: API_URL, authToken },
       });
     } catch (err) {
       teardown();
       reject(signal?.aborted ? abortError() : err);
     }
   });
+}
+
+export function sendMessage(payload, onEvent, opts) {
+  return startStream("chat", payload, onEvent, opts);
+}
+
+export function sendAssist(payload, onEvent, opts) {
+  return startStream("assist", payload, onEvent, opts);
+}
+
+// asks the backend gate model whether the latest transcript needs assistance
+export async function requestGate(payload) {
+  const authToken = getStoredAuth()?.token;
+  if (!authToken) throw new Error("missing auth token");
+  const out = await invoke("ai_gate", { apiUrl: API_URL, token: authToken, body: payload });
+  return out?.needHelp === 1 || out?.needHelp === true;
 }

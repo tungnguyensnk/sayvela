@@ -1,6 +1,8 @@
 mod ai;
 mod api;
 mod audio;
+mod hotkey;
+mod screen;
 mod secure_store;
 mod soniox;
 mod tts_native;
@@ -137,9 +139,19 @@ pub fn run() {
         .plugin(
             tauri_plugin_log::Builder::new()
                 .level(log::LevelFilter::Debug)
+                // keep the app's own traces, drop the chatter from the http and
+                // websocket stacks that repeats every request
+                .level_for("reqwest", log::LevelFilter::Warn)
+                .level_for("hyper", log::LevelFilter::Warn)
+                .level_for("hyper_util", log::LevelFilter::Warn)
+                .level_for("tungstenite", log::LevelFilter::Warn)
+                .level_for("tokio_tungstenite", log::LevelFilter::Warn)
                 .build(),
         )
         .plugin(tauri_plugin_opener::init())
+        // combos go through RegisterHotKey, which keeps working while an
+        // elevated window holds focus; the input hooks cover what it cannot bind
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             // when a second instance is launched, check if any arg is a deep link URL
@@ -182,6 +194,12 @@ pub fn run() {
             auth_poll_pending_token,
             ai::ai_start_stream,
             ai::ai_cancel_stream,
+            ai::ai_gate,
+            hotkey::hotkey_set,
+            hotkey::hotkey_capture,
+            screen::screen_list_monitors,
+            screen::screen_capture,
+            screen::screen_highlight,
             tts_native::tts_list_voices,
             tts_native::tts_start,
             tts_native::tts_speak,

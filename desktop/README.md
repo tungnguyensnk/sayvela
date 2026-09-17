@@ -21,6 +21,7 @@ sayvela captures audio from two simultaneous sources — system loopback and mic
 | **Speaker Diarization** | Automatic speaker identification and separation |
 | **TTS Output** | Text-to-speech playback of mic translations |
 | **AI Chat** | OpenAI-compatible chat streamed through the Sayvela backend |
+| **Auto Assist** | A gate model watches the conversation; the main model opens answer/guide/code panels through tool calls |
 | **Content Protection** | Screenshot/screen-share protection for privacy |
 
 ## Architecture
@@ -37,7 +38,8 @@ graph TB
         E[audio.rs] --> F[WASAPI]
         E --> G[Events]
         H[soniox.rs] --> I[Soniox API]
-        J[ai.rs] --> K[Sayvela backend /ai/chat]
+        J[ai.rs] --> K[Sayvela backend /ai/chat, /ai/gate, /ai/assist]
+        S[screen.rs] --> T[Monitor capture]
         L[tts_native.rs] --> M[Windows TTS]
     end
 
@@ -98,14 +100,19 @@ npm run tauri dev
 desktop/
 ├── src/
 │   ├── components/
+│   │   ├── AssistFrame/      # assist panels opened by tool calls
 │   │   ├── AudioControlPanel/
 │   │   │   ├── AudioControlPanel.css
+│   │   │   ├── AssistSection.jsx
 │   │   │   ├── LanguageControls.jsx
+│   │   │   ├── SettingsOutline.jsx
 │   │   │   ├── SourceSection.jsx
 │   │   │   ├── TtsSection.jsx
 │   │   │   └── index.jsx
-│   │   ├── TitleBar/
+│   │   ├── TitleBar/         # nav tabs, assist controls, window controls
+│   │   │   ├── AssistControls.jsx
 │   │   │   ├── Icons.jsx
+│   │   │   ├── NavTabs.jsx
 │   │   │   ├── TitleBar.css
 │   │   │   └── index.jsx
 │   │   └── TranscriptPanel/
@@ -126,7 +133,8 @@ desktop/
 │   ├── languages.js
 │   └── main.jsx
 ├── src-tauri/
-│   │   ├── ai.rs             # AI chat stream client (backend proxy)
+│   │   ├── ai.rs             # AI chat/assist stream client (backend proxy)
+│   │   ├── screen.rs         # Monitor capture for assist screenshots
 │   │   ├── lib.rs            # Tauri command handlers
 │   │   ├── tts_native.rs     # Windows TTS
 │   │   └── types.rs
@@ -191,6 +199,39 @@ Full list available in `src/languages.js`
 - [Soniox](https://soniox.com/) — Speech-to-text & translation
 - OpenAI-compatible API (via backend proxy) — AI chat responses
 
+## Layout
+
+The home screen is a cockpit: the transcript takes the left 40% as one vertical
+stream (newest turn at the bottom, enlarged while someone is speaking), and the
+right 60% stacks the assist panels above the AI chat. Settings, contexts, sessions
+and stats are full-width pages reached from the title bar nav; Settings carries a
+sticky outline that tracks the section you scrolled to.
+
+## Auto Assist
+
+While a session is running, a small gate model reads the newest transcript lines every few seconds and answers 1/0.
+On 1 — or when the global hotkey (`Ctrl+Shift+Space` by default) is pressed — the main vision model receives the
+transcript plus a screenshot of the selected monitor and replies **only through tool calls**:
+
+| Tool | Panel |
+|---|---|
+| `suggest_answer` | question, its translation and a suggested reply |
+| `guide_steps` | goal plus "do A → get B" steps |
+| `show_code` | code block with an explanation of the logic |
+| `close_frame` / `finish` | closes one panel / ends the session |
+| `list_frames` | answered by the backend from the panels the app reports |
+
+Up to two panels are shown: the first takes the lower half of the AI Chat column, the second the lower half of the
+transcript column. Plain text answers land in AI Chat with an `auto` badge. Pressing the hotkey again ends the session.
+
+The shortcut is captured by low level Windows keyboard and mouse hooks rather than the global-shortcut plugin, so it can
+be a side aware key (`ControlRight`), a combo (`Ctrl+Shift+Space`) or a mouse button (`MouseX1`, `Ctrl+MouseRight`).
+Set it in Settings → AI Assist by pressing the keys you want.
+
+Privacy: the screenshot is sent to the backend and on to the AI provider, and is never stored. It is skipped when the
+image is unchanged or when **send a screenshot** is unchecked. With content protection on, the Sayvela window itself is
+excluded from the capture.
+
 ## Notes
 
 - Audio capture is **Windows-only** (uses WASAPI)
@@ -210,6 +251,12 @@ Full list available in `src/languages.js`
 ### AI chat not responding
 1. Verify internet connectivity
 2. Check backend `AI_*` env vars and runtime logs for `ai_start_stream` failures
+
+### Auto Assist never triggers
+1. A session must be running — the loop starts with the recorder
+2. Enable **AI Assist → let the gate model watch the conversation**, or press the hotkey
+3. The gate only runs when a new final transcript line arrived since the last tick
+4. Check backend `AI_GATE_MODEL` and runtime logs for `ai_gate` failures
 
 ## Contributing
 

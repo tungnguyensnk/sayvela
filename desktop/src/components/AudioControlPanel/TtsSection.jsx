@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Toggle } from "./Toggle";
 import { invoke } from "@tauri-apps/api/core";
 import { ttsGetTestSentence, ttsSpeak } from "../../tts/ttsApi";
 import { ActionButton } from "../astryx/AstryxControls";
@@ -57,7 +58,9 @@ export function TtsSection({
       setInstallOpen(true);
       return;
     }
-    if (enabled && (!micTtsOutputDeviceId || micTtsOutputDeviceId === "default-loopback")) {
+    // turning tts on routes it to the virtual cable, which is the whole point of
+    // the feature; picking another output afterwards still sticks
+    if (enabled && micTtsOutputDeviceId !== recommendedOutput.id) {
       onChangeMicTtsOutputDeviceId?.(recommendedOutput.id);
     }
     onChangeMicTtsEnabled?.(enabled);
@@ -99,31 +102,18 @@ export function TtsSection({
         <div className="acp-ttsTitle">
           <div className="acp-subLabel">TTS (ME translation)</div>
           <span
-            className="acp-ttsHelp"
+            className="acp-help"
             tabIndex="0"
             aria-label="TTS routing help"
             data-tooltip="In the app where you want to use the translated voice, open Microphone settings and select CABLE Output (VB-Audio Virtual Cable) as the input device."
           >?</span>
         </div>
-        <label className="acp-checkboxRow">
-          <input
-            type="checkbox"
-            checked={Boolean(micTtsEnabled)}
-            onChange={(e) => changeEnabled(e.target.checked)}
-          />
-          enable
-        </label>
-      </div>
-
-      <div className="acp-ttsProviderRow">
-        <select className="select acp-select" value={provider} disabled={!micTtsEnabled} onChange={(e) => onChangeMicTtsProvider?.(e.target.value)}>
-          <option value="builtin">Built in</option>
-          <option value="soniox">Soniox</option>
-        </select>
-        {provider === "soniox" ? <ActionButton type="button" onClick={() => setSettingsOpen(true)}>Soniox setting</ActionButton> : null}
+        <Toggle checked={micTtsEnabled} onChange={changeEnabled} />
       </div>
 
       <div className="acp-ttsSelectRow">
+        <div className="acp-field">
+          <div className="acp-subLabel">Device</div>
         <select
           className="select acp-select"
           value={micTtsOutputDeviceId || "default-loopback"}
@@ -140,7 +130,25 @@ export function TtsSection({
             </option>
           ))}
         </select>
+        </div>
 
+        <div className="acp-field">
+          <div className="acp-subLabel">Provider</div>
+          <div className="acp-ttsProviderRow">
+            <select className="select acp-select" value={provider} disabled={!micTtsEnabled} onChange={(e) => onChangeMicTtsProvider?.(e.target.value)}>
+              <option value="builtin">Built in</option>
+              <option value="soniox">Soniox</option>
+            </select>
+            {provider === "soniox" ? (
+              <ActionButton type="button" size="sm" onClick={() => setSettingsOpen(true)}>
+                Setting
+              </ActionButton>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="acp-field">
+          <div className="acp-subLabel">Voice</div>
         <select
           className="select acp-select acp-ttsVoiceSelect"
           value={voiceId}
@@ -158,13 +166,14 @@ export function TtsSection({
             <optgroup label="Built in">{builtinVoices.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}</optgroup>
           </>}
         </select>
+        </div>
       </div>
 
       <div className="acp-ttsControls">
         <div className="acp-ttsBottomRow">
           <div className="acp-ttsSliders">
             {provider === "builtin" ? <><div className="acp-sliderRow">
-              <div className="acp-sliderLabel">rate</div>
+              <div className="acp-sliderLabel">rate ({Number(micTtsRate ?? 1).toFixed(2)})</div>
               <input
                 className="acp-range"
                 type="range"
@@ -175,12 +184,9 @@ export function TtsSection({
                 disabled={!micTtsEnabled}
                 onChange={(e) => onChangeMicTtsRate?.(Number(e.target.value))}
               />
-              <div className="acp-sliderValue">
-                {Number(micTtsRate ?? 1).toFixed(2)}
-              </div>
             </div>
             <div className="acp-sliderRow">
-              <div className="acp-sliderLabel">pitch</div>
+              <div className="acp-sliderLabel">pitch ({Number(micTtsPitch ?? 1).toFixed(2)})</div>
               <input
                 className="acp-range"
                 type="range"
@@ -191,16 +197,14 @@ export function TtsSection({
                 disabled={!micTtsEnabled}
                 onChange={(e) => onChangeMicTtsPitch?.(Number(e.target.value))}
               />
-              <div className="acp-sliderValue">
-                {Number(micTtsPitch ?? 1).toFixed(2)}
-              </div>
             </div></> : <div className="acp-sliderRow">
-              <div className="acp-sliderLabel">speed</div>
+              <div className="acp-sliderLabel">speed ({Number(micTtsSonioxSpeed ?? 1).toFixed(2)})</div>
               <input className="acp-range" type="range" min="0.7" max="1.3" step="0.05" value={Number(micTtsSonioxSpeed ?? 1)} disabled={!micTtsEnabled} onChange={(e) => onChangeMicTtsSonioxSpeed?.(Number(e.target.value))} />
-              <div className="acp-sliderValue">{Number(micTtsSonioxSpeed ?? 1).toFixed(2)}</div>
             </div>}
             <div className="acp-sliderRow">
-              <div className="acp-sliderLabel">volume</div>
+              <div className="acp-sliderLabel">
+                volume ({Number(volume ?? (provider === "soniox" ? 2 : 1)).toFixed(2)})
+              </div>
               <input
                 className="acp-range"
                 type="range"
@@ -211,9 +215,6 @@ export function TtsSection({
                 disabled={!micTtsEnabled}
                 onChange={(e) => (provider === "soniox" ? onChangeMicTtsSonioxVolume : onChangeMicTtsVolume)?.(Number(e.target.value))}
               />
-              <div className="acp-sliderValue">
-                {Number(volume ?? (provider === "soniox" ? 2 : 1)).toFixed(2)}
-              </div>
             </div>
           </div>
 

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  isBlankReply,
   chatReducer,
   initialChatState,
   createChatMessage,
@@ -40,6 +41,17 @@ describe("chatReducer", () => {
     expect(state.active).toBe(null);
   });
 
+  it("should start without a user message for auto turns", () => {
+    const requestId = "r3";
+    const assistant = createChatMessage({ id: "a3", role: "assistant", text: "", source: CHAT_SOURCES.AUTO, status: CHAT_STATUSES.STREAMING, createdAt: 1 });
+
+    let state = initialChatState();
+    state = chatReducer(state, { type: "chat/start", payload: { requestId, userMessage: null, assistantMessage: assistant } });
+
+    expect(state.messages.map((m) => m.id)).toEqual(["a3"]);
+    expect(state.active.assistantMessageId).toBe("a3");
+  });
+
   it("should mark cancelled", () => {
     const requestId = "r2";
     const user = createChatMessage({ id: "u2", role: "user", text: "x", source: CHAT_SOURCES.AUTO, status: CHAT_STATUSES.DONE, createdAt: 1 });
@@ -52,6 +64,20 @@ describe("chatReducer", () => {
     const a = state.messages.find((m) => m.id === "a2");
     expect(a.status).toBe(CHAT_STATUSES.CANCELLED);
     expect(state.active).toBe(null);
+  });
+});
+
+describe("isBlankReply", () => {
+  it("treats the sentinel and empty text as nothing to show", () => {
+    expect(isBlankReply("NO_UPDATE")).toBe(true);
+    expect(isBlankReply("  NO_UPDATE  ")).toBe(true);
+    expect(isBlankReply("")).toBe(true);
+    expect(isBlankReply("   ")).toBe(true);
+  });
+
+  it("keeps a real answer", () => {
+    expect(isBlankReply("NO_UPDATE yet, but here is why")).toBe(false);
+    expect(isBlankReply("hello")).toBe(false);
   });
 });
 

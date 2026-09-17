@@ -16,8 +16,6 @@ export function TranscriptPanel({
   titleAction,
   speech,
 }) {
-  // retrieves compact language code for transcript pills
-  const langLabel = (code) => code || "-";
   const [autoScroll, setAutoScroll] = useState(true);
   const [streamingSince, setStreamingSince] = useState({ loopback: 0, mic: 0 });
   const scrollRef = useRef(null);
@@ -72,26 +70,11 @@ export function TranscriptPanel({
   return (
     <section className="panel transcript-panel">
       <div className="panel-header transcript-panel-header">
-        <div className="transcript-title-row">
-          <div className="panel-title">Transcript</div>
-          {titleAction}
-          <div className="transcript-status-row">
-            {loopbackStatus && <span className="status-badge">Sys: {statusLabel("loopback", loopbackStatus, loopbackBytes)}</span>}
-            {micStatus && <span className="status-badge">Mic: {statusLabel("mic", micStatus, micBytes)}</span>}
-          </div>
-        </div>
-        <div className="transcript-actions">
-          <ActionButton
-            type="button"
-            className={`transcript-action-btn ${autoScroll ? "chip-active" : ""}`}
-            onClick={() => {
-              setAutoScroll((v) => !v);
-              if (!autoScroll) requestAnimationFrame(scrollToBottom);
-            }}
-            size="sm"
-          >
-            auto scroll: {autoScroll ? "on" : "off"}
-          </ActionButton>
+        <div className="panel-title">Transcript</div>
+        {titleAction}
+        <div className="transcript-meters">
+          {loopbackStatus && <span className="tr-meter">SYS {statusLabel("loopback", loopbackStatus, loopbackBytes)}</span>}
+          {micStatus && <span className="tr-meter">MIC {statusLabel("mic", micStatus, micBytes)}</span>}
         </div>
       </div>
       <div className="transcript-panel-body">
@@ -107,8 +90,22 @@ export function TranscriptPanel({
           }}
         >
           <div className="transcript-grid">
-            <TranscriptGrid transcriptGroups={transcriptGroups} langLabelFn={langLabel} speech={speech} />
+            <div className="transcript-spacer" />
+            <TranscriptGrid transcriptGroups={transcriptGroups} speech={speech} />
           </div>
+        </div>
+        <div className="transcript-footer">
+          <ActionButton
+            type="button"
+            className={`transcript-action-btn ${autoScroll ? "chip-active" : ""}`}
+            onClick={() => {
+              setAutoScroll((v) => !v);
+              if (!autoScroll) requestAnimationFrame(scrollToBottom);
+            }}
+            size="sm"
+          >
+            auto scroll: {autoScroll ? "on" : "off"}
+          </ActionButton>
         </div>
       </div>
     </section>

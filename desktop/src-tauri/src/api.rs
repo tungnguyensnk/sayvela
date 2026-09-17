@@ -27,6 +27,11 @@ async fn get(url: &str, token: &str) -> Result<Value, String> {
     res.json::<Value>().await.map_err(|e| e.to_string())
 }
 
+// posts a json body with bearer auth; shared with other modules
+pub(crate) async fn post_json(url: &str, token: &str, body: Value) -> Result<Value, String> {
+    request_with_body("POST", url, token, body).await
+}
+
 // issues a PUT/POST/PATCH request with json body and bearer auth
 async fn request_with_body(
     method: &str,

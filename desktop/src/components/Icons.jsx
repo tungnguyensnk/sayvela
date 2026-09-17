@@ -16,6 +16,16 @@ export function IconSettings({ size = 20, className = "" }) {
   return <SemanticIcon icon="wrench" size={size} className={className} />;
 }
 
+export function IconHome({ size = 20, className = "" }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 11 12 4l8 7" />
+      <path d="M6 10v9h12v-9" />
+      <path d="M10 19v-5h4v5" />
+    </svg>
+  );
+}
+
 export function IconContexts({ size = 20, className = "" }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">

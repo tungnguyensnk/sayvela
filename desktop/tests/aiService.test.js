@@ -35,16 +35,38 @@ describe("aiService", () => {
     const { sendMessage } = await import("../src/services/aiService.js");
     const messages = [{ role: "user", content: "hello" }];
     const events = [];
-    const out = await sendMessage(messages, (p) => events.push(p), { requestId: "rid" });
+    const out = await sendMessage({ messages }, (p) => events.push(p), { requestId: "rid" });
 
     expect(invoke).toHaveBeenCalledWith("ai_start_stream", {
-      request: { requestId: "rid", messages, apiUrl: "http://localhost:80/api", authToken: "jwt" },
+      request: {
+        requestId: "rid",
+        path: "chat",
+        body: { messages },
+        apiUrl: "http://localhost:80/api",
+        authToken: "jwt",
+      },
     });
     expect(events).toEqual([
       { event: "chunk", data: { delta: "hi" } },
       { event: "result", data: { response: "hi" } },
     ]);
     expect(out).toEqual({ response: "hi" });
+  });
+
+  it("should forward assist tool events", async () => {
+    const { invoke } = setup((req, emit) => {
+      emit({ request_id: req.requestId, event: "tool", data: { type: "tool", name: "show_code", args: { title: "t" } } });
+      emit({ request_id: req.requestId, event: "result", data: { response: "" } });
+    });
+    const { sendAssist } = await import("../src/services/aiService.js");
+    const events = [];
+    await sendAssist({ transcript: "line", language: "vi" }, (p) => events.push(p), { requestId: "rid" });
+
+    expect(invoke.mock.calls[0][1].request.path).toBe("assist");
+    expect(events[0]).toEqual({
+      event: "tool",
+      data: { type: "tool", name: "show_code", args: { title: "t" } },
+    });
   });
 
   it("should reject when stream fails", async () => {

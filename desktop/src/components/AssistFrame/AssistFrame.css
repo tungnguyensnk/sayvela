@@ -1,0 +1,143 @@
+.assist-frame {
+  overflow: hidden;
+}
+
+.af-header {
+  background: color-mix(in srgb, var(--app-surface) 88%, var(--app-bg));
+}
+
+/* a slim strip: the panel title is a tag, not a heading */
+.home-panels .assist-frame .panel-header {
+  min-height: 30px;
+  padding: 0 14px;
+}
+
+.af-close {
+  width: 22px;
+  height: 22px;
+}
+
+.af-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.af-icon {
+  font-size: 13px;
+}
+
+.af-pending {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--app-accent);
+  animation: af-blink 1s infinite;
+}
+
+@keyframes af-blink {
+  50% { opacity: 0.2; }
+}
+
+.af-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--spacing-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  background: color-mix(in srgb, var(--app-bg) 52%, transparent);
+}
+
+.af-card {
+  border: 1px solid color-mix(in srgb, var(--app-border) 82%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--app-surface-muted) 82%, var(--app-bg));
+  overflow: hidden;
+}
+
+.af-card--open {
+  border-color: color-mix(in srgb, var(--app-accent) 28%, var(--app-border));
+}
+
+.af-card-head {
+  width: 100%;
+  display: block;
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 0;
+  background: transparent;
+  color: var(--app-muted);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.af-card--open .af-card-head {
+  color: var(--app-text);
+  font-weight: 600;
+}
+
+.af-card-label {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.af-card-body {
+  padding: var(--spacing-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.af-card-body pre {
+  max-width: 100%;
+  overflow: auto;
+}
+
+.af-question {
+  font-weight: 600;
+}
+
+.af-question-tr {
+  color: var(--app-muted);
+}
+
+.af-spoken {
+  display: flex;
+  gap: var(--spacing-2);
+  align-items: baseline;
+  padding: var(--spacing-2);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--app-accent) 12%, transparent);
+}
+
+.af-spoken-tag {
+  flex: 0 0 auto;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--app-accent);
+}
+
+.af-goal {
+  font-weight: 600;
+}
+
+.af-steps {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.af-step-expected {
+  display: block;
+  color: var(--app-muted);
+}

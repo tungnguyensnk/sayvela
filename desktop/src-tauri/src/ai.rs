@@ -15,9 +15,15 @@ pub struct AiState {
 #[serde(rename_all = "camelCase")]
 pub struct StartStreamRequest {
     request_id: String,
-    messages: Vec<Value>,
+    #[serde(default = "default_path")]
+    path: String,
+    body: Value,
     api_url: String,
     auth_token: String,
+}
+
+fn default_path() -> String {
+    "chat".to_string()
 }
 
 #[derive(Debug, Serialize, Clone)]
@@ -38,13 +44,17 @@ fn emit(app: &AppHandle, request_id: &str, event: &str, data: Value) {
     );
 }
 
-// extracts the text delta from one openai-compatible sse line
-fn delta_of(line: &str) -> Option<String> {
+// parses one sse line into a json chunk, ignoring comments and the done marker
+fn chunk_of(line: &str) -> Option<Value> {
     let json = line.strip_prefix("data:")?.trim();
     if json == "[DONE]" {
         return None;
     }
-    let chunk: Value = serde_json::from_str(json).ok()?;
+    serde_json::from_str::<Value>(json).ok()
+}
+
+// extracts the text delta from an openai-compatible chunk
+fn delta_of(chunk: &Value) -> Option<String> {
     chunk
         .get("choices")?
         .get(0)?
@@ -55,11 +65,12 @@ fn delta_of(line: &str) -> Option<String> {
         .map(|s| s.to_string())
 }
 
-// posts the chat history to the backend proxy and forwards sse deltas as events
+// posts to the backend proxy and forwards text deltas and assist tool events
 async fn run_stream(
     app: &AppHandle,
     request_id: &str,
-    messages: Vec<Value>,
+    path: &str,
+    body: &Value,
     api_url: &str,
     auth_token: &str,
 ) -> Result<String, String> {
@@ -68,9 +79,13 @@ async fn run_stream(
         .build()
         .map_err(|e| e.to_string())?;
     let res = client
-        .post(format!("{}/backend/ai/chat", api_url.trim_end_matches('/')))
+        .post(format!(
+            "{}/backend/ai/{}",
+            api_url.trim_end_matches('/'),
+            path
+        ))
         .bearer_auth(auth_token)
-        .json(&json!({ "messages": messages }))
+        .json(body)
         .send()
         .await
         .map_err(|e| e.to_string())?;
@@ -78,7 +93,8 @@ async fn run_stream(
         let status = res.status().as_u16();
         let body = res.text().await.unwrap_or_default();
         return Err(format!(
-            "ai chat failed: {} {}",
+            "ai {} failed: {} {}",
+            path,
             status,
             body.chars().take(500).collect::<String>().replace('\n', " ")
         ));
@@ -91,9 +107,32 @@ async fn run_stream(
         // split on newline bytes so multi-byte utf-8 is never cut mid-char
         while let Some(nl) = buffer.iter().position(|b| *b == b'\n') {
             let line: Vec<u8> = buffer.drain(..=nl).collect();
-            if let Some(delta) = delta_of(String::from_utf8_lossy(&line).trim()) {
-                text.push_str(&delta);
-                emit(app, request_id, "chunk", json!({ "delta": delta }));
+            let Some(chunk) = chunk_of(String::from_utf8_lossy(&line).trim()) else {
+                continue;
+            };
+            match chunk.get("type").and_then(|t| t.as_str()) {
+                // sayvela assist envelope
+                Some("text") => {
+                    if let Some(delta) = chunk.get("delta").and_then(|d| d.as_str()) {
+                        text.push_str(delta);
+                        emit(app, request_id, "chunk", json!({ "delta": delta }));
+                    }
+                }
+                Some("tool") => emit(app, request_id, "tool", chunk.clone()),
+                Some("error") => {
+                    return Err(chunk
+                        .get("error")
+                        .and_then(|e| e.as_str())
+                        .unwrap_or("assist failed")
+                        .to_string())
+                }
+                // plain openai chat chunk
+                _ => {
+                    if let Some(delta) = delta_of(&chunk) {
+                        text.push_str(&delta);
+                        emit(app, request_id, "chunk", json!({ "delta": delta }));
+                    }
+                }
             }
         }
     }
@@ -103,11 +142,12 @@ async fn run_stream(
 async fn stream_chat(app: AppHandle, request: StartStreamRequest) {
     let StartStreamRequest {
         request_id,
-        messages,
+        path,
+        body,
         api_url,
         auth_token,
     } = request;
-    match run_stream(&app, &request_id, messages, &api_url, &auth_token).await {
+    match run_stream(&app, &request_id, &path, &body, &api_url, &auth_token).await {
         Ok(text) => emit(&app, &request_id, "result", json!({ "response": text })),
         Err(e) => emit(&app, &request_id, "failed", json!({ "error": e })),
     }
@@ -153,20 +193,40 @@ pub fn ai_cancel_stream(state: State<'_, AiState>, request_id: String) -> Result
     Ok(())
 }
 
+// asks the backend gate whether the latest transcript needs assistance
+#[tauri::command]
+pub async fn ai_gate(api_url: String, token: String, body: Value) -> Result<Value, String> {
+    crate::api::post_json(
+        &format!("{}/backend/ai/gate", api_url.trim_end_matches('/')),
+        &token,
+        body,
+    )
+    .await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn extracts_delta_content() {
-        let line = r#"data: {"choices":[{"delta":{"content":"hi"}}]}"#;
-        assert_eq!(delta_of(line).as_deref(), Some("hi"));
+        let chunk = chunk_of(r#"data: {"choices":[{"delta":{"content":"hi"}}]}"#).unwrap();
+        assert_eq!(delta_of(&chunk).as_deref(), Some("hi"));
     }
 
     #[test]
     fn skips_done_and_empty_delta() {
-        assert_eq!(delta_of("data: [DONE]"), None);
-        assert_eq!(delta_of(r#"data: {"choices":[{"delta":{"role":"assistant"}}]}"#), None);
-        assert_eq!(delta_of(": keep-alive"), None);
+        assert!(chunk_of("data: [DONE]").is_none());
+        assert!(chunk_of(": keep-alive").is_none());
+        let chunk = chunk_of(r#"data: {"choices":[{"delta":{"role":"assistant"}}]}"#).unwrap();
+        assert_eq!(delta_of(&chunk), None);
+    }
+
+    #[test]
+    fn reads_assist_envelope() {
+        let chunk = chunk_of(r#"data: {"type":"tool","name":"show_code","args":{"title":"a"}}"#)
+            .unwrap();
+        assert_eq!(chunk["type"], "tool");
+        assert_eq!(chunk["name"], "show_code");
     }
 }

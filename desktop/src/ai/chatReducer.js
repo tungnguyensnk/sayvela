@@ -3,6 +3,15 @@ export const CHAT_SOURCES = {
   AUTO: "auto",
 };
 
+// the assist prompt answers with this when it has nothing new to show
+export const NO_UPDATE = "NO_UPDATE";
+
+// a reply worth keeping in the panel: neither empty nor the sentinel
+export function isBlankReply(text) {
+  const trimmed = String(text || "").trim();
+  return !trimmed || trimmed === NO_UPDATE;
+}
+
 export const CHAT_STATUSES = {
   STREAMING: "streaming",
   DONE: "done",
@@ -37,7 +46,7 @@ export function chatReducer(state, action) {
     case "chat/start": {
       const { requestId, userMessage, assistantMessage } = action.payload;
       return {
-        messages: [...state.messages, userMessage, assistantMessage],
+        messages: [...state.messages, ...(userMessage ? [userMessage] : []), assistantMessage],
         active: { requestId, assistantMessageId: assistantMessage.id },
       };
     }
@@ -71,6 +80,18 @@ export function chatReducer(state, action) {
             status: CHAT_STATUSES.DONE,
           };
         }),
+      };
+    }
+
+    // drops a turn that produced nothing worth showing
+    case "chat/discard": {
+      const { requestId } = action.payload;
+      if (!state.active || state.active.requestId !== requestId) return state;
+      const mid = state.active.assistantMessageId;
+      return {
+        ...state,
+        active: null,
+        messages: state.messages.filter((m) => m.id !== mid && m.id !== `u-${requestId}`),
       };
     }
 
