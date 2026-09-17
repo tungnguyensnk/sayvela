@@ -23,7 +23,8 @@ import { useEntitlement } from "./hooks/useEntitlement";
 import { useSessionRecorder } from "./hooks/useSessionRecorder";
 import { useTranscriptStreams } from "./hooks/useTranscriptStreams";
 import { hydratePreferences, setPreference } from "./store/preferencesSlice";
-import { setActiveTab, setMiniMode, setQuotaExceeded } from "./store/uiSlice";
+import { setActiveTab, setAlwaysOnTop, setClickThrough, setMiniMode, setQuotaExceeded } from "./store/uiSlice";
+import { useWindowOverlay } from "./hooks/useWindowOverlay";
 import { closeFrame } from "./store/assistSlice";
 import { clearContexts, fetchContextsThunk } from "./store/contextsSlice";
 import { clearSessions, fetchSessionsThunk } from "./store/sessionsSlice";
@@ -35,7 +36,7 @@ function App() {
   const dispatch = useDispatch();
   const { running, loopbackBytes, micBytes, loopbackCaptureState, micCaptureState } = useSelector((state) => state.audio);
   const preferences = useSelector((state) => state.preferences);
-  const { activeTab, quotaExceeded, syncStatus, sessionElapsed, miniMode } = useSelector((state) => state.ui);
+  const { activeTab, quotaExceeded, syncStatus, sessionElapsed, miniMode, alwaysOnTop, clickThrough } = useSelector((state) => state.ui);
   const { loading: sessionsLoading, errorCode: sessionsErrorCode } = useSelector((state) => state.sessions);
   const activeContextJson = useSelector(selectActiveContextJson);
   const activeContextName = useSelector(selectActiveContextName);
@@ -57,6 +58,12 @@ function App() {
   });
 
   useContentProtection(preferences.contentProtectionEnabled);
+
+  useWindowOverlay({
+    alwaysOnTop,
+    clickThrough,
+    onToggleClickThrough: (value) => dispatch(setClickThrough(value)),
+  });
 
   const sendSegmentRef = useRef(() => {});
   const sendSegment = useCallback((segment) => sendSegmentRef.current(segment), []);
@@ -188,7 +195,7 @@ function App() {
   }
 
   return (
-    <div className="window">
+    <div className={`window${clickThrough ? " window--ghost" : ""}`}>
       <div className="app">
         <TitleBar
           title="Sayvela"
@@ -212,6 +219,10 @@ function App() {
           miniMode={miniMode}
           onToggleMiniMode={(value) => dispatch(setMiniMode(value))}
           miniAction={recorderControl}
+          alwaysOnTop={alwaysOnTop}
+          onToggleAlwaysOnTop={(value) => dispatch(setAlwaysOnTop(value))}
+          clickThrough={clickThrough}
+          onToggleClickThrough={(value) => dispatch(setClickThrough(value))}
         />
         {quotaExceeded && (
           <QuotaExceededModal entitlement={entitlement} onDismiss={() => dispatch(setQuotaExceeded(false))} />

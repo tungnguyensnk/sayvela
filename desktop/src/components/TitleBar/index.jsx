@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { PhysicalSize } from "@tauri-apps/api/dpi";
 import { ActionButton, ActionIconButton } from "../astryx/AstryxControls";
-import { IconMinimize, IconMaximize, IconRestore, IconMini, IconClose } from "./Icons";
+import { IconMinimize, IconMaximize, IconRestore, IconMini, IconPin, IconClickThrough, IconClose } from "./Icons";
 import { AssistControls, AssistDot } from "./AssistControls";
 import { NavTabs } from "./NavTabs";
 import "./TitleBar.css";
@@ -35,7 +35,7 @@ function UsageBadge({ entitlement }) {
 }
 
 // custom title bar component with window controls (minimize, maximize, close)
-export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, assist, activeTab, onTabChange, onLogoutClick, miniMode = false, onToggleMiniMode, miniAction }) {
+export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, assist, activeTab, onTabChange, onLogoutClick, miniMode = false, onToggleMiniMode, miniAction, alwaysOnTop = false, onToggleAlwaysOnTop, clickThrough = false, onToggleClickThrough }) {
   const appWindow = useMemo(() => getCurrentWindow(), []);
   const [isMaximized, setIsMaximized] = useState(false);
   const fullSizeRef = useRef(null);
@@ -83,8 +83,8 @@ export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, ass
     } catch {}
   };
 
-  // mini mode halves the window, pins it on top and remembers the size to restore
-  // on the way out. both sizes are centred, so growing back stays on screen
+  // mini mode halves the window and remembers the size to restore on the way out.
+  // both sizes are centred, so growing back stays on screen
   const toggleMiniMode = async () => {
     const next = !miniMode;
     try {
@@ -103,8 +103,6 @@ export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, ass
         await appWindow.setSize(fullSizeRef.current);
         await appWindow.center();
       }
-      // the mini window is meant to sit over whatever you are working in
-      await appWindow.setAlwaysOnTop(next);
     } catch (err) {
       // a blocked resize would otherwise flip the layout while the window stays put
       console.error("mini mode resize failed", err);
@@ -167,6 +165,18 @@ export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, ass
             </ActionButton>
           </div>
         ) : null}
+        <ActionIconButton
+          className={`tb-btn${alwaysOnTop ? " tb-btn-active" : ""}`}
+          icon={<IconPin />}
+          label={alwaysOnTop ? "unpin from top" : "keep on top"}
+          onClick={() => onToggleAlwaysOnTop?.(!alwaysOnTop)}
+        />
+        <ActionIconButton
+          className={`tb-btn${clickThrough ? " tb-btn-active" : ""}`}
+          icon={<IconClickThrough />}
+          label={clickThrough ? "stop click-through (tray icon)" : "let clicks pass through"}
+          onClick={() => onToggleClickThrough?.(!clickThrough)}
+        />
         <ActionIconButton
           className={`tb-btn${miniMode ? " tb-btn-active" : ""}`}
           icon={<IconMini />}

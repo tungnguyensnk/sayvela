@@ -25,6 +25,26 @@ export function IconRestore() {
   );
 }
 
+// renders the always on top icon: a pin holding the window down
+export function IconPin() {
+  return (
+    <svg className="tb-icon" viewBox="0 0 12 12" aria-hidden="true">
+      <path d="M6 7.5V11" />
+      <path d="M3 1.5h6l-1 3 1.8 1.5H2.2L4 4.5l-1-3Z" />
+    </svg>
+  );
+}
+
+// renders the click-through icon: a pointer passing through the surface
+export function IconClickThrough() {
+  return (
+    <svg className="tb-icon" viewBox="0 0 12 12" aria-hidden="true">
+      <path d="M1.5 1.5 5 10l1.3-3.2L9.5 5.5 1.5 1.5Z" />
+      <path d="M7.5 8.5 11 11.5" strokeDasharray="1.6 1.4" />
+    </svg>
+  );
+}
+
 // renders the mini mode icon: a small pane tucked inside the window
 export function IconMini() {
   return (

@@ -83,6 +83,19 @@ body {
   height: 0;
 }
 
+/* clicks are passing through: the whole app fades back, in every mode. the window
+   is transparent, so the layers behind the shell have to stop painting their own
+   background — otherwise the fade blends into them and looks like nothing changed */
+html:has(.window--ghost),
+body:has(.window--ghost),
+#root:has(.window--ghost) {
+  background: transparent;
+}
+
+.window--ghost {
+  opacity: 0.8;
+}
+
 .app {
   height: 100%;
   display: flex;

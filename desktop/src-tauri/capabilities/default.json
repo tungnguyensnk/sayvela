@@ -17,6 +17,8 @@
     "core:window:allow-set-size",
     "core:window:allow-center",
     "core:window:allow-set-always-on-top",
+    "core:window:allow-set-ignore-cursor-events",
+    "core:app:allow-default-window-icon",
     "global-shortcut:allow-register",
     "global-shortcut:allow-unregister",
     "global-shortcut:allow-is-registered",
