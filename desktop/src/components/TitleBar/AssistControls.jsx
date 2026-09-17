@@ -21,7 +21,7 @@ export function AssistDot({ status, pending }) {
 // assist status dot plus the gate toggle and the manual trigger
 export function AssistControls({ status, pending, autoGate, hotkey, onToggleGate, onTrigger }) {
   return (
-    <div className="tb-assist" data-tauri-drag-region="false">
+    <div className="tb-assist">
       <AssistDot status={status} pending={pending} />
       <ActionButton
         type="button"

@@ -119,20 +119,33 @@ export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, ass
     } catch {}
   };
 
+  // the bar drags itself instead of using data-tauri-drag-region, because tauri
+  // wires double click on a drag region straight to maximize with no way to opt out
+  const startDragging = (e) => {
+    if (e.button !== 0) return;
+    // e.detail is 2 on the second press of a double click: swallow it, no maximize
+    if (e.detail !== 1) {
+      e.preventDefault();
+      return;
+    }
+    if (e.target.closest("button, a, input, select, textarea, label, [tabindex]")) return;
+    e.preventDefault();
+    appWindow.startDragging().catch(() => {});
+  };
+
   return (
-    <header className="titlebar" data-tauri-drag-region onDoubleClick={toggleMaximize}>
-      <div className="tb-left" data-tauri-drag-region>
+    <header className="titlebar" onMouseDown={startDragging}>
+      <div className="tb-left">
         <img
           src="/sayvela-mark.svg"
           alt="Sayvela"
           className="tb-logo"
-          data-tauri-drag-region
         />
-        <div className="tb-title" data-tauri-drag-region>
+        <div className="tb-title">
           {title}
         </div>
         {miniMode ? (
-          <div className="tb-mini-left" data-tauri-drag-region="false">
+          <div className="tb-mini-left">
             {assist ? <AssistDot status={assist.status} pending={assist.pending} /> : null}
             {miniAction}
           </div>
@@ -144,7 +157,7 @@ export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, ass
         {!miniMode && syncStatus === "failed" && <span className="tb-sync-badge failed" title="sync failed">!</span>}
       </div>
 
-      <div className="tb-controls" data-tauri-drag-region="false">
+      <div className="tb-controls">
         {assist && !miniMode ? <AssistControls {...assist} /> : null}
         {user && !miniMode ? (
           <div className="tb-user">
@@ -156,14 +169,12 @@ export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, ass
         ) : null}
         <ActionIconButton
           className={`tb-btn${miniMode ? " tb-btn-active" : ""}`}
-          data-tauri-drag-region="false"
           icon={<IconMini />}
           label={miniMode ? "leave mini mode" : "mini mode"}
           onClick={toggleMiniMode}
         />
         <ActionIconButton
           className="tb-btn"
-          data-tauri-drag-region="false"
           icon={<IconMinimize />}
           label="minimize"
           onClick={minimize}
@@ -171,7 +182,6 @@ export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, ass
         {miniMode ? null : (
           <ActionIconButton
             className="tb-btn"
-            data-tauri-drag-region="false"
             icon={isMaximized ? <IconRestore /> : <IconMaximize />}
             label={isMaximized ? "restore" : "maximize"}
             onClick={toggleMaximize}
@@ -179,7 +189,6 @@ export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, ass
         )}
         <ActionIconButton
           className="tb-btn tb-btn-close"
-          data-tauri-drag-region="false"
           icon={<IconClose />}
           label="close"
           onClick={close}

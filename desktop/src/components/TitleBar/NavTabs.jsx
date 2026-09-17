@@ -12,7 +12,7 @@ const TABS = [
 // section switcher living in the title bar; clicking the active tab returns home
 export function NavTabs({ activeTab, onTabChange }) {
   return (
-    <nav className="tb-nav" data-tauri-drag-region="false">
+    <nav className="tb-nav">
       {TABS.map(({ id, icon: Icon, label }) => (
         <ActionIconButton
           key={label}
