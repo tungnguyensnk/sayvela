@@ -8,14 +8,21 @@ function BoltIcon() {
   );
 }
 
+// the assist state light on its own, so mini mode can show it next to the logo
+export function AssistDot({ status, pending }) {
+  return (
+    <span
+      className={`tb-assist-dot tb-assist-dot--${status}${pending ? " tb-assist-dot--pending" : ""}`}
+      title={`assist: ${status}`}
+    />
+  );
+}
+
 // assist status dot plus the gate toggle and the manual trigger
 export function AssistControls({ status, pending, autoGate, hotkey, onToggleGate, onTrigger }) {
   return (
     <div className="tb-assist" data-tauri-drag-region="false">
-      <span
-        className={`tb-assist-dot tb-assist-dot--${status}${pending ? " tb-assist-dot--pending" : ""}`}
-        title={`assist: ${status}`}
-      />
+      <AssistDot status={status} pending={pending} />
       <ActionButton
         type="button"
         className="tb-btn tb-text-btn"

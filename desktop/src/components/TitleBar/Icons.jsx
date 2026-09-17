@@ -25,6 +25,16 @@ export function IconRestore() {
   );
 }
 
+// renders the mini mode icon: a small pane tucked inside the window
+export function IconMini() {
+  return (
+    <svg className="tb-icon" viewBox="0 0 10 10" aria-hidden="true">
+      <rect x="1" y="1" width="8" height="8" rx="0" />
+      <rect x="4.5" y="4.5" width="4.5" height="4.5" rx="0" />
+    </svg>
+  );
+}
+
 // renders the close icon
 export function IconClose() {
   return (

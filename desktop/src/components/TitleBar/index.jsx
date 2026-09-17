@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { PhysicalSize } from "@tauri-apps/api/dpi";
 import { ActionButton, ActionIconButton } from "../astryx/AstryxControls";
-import { IconMinimize, IconMaximize, IconRestore, IconClose } from "./Icons";
-import { AssistControls } from "./AssistControls";
+import { IconMinimize, IconMaximize, IconRestore, IconMini, IconClose } from "./Icons";
+import { AssistControls, AssistDot } from "./AssistControls";
 import { NavTabs } from "./NavTabs";
 import "./TitleBar.css";
 
@@ -34,9 +35,10 @@ function UsageBadge({ entitlement }) {
 }
 
 // custom title bar component with window controls (minimize, maximize, close)
-export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, assist, activeTab, onTabChange, onLogoutClick }) {
+export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, assist, activeTab, onTabChange, onLogoutClick, miniMode = false, onToggleMiniMode, miniAction }) {
   const appWindow = useMemo(() => getCurrentWindow(), []);
   const [isMaximized, setIsMaximized] = useState(false);
+  const fullSizeRef = useRef(null);
 
   useEffect(() => {
     let unlisten;
@@ -81,6 +83,33 @@ export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, ass
     } catch {}
   };
 
+  // mini mode halves the window and remembers the size to restore on the way out.
+  // both sizes are centred, otherwise growing back would push the window off screen
+  const toggleMiniMode = async () => {
+    const next = !miniMode;
+    try {
+      if (next) {
+        if (await appWindow.isMaximized()) {
+          await appWindow.unmaximize();
+          setIsMaximized(false);
+        }
+        const size = await appWindow.innerSize();
+        fullSizeRef.current = size;
+        await appWindow.setSize(
+          new PhysicalSize(Math.max(320, Math.round(size.width / 2)), Math.max(240, Math.round(size.height / 2))),
+        );
+        await appWindow.center();
+      } else if (fullSizeRef.current) {
+        await appWindow.setSize(fullSizeRef.current);
+        await appWindow.center();
+      }
+    } catch (err) {
+      // a blocked resize would otherwise flip the layout while the window stays put
+      console.error("mini mode resize failed", err);
+    }
+    onToggleMiniMode?.(next);
+  };
+
   // closes the application window
   const close = async () => {
     try {
@@ -100,16 +129,22 @@ export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, ass
         <div className="tb-title" data-tauri-drag-region>
           {title}
         </div>
-        {onTabChange ? <NavTabs activeTab={activeTab} onTabChange={onTabChange} /> : null}
-        <UsageBadge entitlement={entitlement} />
-        {syncStatus === "syncing" && <span className="tb-sync-badge syncing" title="saving"><SyncLoadingIcon /></span>}
-        {syncStatus === "synced" && <span className="tb-sync-badge synced" title="saved"><SyncDoneIcon /></span>}
-        {syncStatus === "failed" && <span className="tb-sync-badge failed" title="sync failed">!</span>}
+        {miniMode ? (
+          <div className="tb-mini-left" data-tauri-drag-region="false">
+            {assist ? <AssistDot status={assist.status} pending={assist.pending} /> : null}
+            {miniAction}
+          </div>
+        ) : null}
+        {onTabChange && !miniMode ? <NavTabs activeTab={activeTab} onTabChange={onTabChange} /> : null}
+        {!miniMode && <UsageBadge entitlement={entitlement} />}
+        {!miniMode && syncStatus === "syncing" && <span className="tb-sync-badge syncing" title="saving"><SyncLoadingIcon /></span>}
+        {!miniMode && syncStatus === "synced" && <span className="tb-sync-badge synced" title="saved"><SyncDoneIcon /></span>}
+        {!miniMode && syncStatus === "failed" && <span className="tb-sync-badge failed" title="sync failed">!</span>}
       </div>
 
       <div className="tb-controls" data-tauri-drag-region="false">
-        {assist ? <AssistControls {...assist} /> : null}
-        {user ? (
+        {assist && !miniMode ? <AssistControls {...assist} /> : null}
+        {user && !miniMode ? (
           <div className="tb-user">
             <span className="tb-user-email">{user.email}</span>
             <ActionButton type="button" className="tb-btn tb-text-btn" onClick={onLogoutClick} size="sm" variant="ghost">
@@ -118,19 +153,28 @@ export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, ass
           </div>
         ) : null}
         <ActionIconButton
+          className={`tb-btn${miniMode ? " tb-btn-active" : ""}`}
+          data-tauri-drag-region="false"
+          icon={<IconMini />}
+          label={miniMode ? "leave mini mode" : "mini mode"}
+          onClick={toggleMiniMode}
+        />
+        <ActionIconButton
           className="tb-btn"
           data-tauri-drag-region="false"
           icon={<IconMinimize />}
           label="minimize"
           onClick={minimize}
         />
-        <ActionIconButton
-          className="tb-btn"
-          data-tauri-drag-region="false"
-          icon={isMaximized ? <IconRestore /> : <IconMaximize />}
-          label={isMaximized ? "restore" : "maximize"}
-          onClick={toggleMaximize}
-        />
+        {miniMode ? null : (
+          <ActionIconButton
+            className="tb-btn"
+            data-tauri-drag-region="false"
+            icon={isMaximized ? <IconRestore /> : <IconMaximize />}
+            label={isMaximized ? "restore" : "maximize"}
+            onClick={toggleMaximize}
+          />
+        )}
         <ActionIconButton
           className="tb-btn tb-btn-close"
           data-tauri-drag-region="false"

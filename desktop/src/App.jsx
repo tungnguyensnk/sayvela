@@ -23,7 +23,7 @@ import { useEntitlement } from "./hooks/useEntitlement";
 import { useSessionRecorder } from "./hooks/useSessionRecorder";
 import { useTranscriptStreams } from "./hooks/useTranscriptStreams";
 import { hydratePreferences, setPreference } from "./store/preferencesSlice";
-import { setActiveTab, setQuotaExceeded } from "./store/uiSlice";
+import { setActiveTab, setMiniMode, setQuotaExceeded } from "./store/uiSlice";
 import { closeFrame } from "./store/assistSlice";
 import { clearContexts, fetchContextsThunk } from "./store/contextsSlice";
 import { clearSessions, fetchSessionsThunk } from "./store/sessionsSlice";
@@ -35,7 +35,7 @@ function App() {
   const dispatch = useDispatch();
   const { running, loopbackBytes, micBytes, loopbackCaptureState, micCaptureState } = useSelector((state) => state.audio);
   const preferences = useSelector((state) => state.preferences);
-  const { activeTab, quotaExceeded, syncStatus, sessionElapsed } = useSelector((state) => state.ui);
+  const { activeTab, quotaExceeded, syncStatus, sessionElapsed, miniMode } = useSelector((state) => state.ui);
   const { loading: sessionsLoading, errorCode: sessionsErrorCode } = useSelector((state) => state.sessions);
   const activeContextJson = useSelector(selectActiveContextJson);
   const activeContextName = useSelector(selectActiveContextName);
@@ -116,6 +116,13 @@ function App() {
   });
   // assist panels stack above the chat so suggestions stay in view
   const openKinds = assistSlots.filter(Boolean);
+  // mini mode keeps only the freshest panel, so one kind shows at a time
+  const visibleKinds = miniMode
+    ? openKinds
+        .slice()
+        .sort((a, b) => (assistFrames[b]?.updatedAt ?? 0) - (assistFrames[a]?.updatedAt ?? 0))
+        .slice(0, 1)
+    : openKinds;
   useMicTranslationTts({
     enabled: preferences.micTtsEnabled,
     running,
@@ -137,6 +144,21 @@ function App() {
     micError: micTranscript.error,
     onRefreshDevices: refreshDevices,
   };
+
+  // sits in the transcript header normally, next to the logo in mini mode
+  const recorderControl = (
+    <StartStopCard
+      running={running}
+      onStart={recorder.start}
+      onStop={recorder.stop}
+      elapsed={recorder.isReadyToStop ? sessionElapsed : 0}
+      preparing={recorder.isPreparing}
+      readyToStop={recorder.isReadyToStop}
+      progress={recorder.streamProgress}
+      activeContextName={activeContextName}
+      inline
+    />
+  );
 
   if (!isAuthenticated) {
     return (
@@ -187,13 +209,16 @@ function App() {
           activeTab={activeTab}
           onTabChange={handleTabChange}
           onLogoutClick={logout}
+          miniMode={miniMode}
+          onToggleMiniMode={(value) => dispatch(setMiniMode(value))}
+          miniAction={recorderControl}
         />
         {quotaExceeded && (
           <QuotaExceededModal entitlement={entitlement} onDismiss={() => dispatch(setQuotaExceeded(false))} />
         )}
 
         <div className="app-body">
-          {activeTab ? (
+          {activeTab && !miniMode ? (
             <main className="main main--page">
               <AppLeftContent
                 entitlement={entitlement}
@@ -203,7 +228,7 @@ function App() {
             </main>
           ) : (
           <main className="main main--center">
-            <div className="home-panels">
+            <div className={`home-panels${miniMode ? " home-panels--mini" : ""}`}>
               <div className="home-col home-col--transcript">
                 <TranscriptPanel
                   transcriptGroups={mergedGroups}
@@ -213,25 +238,15 @@ function App() {
                   micStatus={micTranscript.status}
                   micBytes={micBytes}
                   speech={speechHighlight}
-                  titleAction={(
-                    <StartStopCard
-                      running={running}
-                      onStart={recorder.start}
-                      onStop={recorder.stop}
-                      elapsed={recorder.isReadyToStop ? sessionElapsed : 0}
-                      preparing={recorder.isPreparing}
-                      readyToStop={recorder.isReadyToStop}
-                      progress={recorder.streamProgress}
-                      activeContextName={activeContextName}
-                      inline
-                    />
-                  )}
+                  mini={miniMode}
+                  titleAction={miniMode ? null : recorderControl}
                 />
               </div>
-              <div className="home-col home-col--side">
-                {openKinds.length ? (
-                  <div className="assist-stack">
-                    {openKinds.map((kind) => (
+              {/* mini mode drops the side column, so the panel lands over the transcript */}
+              {miniMode ? (
+                visibleKinds.length ? (
+                  <div className="assist-stack assist-stack--mini">
+                    {visibleKinds.map((kind) => (
                       <AssistFrame
                         key={kind}
                         kind={kind}
@@ -241,20 +256,36 @@ function App() {
                       />
                     ))}
                   </div>
-                ) : null}
-                <AIChatPanel
-                  messages={chatgpt.chatMessages}
-                  input={chatgpt.chatInput}
-                  onChangeInput={chatgpt.setChatInput}
-                  onSend={chatgpt.sendManual}
-                  onCancel={chatgpt.cancel}
-                  onClear={chatgpt.clearChat}
-                  isStreaming={chatgpt.isStreaming}
-                  withScreenshot={chatgpt.withScreenshot}
-                  onToggleScreenshot={chatgpt.toggleScreenshot}
-                  compact={openKinds.length > 0}
-                />
-              </div>
+                ) : null
+              ) : (
+                <div className="home-col home-col--side">
+                  {visibleKinds.length ? (
+                    <div className="assist-stack">
+                      {visibleKinds.map((kind) => (
+                        <AssistFrame
+                          key={kind}
+                          kind={kind}
+                          frame={assistFrames[kind]}
+                          pending={assistPending}
+                          onClose={(k) => dispatch(closeFrame(k))}
+                        />
+                      ))}
+                    </div>
+                  ) : null}
+                  <AIChatPanel
+                    messages={chatgpt.chatMessages}
+                    input={chatgpt.chatInput}
+                    onChangeInput={chatgpt.setChatInput}
+                    onSend={chatgpt.sendManual}
+                    onCancel={chatgpt.cancel}
+                    onClear={chatgpt.clearChat}
+                    isStreaming={chatgpt.isStreaming}
+                    withScreenshot={chatgpt.withScreenshot}
+                    onToggleScreenshot={chatgpt.toggleScreenshot}
+                    compact={openKinds.length > 0}
+                  />
+                </div>
+              )}
             </div>
           </main>
           )}

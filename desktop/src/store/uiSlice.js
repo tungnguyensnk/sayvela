@@ -5,6 +5,7 @@ const initialState = {
   quotaExceeded: false,
   syncStatus: null,
   sessionElapsed: 0,
+  miniMode: false,
 };
 
 const uiSlice = createSlice({
@@ -16,8 +17,9 @@ const uiSlice = createSlice({
     setSyncStatus: (state, action) => { state.syncStatus = action.payload; },
     setSessionElapsed: (state, action) => { state.sessionElapsed = action.payload; },
     resetSessionElapsed: (state) => { state.sessionElapsed = 0; },
+    setMiniMode: (state, action) => { state.miniMode = Boolean(action.payload); },
   },
 });
 
-export const { setActiveTab, setQuotaExceeded, setSyncStatus, setSessionElapsed, resetSessionElapsed } = uiSlice.actions;
+export const { setActiveTab, setQuotaExceeded, setSyncStatus, setSessionElapsed, resetSessionElapsed, setMiniMode } = uiSlice.actions;
 export default uiSlice.reducer;

@@ -740,6 +740,27 @@ body {
   overflow: visible;
 }
 
+/* mini mode: the single panel floats over the transcript instead of a side column */
+.home-panels--mini {
+  position: relative;
+}
+
+.assist-stack--mini {
+  opacity: 0.85;
+  /* leaves the bottom third of the transcript readable behind the panel */
+  max-height: 70%;
+}
+
+.assist-stack--mini .af-body {
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+/* no header or footer chrome in mini mode, so the turns get the whole column */
+.transcript-panel--mini .transcript-panel-body {
+  padding: 10px 14px;
+}
+
 /* cockpit: compact recorder control sitting in the transcript header */
 .home-panels .ssc--inline .ssc-btn {
   height: 28px;
@@ -771,11 +792,13 @@ body {
 }
 
 /* the right column labels read as quiet section tags, not panel titles */
-.home-col--side .panel-header {
+.home-col--side .panel-header,
+.assist-stack--mini .panel-header {
   min-height: 44px;
 }
 
-.home-col--side .panel-title {
+.home-col--side .panel-title,
+.assist-stack--mini .panel-title {
   font-family: var(--app-mono);
   font-size: 10px;
   font-weight: 500;

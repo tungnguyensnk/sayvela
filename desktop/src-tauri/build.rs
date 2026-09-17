@@ -1,7 +1,6 @@
-// the release build asks for administrator rights: without them windows hides
-// keyboard and mouse input from our hooks whenever an elevated window has focus,
-// so the assist hotkey would silently miss presses. dev builds stay unelevated so
-// a rebuild does not pop a uac prompt every time.
+// the app asks for administrator rights: without them windows hides keyboard and
+// mouse input from our hooks whenever an elevated window has focus, so the assist
+// hotkey would silently miss presses.
 const ADMIN_MANIFEST: &str = r#"<?xml version="1.0" encoding="utf-8"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
   <dependency>
@@ -34,11 +33,8 @@ const ADMIN_MANIFEST: &str = r#"<?xml version="1.0" encoding="utf-8"?>
 "#;
 
 fn main() {
-    let mut attributes = tauri_build::Attributes::new();
-    if std::env::var("PROFILE").as_deref() == Ok("release") {
-        attributes = attributes.windows_attributes(
-            tauri_build::WindowsAttributes::new().app_manifest(ADMIN_MANIFEST),
-        );
-    }
+    let attributes = tauri_build::Attributes::new().windows_attributes(
+        tauri_build::WindowsAttributes::new().app_manifest(ADMIN_MANIFEST),
+    );
     tauri_build::try_build(attributes).expect("failed to run tauri build");
 }

@@ -15,8 +15,11 @@ export function TranscriptPanel({
   micBytes,
   titleAction,
   speech,
+  mini = false,
 }) {
-  const [autoScroll, setAutoScroll] = useState(true);
+  const [autoScrollPref, setAutoScroll] = useState(true);
+  // mini mode drops the chrome, so auto scroll can never be turned off there
+  const autoScroll = mini || autoScrollPref;
   const [streamingSince, setStreamingSince] = useState({ loopback: 0, mic: 0 });
   const scrollRef = useRef(null);
 
@@ -68,25 +71,27 @@ export function TranscriptPanel({
   }, [autoScroll, transcriptGroups]);
 
   return (
-    <section className="panel transcript-panel">
-      <div className="panel-header transcript-panel-header">
-        <div className="panel-title">Transcript</div>
-        {titleAction}
-        <div className="transcript-meters">
-          {loopbackStatus && <span className="tr-meter">SYS {statusLabel("loopback", loopbackStatus, loopbackBytes)}</span>}
-          {micStatus && <span className="tr-meter">MIC {statusLabel("mic", micStatus, micBytes)}</span>}
+    <section className={`panel transcript-panel${mini ? " transcript-panel--mini" : ""}`}>
+      {mini ? null : (
+        <div className="panel-header transcript-panel-header">
+          <div className="panel-title">Transcript</div>
+          {titleAction}
+          <div className="transcript-meters">
+            {loopbackStatus && <span className="tr-meter">SYS {statusLabel("loopback", loopbackStatus, loopbackBytes)}</span>}
+            {micStatus && <span className="tr-meter">MIC {statusLabel("mic", micStatus, micBytes)}</span>}
+          </div>
         </div>
-      </div>
+      )}
       <div className="transcript-panel-body">
         <div
           className="transcript-scroll"
           ref={scrollRef}
           onScroll={() => {
-            if (autoScroll && !isNearBottom()) setAutoScroll(false);
+            if (!mini && autoScroll && !isNearBottom()) setAutoScroll(false);
           }}
           onWheel={(e) => {
             // scrolling up inside the transcript means the reader wants to look back
-            if (autoScroll && e.deltaY < 0) setAutoScroll(false);
+            if (!mini && autoScroll && e.deltaY < 0) setAutoScroll(false);
           }}
         >
           <div className="transcript-grid">
@@ -94,19 +99,21 @@ export function TranscriptPanel({
             <TranscriptGrid transcriptGroups={transcriptGroups} speech={speech} />
           </div>
         </div>
-        <div className="transcript-footer">
-          <ActionButton
-            type="button"
-            className={`transcript-action-btn ${autoScroll ? "chip-active" : ""}`}
-            onClick={() => {
-              setAutoScroll((v) => !v);
-              if (!autoScroll) requestAnimationFrame(scrollToBottom);
-            }}
-            size="sm"
-          >
-            auto scroll: {autoScroll ? "on" : "off"}
-          </ActionButton>
-        </div>
+        {mini ? null : (
+          <div className="transcript-footer">
+            <ActionButton
+              type="button"
+              className={`transcript-action-btn ${autoScroll ? "chip-active" : ""}`}
+              onClick={() => {
+                setAutoScroll((v) => !v);
+                if (!autoScroll) requestAnimationFrame(scrollToBottom);
+              }}
+              size="sm"
+            >
+              auto scroll: {autoScroll ? "on" : "off"}
+            </ActionButton>
+          </div>
+        )}
       </div>
     </section>
   );
