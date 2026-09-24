@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { PhysicalSize } from "@tauri-apps/api/dpi";
 import { ActionButton, ActionIconButton } from "../astryx/AstryxControls";
-import { IconMinimize, IconMaximize, IconRestore, IconMini, IconPin, IconClickThrough, IconClose } from "./Icons";
+import { IconMinimize, IconMaximize, IconRestore, IconMini, IconPin, IconClickThrough, IconHideCapture, IconClose } from "./Icons";
 import { AssistDot } from "./AssistControls";
 import { NavTabs } from "./NavTabs";
 import "./TitleBar.css";
@@ -35,7 +35,7 @@ function UsageBadge({ entitlement }) {
 }
 
 // custom title bar component with window controls (minimize, maximize, close)
-export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, assist, activeTab, onTabChange, onLogoutClick, miniMode = false, onToggleMiniMode, miniAction, alwaysOnTop = false, onToggleAlwaysOnTop, clickThrough = false, onToggleClickThrough }) {
+export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, assist, activeTab, onTabChange, onLogoutClick, miniMode = false, onToggleMiniMode, miniAction, alwaysOnTop = false, onToggleAlwaysOnTop, clickThrough = false, onToggleClickThrough, hideFromCapture = false, onToggleHideFromCapture }) {
   const appWindow = useMemo(() => getCurrentWindow(), []);
   const [isMaximized, setIsMaximized] = useState(false);
   const fullSizeRef = useRef(null);
@@ -163,6 +163,14 @@ export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, ass
               sign out
             </ActionButton>
           </div>
+        ) : null}
+        {onToggleHideFromCapture ? (
+          <ActionIconButton
+            className={`tb-btn${hideFromCapture ? " tb-btn-active" : ""}`}
+            icon={<IconHideCapture />}
+            label={hideFromCapture ? "show in capture" : "hide from capture"}
+            onClick={() => onToggleHideFromCapture(!hideFromCapture)}
+          />
         ) : null}
         <ActionIconButton
           className={`tb-btn${alwaysOnTop ? " tb-btn-active" : ""}`}

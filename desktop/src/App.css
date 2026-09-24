@@ -67,13 +67,12 @@ body {
   background: var(--app-bg);
 }
 
+/* no own border or radius: windows 11 already rounds the frameless window and
+   draws its hairline, and a second css edge inside it doubles up at the corners */
 .window {
   height: 100%;
   background: var(--app-shell);
-  border-radius: var(--app-radius);
   overflow: hidden;
-  border: 1px solid var(--app-border);
-  box-shadow: var(--app-shadow);
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
@@ -418,6 +417,13 @@ body:has(.window--ghost),
   flex-direction: column;
   overflow: hidden;
   padding: 0;
+}
+
+/* these never scroll themselves, so the gutter .main keeps for a scrollbar is
+   just a blank strip on the right */
+.main--center,
+.main--page {
+  scrollbar-gutter: auto;
 }
 
 /* full width section pages reached from the title bar nav */

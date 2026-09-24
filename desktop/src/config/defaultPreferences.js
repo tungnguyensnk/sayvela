@@ -16,6 +16,8 @@ export const DEFAULT_PREFERENCES = {
   micTtsSonioxVolume: 2,
   micTtsOutputDeviceId: "default-loopback",
   contentProtectionEnabled: true,
+  // "" keeps the sayvela icon; otherwise a disguise id from disguise_list
+  appDisguise: "",
   assistAutoGate: false,
   assistHotkey: "CmdOrCtrl+Shift+Space",
   assistIntervalSec: 5,

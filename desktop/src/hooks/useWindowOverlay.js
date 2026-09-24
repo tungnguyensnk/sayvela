@@ -8,7 +8,7 @@ const TRAY_ID = "sayvela-click-through";
 
 // drives the two window switches: pinned on top, and mouse falling through to
 // whatever sits underneath
-export function useWindowOverlay({ alwaysOnTop, clickThrough, onToggleClickThrough }) {
+export function useWindowOverlay({ alwaysOnTop, clickThrough, onToggleClickThrough, disguise }) {
   const appWindow = useMemo(() => getCurrentWindow(), []);
   const toggleRef = useRef(onToggleClickThrough);
   toggleRef.current = onToggleClickThrough;
@@ -43,13 +43,14 @@ export function useWindowOverlay({ alwaysOnTop, clickThrough, onToggleClickThrou
             },
           ],
         });
-        const icon = await defaultWindowIcon();
+        // the tray wears the same disguise as the window
+        const icon = disguise?.icon ?? (await defaultWindowIcon());
         const created = await TrayIcon.new({
           id: TRAY_ID,
           icon,
           menu,
           showMenuOnLeftClick: false,
-          tooltip: "Sayvela — clicks pass through. Right click to stop.",
+          tooltip: `${disguise?.title ?? "Sayvela"} — clicks pass through. Right click to stop.`,
         });
         // the switch may have been turned off while the tray was still being built
         if (cancelled) {
@@ -66,5 +67,5 @@ export function useWindowOverlay({ alwaysOnTop, clickThrough, onToggleClickThrou
       cancelled = true;
       if (tray) tray.close().catch(() => {});
     };
-  }, [clickThrough]);
+  }, [clickThrough, disguise]);
 }

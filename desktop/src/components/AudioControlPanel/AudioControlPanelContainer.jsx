@@ -38,6 +38,7 @@ export function AudioControlPanelContainer({ loopbackError, micError, onRefreshD
       onChangeLoopbackContextId={setAndSave("loopbackContextId")}
       onChangeMicDeviceId={setAndSave("micDeviceId")}
       onChangeContentProtectionEnabled={setAndSave("contentProtectionEnabled")}
+      onChangeAppDisguise={setAndSave("appDisguise")}
       onRefreshDevices={onRefreshDevices}
       onChangeLoopbackInputLangs={setAndSave("loopbackInputLangs")}
       onChangeLoopbackOutputLang={setAndSave("loopbackOutputLang")}

@@ -7,6 +7,7 @@ import { TtsSection } from "./TtsSection";
 import { AssistSection } from "./AssistSection";
 import { SettingsOutline } from "./SettingsOutline";
 import { Toggle } from "./Toggle";
+import { DisguisePicker } from "./DisguisePicker";
 import "./AudioControlPanel.css";
 
 // main control panel for configuring audio inputs, outputs, languages, and tts settings
@@ -23,6 +24,8 @@ export function AudioControlPanel({
   onChangeMicDeviceId,
   contentProtectionEnabled,
   onChangeContentProtectionEnabled,
+  appDisguise,
+  onChangeAppDisguise,
   running,
   onRefreshDevices,
   devicesError,
@@ -262,6 +265,18 @@ export function AudioControlPanel({
                 help="Keeps the Sayvela window out of screen sharing and recordings, so the people you share with see your screen without this app on it."
               />
             </div>
+            <div className="acp-toggleWrap">
+              <span className="acp-subLabel">App icon</span>
+              <span
+                className="acp-help"
+                tabIndex="0"
+                aria-label="App icon help"
+                data-tooltip="Shows another app's icon and name on the taskbar, in Alt+Tab and on the tray. Task Manager still lists sayvela.exe."
+              >
+                ?
+              </span>
+            </div>
+            <DisguisePicker value={appDisguise} onChange={onChangeAppDisguise} />
           </div>
         </section>
       </div>

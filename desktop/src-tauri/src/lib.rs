@@ -1,6 +1,7 @@
 mod ai;
 mod api;
 mod audio;
+mod disguise;
 mod hotkey;
 mod screen;
 mod secure_store;
@@ -186,6 +187,8 @@ pub fn run() {
             start_audio_capture,
             stop_audio_capture,
             set_main_window_content_protected,
+            disguise::disguise_list,
+            disguise::disguise_apply,
             secure_store::soniox_set_api_key,
             secure_store::soniox_has_api_key,
             secure_store::soniox_delete_api_key,

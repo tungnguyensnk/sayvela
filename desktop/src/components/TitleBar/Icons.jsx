@@ -45,6 +45,17 @@ export function IconClickThrough() {
   );
 }
 
+// renders the hide from capture icon: an eye struck through
+export function IconHideCapture() {
+  return (
+    <svg className="tb-icon" viewBox="0 0 12 12" aria-hidden="true">
+      <path d="M1 6s1.8-3.5 5-3.5S11 6 11 6 9.2 9.5 6 9.5 1 6 1 6Z" />
+      <circle cx="6" cy="6" r="1.5" />
+      <path d="M1.5 10.5 10.5 1.5" />
+    </svg>
+  );
+}
+
 // renders the mini mode icon: a small pane tucked inside the window
 export function IconMini() {
   return (

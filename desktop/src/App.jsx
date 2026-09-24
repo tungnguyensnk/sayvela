@@ -25,6 +25,8 @@ import { useTranscriptStreams } from "./hooks/useTranscriptStreams";
 import { hydratePreferences } from "./store/preferencesSlice";
 import { setActiveTab, setAlwaysOnTop, setClickThrough, setMiniMode, setQuotaExceeded } from "./store/uiSlice";
 import { useWindowOverlay } from "./hooks/useWindowOverlay";
+import { usePreferenceActions } from "./hooks/usePreferenceActions";
+import { useAppDisguise } from "./hooks/useAppDisguise";
 import { closeFrame } from "./store/assistSlice";
 import { clearContexts, fetchContextsThunk } from "./store/contextsSlice";
 import { clearSessions, fetchSessionsThunk } from "./store/sessionsSlice";
@@ -42,6 +44,7 @@ function App() {
   const activeContextName = useSelector(selectActiveContextName);
   const { auth, user, isAuthenticated, loading: authLoading, error: authError, login, logout } = useAuth();
   const { settings, update: updateSetting, loaded: settingsLoaded } = useSettings(isAuthenticated);
+  const { setAndSave } = usePreferenceActions(updateSetting);
 
   // syncs local state from loaded settings after authentication
   useEffect(() => {
@@ -59,10 +62,13 @@ function App() {
 
   useContentProtection(preferences.contentProtectionEnabled);
 
+  const disguise = useAppDisguise(preferences.appDisguise);
+
   useWindowOverlay({
     alwaysOnTop,
     clickThrough,
     onToggleClickThrough: (value) => dispatch(setClickThrough(value)),
+    disguise,
   });
 
   const sendSegmentRef = useRef(() => {});
@@ -213,6 +219,8 @@ function App() {
           onToggleAlwaysOnTop={(value) => dispatch(setAlwaysOnTop(value))}
           clickThrough={clickThrough}
           onToggleClickThrough={(value) => dispatch(setClickThrough(value))}
+          hideFromCapture={preferences.contentProtectionEnabled}
+          onToggleHideFromCapture={setAndSave("contentProtectionEnabled")}
         />
         {quotaExceeded && (
           <QuotaExceededModal entitlement={entitlement} onDismiss={() => dispatch(setQuotaExceeded(false))} />
