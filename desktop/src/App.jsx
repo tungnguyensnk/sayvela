@@ -22,7 +22,7 @@ import { useContentProtection } from "./hooks/useContentProtection";
 import { useEntitlement } from "./hooks/useEntitlement";
 import { useSessionRecorder } from "./hooks/useSessionRecorder";
 import { useTranscriptStreams } from "./hooks/useTranscriptStreams";
-import { hydratePreferences, setPreference } from "./store/preferencesSlice";
+import { hydratePreferences } from "./store/preferencesSlice";
 import { setActiveTab, setAlwaysOnTop, setClickThrough, setMiniMode, setQuotaExceeded } from "./store/uiSlice";
 import { useWindowOverlay } from "./hooks/useWindowOverlay";
 import { closeFrame } from "./store/assistSlice";
@@ -202,17 +202,7 @@ function App() {
           user={user}
           entitlement={entitlement}
           syncStatus={syncStatus}
-          assist={{
-            status: assist.status,
-            pending: assist.pending,
-            autoGate: preferences.assistAutoGate,
-            hotkey: preferences.assistHotkey,
-            onToggleGate: (value) => {
-              dispatch(setPreference({ key: "assistAutoGate", value }));
-              updateSetting?.({ assistAutoGate: value });
-            },
-            onTrigger: assist.triggerNow,
-          }}
+          assist={{ status: assist.status, pending: assist.pending }}
           activeTab={activeTab}
           onTabChange={handleTabChange}
           onLogoutClick={logout}
@@ -293,6 +283,12 @@ function App() {
                     isStreaming={chatgpt.isStreaming}
                     withScreenshot={chatgpt.withScreenshot}
                     onToggleScreenshot={chatgpt.toggleScreenshot}
+                    assist={{
+                      status: assist.status,
+                      pending: assist.pending,
+                      hotkey: preferences.assistHotkey,
+                      onTrigger: assist.triggerNow,
+                    }}
                     compact={openKinds.length > 0}
                   />
                 </div>

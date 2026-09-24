@@ -1,4 +1,4 @@
-import { ActionButton, ActionIconButton } from "../astryx/AstryxControls";
+import { ActionIconButton } from "../astryx/AstryxControls";
 
 function BoltIcon() {
   return (
@@ -18,21 +18,11 @@ export function AssistDot({ status, pending }) {
   );
 }
 
-// assist status dot plus the gate toggle and the manual trigger
-export function AssistControls({ status, pending, autoGate, hotkey, onToggleGate, onTrigger }) {
+// assist status dot plus the manual trigger
+export function AssistControls({ status, pending, hotkey, onTrigger, className = "" }) {
   return (
-    <div className="tb-assist">
+    <div className={`tb-assist${className ? ` ${className}` : ""}`}>
       <AssistDot status={status} pending={pending} />
-      <ActionButton
-        type="button"
-        className="tb-btn tb-text-btn"
-        size="sm"
-        variant={autoGate ? "primary" : "ghost"}
-        onClick={() => onToggleGate?.(!autoGate)}
-        title="let the gate model watch the conversation"
-      >
-        auto
-      </ActionButton>
       <ActionIconButton
         className="tb-btn"
         icon={<BoltIcon />}

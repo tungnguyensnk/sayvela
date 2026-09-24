@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { ActionIconButton } from "../astryx/AstryxControls";
+import { AssistControls } from "../TitleBar/AssistControls";
 import { ChatMessageContent } from "./ChatMessageContent";
 import "./AIChatPanel.css";
 
@@ -56,6 +57,7 @@ export function AIChatPanel({
   isStreaming,
   withScreenshot,
   onToggleScreenshot,
+  assist,
   compact = false,
 }) {
   const scrollRef = useRef(null);
@@ -82,10 +84,12 @@ export function AIChatPanel({
 
   return (
     <section className={`panel ai-chat-panel${compact ? " ai-chat-panel--compact" : ""}`}>
-      {compact ? null : (
-        <div className="panel-header ai-chat-header">
+      {/* compact drops the title but keeps the assist controls reachable */}
+      {compact && !assist ? null : (
+        <div className={`panel-header ai-chat-header${compact ? " ai-chat-header--compact" : ""}`}>
           <div className="ai-chat-title-wrap">
-            <div className="panel-title">AI Chat</div>
+            {compact ? null : <div className="panel-title">AI Chat</div>}
+            {assist ? <AssistControls {...assist} className="ai-chat-assist" /> : null}
           </div>
         </div>
       )}

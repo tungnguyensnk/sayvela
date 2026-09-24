@@ -99,6 +99,11 @@ export function chatReducer(state, action) {
       const { requestId, error } = action.payload;
       if (!state.active || state.active.requestId !== requestId) return state;
       const mid = state.active.assistantMessageId;
+      const message = state.messages.find((m) => m.id === mid);
+      // nothing streamed before the failure: an empty bubble says nothing
+      if (message && !message.text) {
+        return { ...state, active: null, messages: state.messages.filter((m) => m.id !== mid) };
+      }
       return {
         ...state,
         active: null,
@@ -118,6 +123,11 @@ export function chatReducer(state, action) {
       const { requestId } = action.payload;
       if (!state.active || state.active.requestId !== requestId) return state;
       const mid = state.active.assistantMessageId;
+      const message = state.messages.find((m) => m.id === mid);
+      // cancelled before the first chunk: drop the bubble instead of leaving it blank
+      if (message && !message.text) {
+        return { ...state, active: null, messages: state.messages.filter((m) => m.id !== mid) };
+      }
       return {
         ...state,
         active: null,

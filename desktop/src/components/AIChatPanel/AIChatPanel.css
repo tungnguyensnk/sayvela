@@ -9,6 +9,20 @@
 
 .ai-chat-title-wrap {
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* assist controls sit next to the title, without the titlebar divider */
+.ai-chat-assist {
+  margin-right: 0;
+  padding-right: 0;
+  border-right: none;
+}
+
+.home-col--side .ai-chat-header--compact {
+  min-height: 32px;
 }
 
 .ai-chat-actions {

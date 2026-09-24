@@ -59,10 +59,35 @@ describe("chatReducer", () => {
 
     let state = initialChatState();
     state = chatReducer(state, { type: "chat/start", payload: { requestId, userMessage: user, assistantMessage: assistant } });
+    state = chatReducer(state, { type: "chat/append_chunk", payload: { requestId, delta: "partial" } });
     state = chatReducer(state, { type: "chat/cancel", payload: { requestId } });
 
     const a = state.messages.find((m) => m.id === "a2");
     expect(a.status).toBe(CHAT_STATUSES.CANCELLED);
+    expect(state.active).toBe(null);
+  });
+
+  it("should drop a bubble cancelled before any chunk", () => {
+    const requestId = "r4";
+    const assistant = createChatMessage({ id: "a4", role: "assistant", text: "", source: CHAT_SOURCES.AUTO, status: CHAT_STATUSES.STREAMING, createdAt: 1 });
+
+    let state = initialChatState();
+    state = chatReducer(state, { type: "chat/start", payload: { requestId, userMessage: null, assistantMessage: assistant } });
+    state = chatReducer(state, { type: "chat/cancel", payload: { requestId } });
+
+    expect(state.messages).toEqual([]);
+    expect(state.active).toBe(null);
+  });
+
+  it("should drop a bubble that failed before any chunk", () => {
+    const requestId = "r5";
+    const assistant = createChatMessage({ id: "a5", role: "assistant", text: "", source: CHAT_SOURCES.AUTO, status: CHAT_STATUSES.STREAMING, createdAt: 1 });
+
+    let state = initialChatState();
+    state = chatReducer(state, { type: "chat/start", payload: { requestId, userMessage: null, assistantMessage: assistant } });
+    state = chatReducer(state, { type: "chat/fail", payload: { requestId, error: "boom" } });
+
+    expect(state.messages).toEqual([]);
     expect(state.active).toBe(null);
   });
 });

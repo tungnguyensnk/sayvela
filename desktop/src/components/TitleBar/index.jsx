@@ -3,7 +3,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { PhysicalSize } from "@tauri-apps/api/dpi";
 import { ActionButton, ActionIconButton } from "../astryx/AstryxControls";
 import { IconMinimize, IconMaximize, IconRestore, IconMini, IconPin, IconClickThrough, IconClose } from "./Icons";
-import { AssistControls, AssistDot } from "./AssistControls";
+import { AssistDot } from "./AssistControls";
 import { NavTabs } from "./NavTabs";
 import "./TitleBar.css";
 
@@ -156,7 +156,6 @@ export function TitleBar({ title = "sayvela", user, entitlement, syncStatus, ass
       </div>
 
       <div className="tb-controls">
-        {assist && !miniMode ? <AssistControls {...assist} /> : null}
         {user && !miniMode ? (
           <div className="tb-user">
             <span className="tb-user-email">{user.email}</span>
