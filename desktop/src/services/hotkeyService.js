@@ -33,10 +33,11 @@ export async function startHotkeyCapture(onCombo) {
   };
 }
 
-async function registerViaPlugin(accelerator, handler) {
+async function registerViaPlugin(accelerator, { onPress, onRelease }) {
   if (await isRegistered(accelerator)) await unregister(accelerator);
   await register(accelerator, (event) => {
-    if (!event || event.state === "Pressed") handler?.();
+    if (!event || event.state === "Pressed") onPress?.();
+    else if (event.state === "Released") onRelease?.();
   });
   return async () => {
     try {
@@ -45,30 +46,37 @@ async function registerViaPlugin(accelerator, handler) {
   };
 }
 
-async function registerViaHooks(combo, handler) {
-  await invoke("hotkey_set", { combo });
-  const unlisten = await listen("hotkey_pressed", () => handler?.());
+// the hooks serve every slot at once, so each listener keeps to its own
+async function registerViaHooks(slot, combo, { onPress, onRelease }) {
+  await invoke("hotkey_set", { combo, slot });
+  const offPress = await listen("hotkey_pressed", (e) => e.payload?.slot === slot && onPress?.());
+  const offRelease = await listen("hotkey_released", (e) => e.payload?.slot === slot && onRelease?.());
   return async () => {
     try {
-      unlisten();
+      offPress();
+      offRelease();
     } catch {}
     try {
-      await invoke("hotkey_set", { combo: "" });
+      await invoke("hotkey_set", { combo: "", slot });
     } catch {}
   };
 }
 
-// listens for the combo globally; throws when it cannot be bound at all
-export async function registerAssistHotkey(combo, handler) {
+// listens for the combo globally under a named slot; throws when it cannot be bound at all
+export async function registerHotkey(slot, combo, handlers) {
   const key = String(combo || "").trim();
   if (!key) throw new Error("chưa đặt phím tắt");
   const accelerator = pluginCombo(key);
   if (accelerator) {
     try {
-      return await registerViaPlugin(accelerator, handler);
+      return await registerViaPlugin(accelerator, handlers);
     } catch {
       // taken by another app or rejected: the hooks can still watch for it
     }
   }
-  return registerViaHooks(key, handler);
+  return registerViaHooks(slot, key, handlers);
+}
+
+export function registerAssistHotkey(combo, handler) {
+  return registerHotkey("assist", combo, { onPress: handler });
 }

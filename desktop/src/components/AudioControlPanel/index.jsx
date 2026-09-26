@@ -59,6 +59,8 @@ export function AudioControlPanel({
   onChangeMicTtsSonioxVolume,
   micTtsOutputDeviceId,
   onChangeMicTtsOutputDeviceId,
+  micPassthroughHotkey,
+  onChangeMicPassthroughHotkey,
 
   loopbackError,
   micError,
@@ -242,6 +244,8 @@ export function AudioControlPanel({
               onReloadSoniox={reloadSoniox}
               onRefreshDevices={onRefreshDevices}
               ttsError={ttsError}
+              micPassthroughHotkey={micPassthroughHotkey}
+              onChangeMicPassthroughHotkey={onChangeMicPassthroughHotkey}
             />
           </SourceSection>
         </section>

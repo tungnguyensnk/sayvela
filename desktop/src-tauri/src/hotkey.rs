@@ -44,10 +44,19 @@ pub struct Combo {
 #[derive(Debug, Serialize, Clone)]
 pub struct HotkeyEvent {
     pub combo: String,
+    // which binding fired ("assist", "passthrough"); empty while capturing
+    pub slot: String,
 }
 
-pub static COMBO: Mutex<Option<Combo>> = Mutex::new(None);
-pub static COMBO_TEXT: Mutex<String> = Mutex::new(String::new());
+// one bound combo per purpose, so several hotkeys can be live at once
+#[derive(Debug, Clone)]
+pub struct Slot {
+    name: String,
+    combo: Combo,
+    text: String,
+}
+
+pub static SLOTS: Mutex<Vec<Slot>> = Mutex::new(Vec::new());
 
 fn mouse_of(token: &str) -> Option<MouseButton> {
     match token {
@@ -242,16 +251,19 @@ mod imp {
     use windows::Win32::UI::WindowsAndMessaging::{
         CallNextHookEx, DispatchMessageW, GetMessageW, SetWindowsHookExW, TranslateMessage, HHOOK,
         KBDLLHOOKSTRUCT, MSG, MSLLHOOKSTRUCT, WH_KEYBOARD_LL, WH_MOUSE_LL, WM_KEYDOWN,
-        WM_LBUTTONDOWN, WM_MBUTTONDOWN, WM_RBUTTONDOWN, WM_SYSKEYDOWN, WM_XBUTTONDOWN,
+        WM_LBUTTONDOWN, WM_LBUTTONUP, WM_MBUTTONDOWN, WM_MBUTTONUP, WM_RBUTTONDOWN, WM_RBUTTONUP,
+        WM_SYSKEYDOWN, WM_XBUTTONDOWN, WM_XBUTTONUP,
     };
 
     static APP: OnceLock<AppHandle> = OnceLock::new();
     // windows drops a low level hook that takes too long, and emitting to the
     // webview from inside the callback is exactly that; hand it to a thread
-    static EVENTS: OnceLock<SyncSender<(&'static str, String)>> = OnceLock::new();
+    static EVENTS: OnceLock<SyncSender<(&'static str, String, String)>> = OnceLock::new();
     static HOOKS_STARTED: AtomicBool = AtomicBool::new(false);
     pub static CAPTURING: AtomicBool = AtomicBool::new(false);
-    static LAST_FIRED: Mutex<Option<Instant>> = Mutex::new(None);
+    static LAST_FIRED: Mutex<Vec<(String, Instant)>> = Mutex::new(Vec::new());
+    // slots whose press was reported and whose release is still owed
+    static ACTIVE: Mutex<Vec<String>> = Mutex::new(Vec::new());
     // the key currently held down, so auto repeat fires once and a modifier
     // held before the real key does not swallow it
     static HELD_VK: AtomicU32 = AtomicU32::new(0);
@@ -303,33 +315,54 @@ mod imp {
         true
     }
 
-    fn fire() {
+    fn fire(slot: &Slot) {
         // auto repeat is already handled by HELD_VK; this only swallows a double
         // fire from one physical press, so keep it short enough to press twice
-        let mut guard = match LAST_FIRED.lock() {
-            Ok(g) => g,
-            Err(_) => return,
-        };
-        if let Some(at) = *guard {
-            if at.elapsed() < Duration::from_millis(200) {
-                return;
+        let Ok(mut last) = LAST_FIRED.lock() else { return };
+        if last
+            .iter()
+            .any(|(name, at)| name == &slot.name && at.elapsed() < Duration::from_millis(200))
+        {
+            return;
+        }
+        last.retain(|(name, _)| name != &slot.name);
+        last.push((slot.name.clone(), Instant::now()));
+        drop(last);
+        if let Ok(mut active) = ACTIVE.lock() {
+            if !active.contains(&slot.name) {
+                active.push(slot.name.clone());
             }
         }
-        *guard = Some(Instant::now());
-        drop(guard);
-        let combo = COMBO_TEXT.lock().map(|t| t.clone()).unwrap_or_default();
-        post("hotkey_pressed", combo);
+        post("hotkey_pressed", slot.text.clone(), slot.name.clone());
+    }
+
+    // only a press that was reported gets its release, so a hold can be timed
+    fn release(slot: &Slot) {
+        let owed = ACTIVE
+            .lock()
+            .map(|mut active| {
+                let before = active.len();
+                active.retain(|name| name != &slot.name);
+                active.len() != before
+            })
+            .unwrap_or(false);
+        if owed {
+            post("hotkey_released", slot.text.clone(), slot.name.clone());
+        }
     }
 
     // never blocks: a full queue means the app is already behind on presses
-    fn post(event: &'static str, combo: String) {
+    fn post(event: &'static str, combo: String, slot: String) {
         if let Some(tx) = EVENTS.get() {
-            let _ = tx.try_send((event, combo));
+            let _ = tx.try_send((event, combo, slot));
         }
     }
 
-    fn wanted() -> Option<Combo> {
-        COMBO.lock().ok().and_then(|g| *g)
+    fn bound_to(trigger: Trigger) -> Vec<Slot> {
+        SLOTS
+            .lock()
+            .map(|slots| slots.iter().filter(|s| s.combo.trigger == trigger).cloned().collect())
+            .unwrap_or_default()
     }
 
     // the modifiers currently held, skipping the one the trigger itself is
@@ -358,7 +391,7 @@ mod imp {
     fn emit_captured(trigger: String, skip_prefix: &str) {
         let mut parts = held_modifiers(skip_prefix);
         parts.push(trigger);
-        post("hotkey_captured", parts.join("+"));
+        post("hotkey_captured", parts.join("+"), String::new());
     }
 
     unsafe extern "system" fn keyboard_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
@@ -394,16 +427,20 @@ mod imp {
                 }
                 return CallNextHookEx(HHOOK::default(), code, wparam, lparam);
             }
-            if let Some(combo) = wanted() {
-                if combo.trigger == Trigger::Key(vk) {
-                    if is_down {
-                        // windows repeats key down while held; only the first counts
-                        if HELD_VK.swap(vk, Ordering::SeqCst) != vk && mods_match(&combo.mods, combo.trigger) {
-                            fire();
+            let slots = bound_to(Trigger::Key(vk));
+            if !slots.is_empty() {
+                if is_down {
+                    // windows repeats key down while held; only the first counts
+                    if HELD_VK.swap(vk, Ordering::SeqCst) != vk {
+                        for slot in &slots {
+                            if mods_match(&slot.combo.mods, slot.combo.trigger) {
+                                fire(slot);
+                            }
                         }
-                    } else {
-                        let _ = HELD_VK.compare_exchange(vk, 0, Ordering::SeqCst, Ordering::SeqCst);
                     }
+                } else {
+                    let _ = HELD_VK.compare_exchange(vk, 0, Ordering::SeqCst, Ordering::SeqCst);
+                    slots.iter().for_each(release);
                 }
             }
         }
@@ -412,11 +449,13 @@ mod imp {
 
     unsafe extern "system" fn mouse_proc(code: i32, wparam: WPARAM, lparam: LPARAM) -> LRESULT {
         if code >= 0 {
-            let button = match wparam.0 as u32 {
-                WM_LBUTTONDOWN => Some(MouseButton::Left),
-                WM_RBUTTONDOWN => Some(MouseButton::Right),
-                WM_MBUTTONDOWN => Some(MouseButton::Middle),
-                WM_XBUTTONDOWN => {
+            let message = wparam.0 as u32;
+            let is_down = matches!(message, WM_LBUTTONDOWN | WM_RBUTTONDOWN | WM_MBUTTONDOWN | WM_XBUTTONDOWN);
+            let button = match message {
+                WM_LBUTTONDOWN | WM_LBUTTONUP => Some(MouseButton::Left),
+                WM_RBUTTONDOWN | WM_RBUTTONUP => Some(MouseButton::Right),
+                WM_MBUTTONDOWN | WM_MBUTTONUP => Some(MouseButton::Middle),
+                WM_XBUTTONDOWN | WM_XBUTTONUP => {
                     let data = (*(lparam.0 as *const MSLLHOOKSTRUCT)).mouseData;
                     if (data >> 16) as u16 == 1 {
                         Some(MouseButton::X1)
@@ -427,7 +466,7 @@ mod imp {
                 _ => None,
             };
             if CAPTURING.load(Ordering::SeqCst) {
-                if let Some(button) = button {
+                if let Some(button) = button.filter(|_| is_down) {
                     let name = match button {
                         MouseButton::Left => "MouseLeft",
                         MouseButton::Right => "MouseRight",
@@ -445,9 +484,13 @@ mod imp {
                 }
                 return CallNextHookEx(HHOOK::default(), code, wparam, lparam);
             }
-            if let (Some(button), Some(combo)) = (button, wanted()) {
-                if combo.trigger == Trigger::Mouse(button) && mods_match(&combo.mods, combo.trigger) {
-                    fire();
+            if let Some(button) = button {
+                for slot in bound_to(Trigger::Mouse(button)) {
+                    if !is_down {
+                        release(&slot);
+                    } else if mods_match(&slot.combo.mods, slot.combo.trigger) {
+                        fire(&slot);
+                    }
                 }
             }
         }
@@ -466,12 +509,12 @@ mod imp {
         if HOOKS_STARTED.swap(true, Ordering::SeqCst) {
             return;
         }
-        let (tx, rx) = sync_channel::<(&'static str, String)>(32);
+        let (tx, rx) = sync_channel::<(&'static str, String, String)>(32);
         let _ = EVENTS.set(tx);
         let emitter = app.clone();
         std::thread::spawn(move || {
-            for (event, combo) in rx {
-                let _ = emitter.emit(event, HotkeyEvent { combo });
+            for (event, combo, slot) in rx {
+                let _ = emitter.emit(event, HotkeyEvent { combo, slot });
             }
         });
         std::thread::spawn(|| unsafe {
@@ -499,17 +542,23 @@ mod imp {
     pub fn ensure_hooks(_app: &AppHandle) {}
 }
 
-// registers the combo listened for globally; an empty combo clears it
+// registers the combo listened for globally under a slot (default "assist");
+// an empty combo clears that slot only
 #[tauri::command]
-pub fn hotkey_set(app: tauri::AppHandle, combo: Option<String>) -> Result<(), String> {
+pub fn hotkey_set(app: tauri::AppHandle, combo: Option<String>, slot: Option<String>) -> Result<(), String> {
     let text = combo.unwrap_or_default().trim().to_string();
+    let name = slot.unwrap_or_else(|| "assist".to_string());
     let parsed = if text.is_empty() {
         None
     } else {
         Some(parse_combo(&text)?)
     };
-    *COMBO.lock().map_err(|_| "state poisoned".to_string())? = parsed;
-    *COMBO_TEXT.lock().map_err(|_| "state poisoned".to_string())? = text;
+    let mut slots = SLOTS.lock().map_err(|_| "state poisoned".to_string())?;
+    slots.retain(|s| s.name != name);
+    if let Some(combo) = parsed {
+        slots.push(Slot { name, combo, text });
+    }
+    drop(slots);
     imp::ensure_hooks(&app);
     Ok(())
 }

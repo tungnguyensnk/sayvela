@@ -617,3 +617,23 @@
   font-size: 11px;
   color: var(--app-muted);
 }
+
+.acp-ttsPassthrough {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+.acp-ttsHotkey {
+  width: auto;
+  min-width: 96px;
+  height: 28px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.acp-ttsHotkey:disabled {
+  cursor: default;
+  opacity: 0.5;
+}

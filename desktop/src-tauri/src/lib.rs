@@ -2,6 +2,7 @@ mod ai;
 mod api;
 mod audio;
 mod disguise;
+mod passthrough;
 mod hotkey;
 mod screen;
 mod secure_store;
@@ -189,6 +190,9 @@ pub fn run() {
             set_main_window_content_protected,
             disguise::disguise_list,
             disguise::disguise_apply,
+            passthrough::passthrough_arm,
+            passthrough::passthrough_disarm,
+            passthrough::passthrough_set,
             secure_store::soniox_set_api_key,
             secure_store::soniox_has_api_key,
             secure_store::soniox_delete_api_key,

@@ -198,6 +198,31 @@ pub fn start_audio_capture(
 }
 
 #[cfg(windows)]
+// finds a device by the id handed out in list_audio_devices
+pub(crate) fn resolve_device(direction: &Direction, device_id: &str) -> Result<Device> {
+    if device_id == "default-loopback" || device_id == "default-mic" {
+        return wasapi::get_default_device(direction)
+            .map_err(|e| anyhow!(e.to_string()))
+            .context("get default device");
+    }
+    let collection = DeviceCollection::new(direction)
+        .map_err(|e| anyhow!(e.to_string()))
+        .context("get devices")?;
+    for dev in &collection {
+        let dev = dev.map_err(|e| anyhow!(e.to_string()))?;
+        let sys_id = dev.get_id().unwrap_or_default();
+        if (!sys_id.is_empty() && sys_id == device_id)
+            || (device_id.starts_with("friendly:")
+                && dev.get_friendlyname().unwrap_or_default() == device_id[9..])
+        // Simplified matching
+        {
+            return Ok(dev);
+        }
+    }
+    Err(anyhow!("device not found"))
+}
+
+#[cfg(windows)]
 // capture audio data from device, resample it, and emit to frontend
 fn capture_thread(
     app: AppHandle,
@@ -218,30 +243,7 @@ fn capture_thread(
         Direction::Render
     };
 
-    let device = if device_id == "default-loopback" || device_id == "default-mic" {
-        wasapi::get_default_device(&direction)
-            .map_err(|e| anyhow!(e.to_string()))
-            .context("get default device")?
-    } else {
-        let collection = DeviceCollection::new(&direction)
-            .map_err(|e| anyhow!(e.to_string()))
-            .context("get devices")?;
-
-        let mut selected: Option<Device> = None;
-        for dev in &collection {
-            let dev = dev.map_err(|e| anyhow!(e.to_string()))?;
-            let sys_id = dev.get_id().unwrap_or_default();
-            if (!sys_id.is_empty() && sys_id == device_id)
-                || (device_id.starts_with("friendly:")
-                    && dev.get_friendlyname().unwrap_or_default() == device_id[9..])
-            // Simplified matching
-            {
-                selected = Some(dev);
-                break;
-            }
-        }
-        selected.ok_or_else(|| anyhow!("device not found"))?
-    };
+    let device = resolve_device(&direction, &device_id)?;
 
     let client = device
         .get_iaudioclient()

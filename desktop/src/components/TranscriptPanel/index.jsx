@@ -15,6 +15,8 @@ export function TranscriptPanel({
   micBytes,
   titleAction,
   speech,
+  // your own mic is going to the tts output instead of the translation
+  passthrough = false,
   mini = false,
 }) {
   const [autoScrollPref, setAutoScroll] = useState(true);
@@ -71,7 +73,9 @@ export function TranscriptPanel({
   }, [autoScroll, transcriptGroups]);
 
   return (
-    <section className={`panel transcript-panel${mini ? " transcript-panel--mini" : ""}`}>
+    <section
+      className={`panel transcript-panel${mini ? " transcript-panel--mini" : ""}${passthrough ? " transcript-panel--passthrough" : ""}`}
+    >
       {mini ? null : (
         <div className="panel-header transcript-panel-header">
           <div className="panel-title">Transcript</div>
@@ -83,6 +87,12 @@ export function TranscriptPanel({
         </div>
       )}
       <div className="transcript-panel-body">
+        {passthrough ? (
+          <div className="transcript-live" role="status">
+            <span className="transcript-live-dot" />
+            live mic · tts paused
+          </div>
+        ) : null}
         <div
           className="transcript-scroll"
           ref={scrollRef}

@@ -23,6 +23,10 @@ const LABELS = {
   MouseMiddle: "Middle click",
   MouseX1: "Mouse 4",
   MouseX2: "Mouse 5",
+  ArrowLeft: "← Left",
+  ArrowRight: "→ Right",
+  ArrowUp: "↑ Up",
+  ArrowDown: "↓ Down",
 };
 
 // a bare left or right click would swallow every normal click

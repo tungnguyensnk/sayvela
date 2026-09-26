@@ -302,7 +302,7 @@ fn parse_wav_pcm(wav: &[u8]) -> Result<(u32, u16, Vec<u8>), String> {
 }
 
 #[cfg(windows)]
-fn resolve_render_device(device_id: &str) -> Result<wasapi::Device, String> {
+pub(crate) fn resolve_render_device(device_id: &str) -> Result<wasapi::Device, String> {
     let _ = wasapi::initialize_mta();
     if device_id == "default-loopback" {
         return wasapi::get_default_device(&wasapi::Direction::Render).map_err(|e| e.to_string());

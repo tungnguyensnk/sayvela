@@ -15,6 +15,8 @@ export const DEFAULT_PREFERENCES = {
   micTtsVolume: 1,
   micTtsSonioxVolume: 2,
   micTtsOutputDeviceId: "default-loopback",
+  // tap toggles your own mic onto the tts output, hold switches it while held
+  micPassthroughHotkey: "ArrowLeft",
   contentProtectionEnabled: true,
   // "" keeps the sayvela icon; otherwise a disguise id from disguise_list
   appDisguise: "",

@@ -16,7 +16,11 @@ export function useMicTranslationTts({
   pitch,
   volume,
   speed,
+  // your own voice is going out instead; translations are skipped, not saved up
+  muted = false,
 }) {
+  const mutedRef = useRef(muted);
+  mutedRef.current = muted;
   const queueRef = useRef(null);
   if (queueRef.current === null) queueRef.current = createTranslationSpeechQueue();
   const speakingRef = useRef(false);
@@ -155,6 +159,15 @@ export function useMicTranslationTts({
     ttsStop().catch((e) => console.error("TTS Stop Error:", e));
   }, [provider, language, voiceId, outputDeviceId]);
 
+  // muting drops whatever is queued or playing, but keeps what was spoken so
+  // unmuting does not read the backlog out
+  useEffect(() => {
+    if (!muted) return;
+    speechGenerationRef.current += 1;
+    clearPending();
+    ttsStop().catch((e) => console.error("TTS Stop Error:", e));
+  }, [muted]);
+
   useEffect(() => {
     if (!enabled || !running || !language) {
       resetSpeech();
@@ -173,8 +186,9 @@ export function useMicTranslationTts({
       queueRef.current.seed(groups);
       return;
     }
+    // still collected while muted, so these count as said and are never replayed
     const deltas = queueRef.current.collect(groups, { speakPartial });
-    if (!deltas.length) return;
+    if (!deltas.length || mutedRef.current) return;
     if (cfg.queueMode !== "add") clearPending();
     for (const delta of deltas) {
       enqueueSpeakCommand(() => ttsSpeak({
@@ -202,7 +216,7 @@ export function useMicTranslationTts({
     if (!enabled || !running) return;
     if (!endpointTick || endpointTick === lastEndpointRef.current) return;
     lastEndpointRef.current = endpointTick;
-    if (configRef.current.provider !== "soniox") return;
+    if (configRef.current.provider !== "soniox" || mutedRef.current) return;
     enqueueSpeakCommand(() => ttsEndStream()).catch((e) => console.error("TTS End Error:", e));
   }, [enabled, running, endpointTick]);
 }

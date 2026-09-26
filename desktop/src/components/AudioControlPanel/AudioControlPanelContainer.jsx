@@ -53,6 +53,7 @@ export function AudioControlPanelContainer({ loopbackError, micError, onRefreshD
       onChangeMicTtsVolume={setAndSave("micTtsVolume")}
       onChangeMicTtsSonioxVolume={setAndSave("micTtsSonioxVolume")}
       onChangeMicTtsOutputDeviceId={setAndSave("micTtsOutputDeviceId")}
+      onChangeMicPassthroughHotkey={setAndSave("micPassthroughHotkey")}
       loopbackError={loopbackError}
       micError={micError}
     />

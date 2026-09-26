@@ -4,6 +4,7 @@ import "./App.css";
 import { TranscriptPanel } from "./components/TranscriptPanel";
 import { AIChatPanel } from "./components/AIChatPanel";
 import { useMicTranslationTts } from "./tts/useMicTranslationTts";
+import { useVoicePassthrough } from "./tts/useVoicePassthrough";
 import { useSpeechHighlight } from "./tts/useSpeechHighlight";
 import { TitleBar } from "./components/TitleBar";
 import { LoginPanel } from "./components/LoginPanel";
@@ -120,6 +121,7 @@ function App() {
   const assistFrames = useSelector((state) => state.assist.frames);
   const assistSlots = useSelector((state) => state.assist.slots);
   const assistPending = useSelector((state) => state.assist.pending);
+  const hotkeyPaused = useSelector((state) => state.assist.hotkeyPaused);
   const assist = useAutoAssist({
     running,
     preferences,
@@ -136,7 +138,15 @@ function App() {
         .sort((a, b) => (assistFrames[b]?.updatedAt ?? 0) - (assistFrames[a]?.updatedAt ?? 0))
         .slice(0, 1)
     : openKinds;
+  const passthrough = useVoicePassthrough({
+    armed: preferences.micTtsEnabled && running,
+    hotkey: preferences.micPassthroughHotkey,
+    micDeviceId: preferences.micDeviceId,
+    outputDeviceId: preferences.micTtsOutputDeviceId,
+    paused: hotkeyPaused,
+  });
   useMicTranslationTts({
+    muted: passthrough,
     enabled: preferences.micTtsEnabled,
     running,
     groups: micTranscript.groups,
@@ -247,6 +257,7 @@ function App() {
                   micStatus={micTranscript.status}
                   micBytes={micBytes}
                   speech={speechHighlight}
+                  passthrough={passthrough}
                   mini={miniMode}
                   titleAction={miniMode ? null : recorderControl}
                 />

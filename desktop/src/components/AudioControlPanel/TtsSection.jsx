@@ -1,8 +1,11 @@
 import { useState } from "react";
+import { useDispatch } from "react-redux";
 import { Toggle } from "./Toggle";
 import { invoke } from "@tauri-apps/api/core";
 import { ttsGetTestSentence, ttsSpeak } from "../../tts/ttsApi";
+import { setHotkeyPaused } from "../../store/assistSlice";
 import { ActionButton } from "../astryx/AstryxControls";
+import { HotkeyDialog, formatCombo } from "./HotkeyDialog";
 import { SonioxSettingsModal } from "./SonioxSettingsModal";
 import { VbCableInstallModal } from "./VbCableInstallModal";
 
@@ -35,7 +38,16 @@ export function TtsSection({
   onReloadSoniox,
   onRefreshDevices,
   ttsError,
+  micPassthroughHotkey,
+  onChangeMicPassthroughHotkey,
 }) {
+  const dispatch = useDispatch();
+  const [editingHotkey, setEditingHotkey] = useState(false);
+  // the shortcut is grabbed globally, so release it while the dialog listens
+  const editHotkey = (open) => {
+    dispatch(setHotkeyPaused(open));
+    setEditingHotkey(open);
+  };
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [testError, setTestError] = useState("");
   const [installOpen, setInstallOpen] = useState(false);
@@ -109,6 +121,23 @@ export function TtsSection({
           >?</span>
         </div>
         <Toggle checked={micTtsEnabled} onChange={changeEnabled} />
+        <div className="acp-ttsPassthrough">
+          <div className="acp-subLabel">Your voice hotkey</div>
+          <span
+            className="acp-help"
+            tabIndex="0"
+            aria-label="Your voice hotkey help"
+            data-tooltip="While recording, this key clears the queued translation and sends your own microphone straight to the TTS output instead. Tap to switch it on or off; hold to switch only until you let go."
+          >?</span>
+          <button
+            type="button"
+            className="input acp-hotkeyButton acp-ttsHotkey"
+            disabled={!micTtsEnabled}
+            onClick={() => editHotkey(true)}
+          >
+            {formatCombo(micPassthroughHotkey) || "not set"}
+          </button>
+        </div>
       </div>
 
       <div className="acp-ttsSelectRow">
@@ -231,6 +260,15 @@ export function TtsSection({
 
       {ttsError || testError ? <div className="empty acp-error">{ttsError || testError}</div> : null}
       <SonioxSettingsModal open={settingsOpen} exists={sonioxKeyExists} onClose={() => setSettingsOpen(false)} onChanged={onReloadSoniox} />
+      <HotkeyDialog
+        open={editingHotkey}
+        value={micPassthroughHotkey}
+        onCancel={() => editHotkey(false)}
+        onSave={(combo) => {
+          onChangeMicPassthroughHotkey?.(combo);
+          editHotkey(false);
+        }}
+      />
       <VbCableInstallModal open={installOpen} installing={installing} error={installError} onCancel={() => setInstallOpen(false)} onInstall={installVbCable} />
     </div>
   );
