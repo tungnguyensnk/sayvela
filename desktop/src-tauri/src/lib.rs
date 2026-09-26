@@ -11,6 +11,7 @@ mod tts_native;
 mod tts_soniox;
 mod types;
 mod vb_cable;
+mod vcam;
 
 use std::collections::HashMap;
 use std::sync::Mutex;
@@ -212,6 +213,12 @@ pub fn run() {
             tts_native::tts_speak,
             tts_native::tts_stop,
             vb_cable::install_vb_cable,
+            vcam::vcam_list_devices,
+            vcam::vcam_installed,
+            vcam::vcam_install,
+            vcam::vcam_start,
+            vcam::vcam_stop,
+            vcam::vcam_set_output,
             api::api_get_settings,
             api::api_update_settings,
             api::api_list_contexts,

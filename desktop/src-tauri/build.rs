@@ -33,6 +33,9 @@ const ADMIN_MANIFEST: &str = r#"<?xml version="1.0" encoding="utf-8"?>
 "#;
 
 fn main() {
+    // files dropped into the bundled folder later must still be picked up;
+    // tauri only watches the files it saw on the previous build
+    println!("cargo:rerun-if-changed=resources/softcam");
     let attributes = tauri_build::Attributes::new().windows_attributes(
         tauri_build::WindowsAttributes::new().app_manifest(ADMIN_MANIFEST),
     );

@@ -92,6 +92,8 @@ export async function startSonioxSession({
 
   let activeSession = null;
   let pendingSession = null;
+  // wall clock ms that audio time zero corresponds to
+  let clockOffset = Infinity;
   let rotationTimer = null;
   let rotationDeadline = null;
   let rotationPending = false;
@@ -130,8 +132,11 @@ export async function startSonioxSession({
       reconnect_base_delay_ms: 1000,
     });
     recording.on("result", (result) => {
-      session.processedMs = Math.max(session.processedMs, result.total_audio_proc_ms ?? result.final_audio_proc_ms ?? 0);
-      emit(() => transcript.add(result, session.offsetMs));
+      const processedMs = result.total_audio_proc_ms ?? result.final_audio_proc_ms ?? 0;
+      session.processedMs = Math.max(session.processedMs, processedMs);
+      // the result that arrived fastest pins audio time to the wall clock best
+      clockOffset = Math.min(clockOffset, Date.now() - (session.offsetMs + processedMs));
+      emit(() => transcript.add(result, session.offsetMs, clockOffset));
     });
     recording.on("endpoint", () => emit(() => {
       transcript.endpoint();

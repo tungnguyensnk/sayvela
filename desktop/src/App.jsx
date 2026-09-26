@@ -6,6 +6,7 @@ import { AIChatPanel } from "./components/AIChatPanel";
 import { useMicTranslationTts } from "./tts/useMicTranslationTts";
 import { useVoicePassthrough } from "./tts/useVoicePassthrough";
 import { useSpeechHighlight } from "./tts/useSpeechHighlight";
+import { useCameraDelay } from "./hooks/useCameraDelay";
 import { TitleBar } from "./components/TitleBar";
 import { LoginPanel } from "./components/LoginPanel";
 import { QuotaExceededModal } from "./components/QuotaExceededModal";
@@ -161,10 +162,20 @@ function App() {
     volume: preferences.micTtsProvider === "soniox" ? preferences.micTtsSonioxVolume : preferences.micTtsVolume,
   });
   const speechHighlight = useSpeechHighlight(preferences.micTtsEnabled && running);
+  // your own voice goes out live, so the picture runs live with it
+  const camError = useCameraDelay({
+    enabled: preferences.camDelayEnabled,
+    deviceName: preferences.camDeviceName,
+    delayMs: preferences.camDelayMs,
+    scalePercent: preferences.camScalePercent,
+    fps: preferences.camFps,
+    active: !passthrough,
+  });
 
   const audioRuntime = {
     loopbackError: loopbackTranscript.error,
     micError: micTranscript.error,
+    camError,
     onRefreshDevices: refreshDevices,
   };
 

@@ -42,6 +42,17 @@ xcap = { version = "0.9.8", features = ["image"] }
 image = { version = "0.25", default-features = false, features = ["jpeg", "png"] }
 tauri-plugin-global-shortcut = "2.3.2"
 
+# frame conversion for the virtual camera runs 30 times a second; unoptimized
+# it manages two frames a second, so these crates are optimized in dev builds too
+[profile.dev.package.nokhwa-core]
+opt-level = 3
+[profile.dev.package.image]
+opt-level = 3
+[profile.dev.package.zune-jpeg]
+opt-level = 3
+
 [target.'cfg(windows)'.dependencies]
+libloading = "0.8"
+nokhwa = { version = "0.10", default-features = false, features = ["input-msmf"] }
 wasapi = "0.17"
 windows = { version = "0.58", features = ["Foundation", "Foundation_Collections", "Media_SpeechSynthesis", "Storage_Streams", "Win32_Foundation", "Win32_Graphics_Gdi", "Win32_System_Com", "Win32_UI_Shell", "Win32_UI_WindowsAndMessaging", "Win32_UI_Input_KeyboardAndMouse"] }

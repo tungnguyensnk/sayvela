@@ -17,6 +17,13 @@ export const DEFAULT_PREFERENCES = {
   micTtsOutputDeviceId: "default-loopback",
   // tap toggles your own mic onto the tts output, hold switches it while held
   micPassthroughHotkey: "ArrowLeft",
+  // republishes the webcam as a virtual camera, held back while tts speaks
+  camDelayEnabled: false,
+  camDeviceName: "",
+  camDelayMs: 2500,
+  // softer and slower pictures hide the mouth not matching the voice
+  camScalePercent: 100,
+  camFps: 30,
   contentProtectionEnabled: true,
   // "" keeps the sayvela icon; otherwise a disguise id from disguise_list
   appDisguise: "",

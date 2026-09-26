@@ -11,15 +11,21 @@ export function createTranscriptMapper({ languageHints, targetLanguage, speakerO
   const completed = [];
   const identities = new Map();
   const originalsBySpeaker = new Map();
+  // speakers whose original tokens arrived since the last endpoint
+  const freshSpeakers = new Set();
   const pendingTranslations = [];
   let nextSeq = 1;
+  let wallOffset = null;
 
   const identityFor = (segment) => {
     const key = keyOf(segment);
     if (identities.has(key)) return identities.get(key);
     const status = statusOf(segment);
     const speaker = String(speakerOverride || segment.speaker || "0");
-    const original = status === "translation" ? originalsBySpeaker.get(speaker) : null;
+    const last = status === "translation" ? originalsBySpeaker.get(speaker) : null;
+    // a translation follows its spoken tokens, so an original closed by the
+    // endpoint still owns one only while no newer speech came from that speaker
+    const original = last && (!last.closed || !freshSpeakers.has(speaker)) ? last : null;
     const identity = status === "translation"
       ? { id: createId(), seq: original?.seq ?? nextSeq, originId: original?.id ?? null, createdAt: Date.now(), speaker, status }
       : { id: createId(), seq: nextSeq++, originId: null, createdAt: Date.now() };
@@ -52,6 +58,8 @@ export function createTranscriptMapper({ languageHints, targetLanguage, speakerO
       isFinal: !partialText,
       startMs: segment.start_ms ?? 0,
       endMs: segment.end_ms ?? 0,
+      // wall clock ms when this speech began, for the lag readout
+      startAt: wallOffset === null ? null : wallOffset + (segment.start_ms ?? 0),
       createdAt: identity.createdAt,
     };
   };
@@ -94,8 +102,19 @@ export function createTranscriptMapper({ languageHints, targetLanguage, speakerO
     onText?.({ groups });
   };
 
+  // translated tokens carry no timestamps, so the ones that arrive before any
+  // new speech are the tail of the utterance the endpoint closed; the first
+  // new speech settles them so they do not merge with the next translation
+  const settleLateTranslations = () => {
+    const buffer = buffers.get("translation");
+    if (buffer) buffer.flushAll().filter(allowed).map(toGroup).forEach(emitCompleted);
+    activeFinalTokens.delete("translation");
+    for (const [key, identity] of identities) if (identity.status === "translation") identities.delete(key);
+  };
+
   // consumes one sdk result and emits stable plus live transcript groups
-  const add = (result, offsetMs = 0) => {
+  const add = (result, offsetMs = 0, clockOffset = null) => {
+    if (Number.isFinite(clockOffset)) wallOffset = clockOffset;
     const tokensByStatus = new Map();
     for (const sourceToken of result.tokens || []) {
       const token = {
@@ -107,6 +126,9 @@ export function createTranscriptMapper({ languageHints, targetLanguage, speakerO
       if (!tokensByStatus.has(status)) tokensByStatus.set(status, []);
       tokensByStatus.get(status).push(token);
     }
+    const originals = tokensByStatus.get("original") || [];
+    if (originals.length && freshSpeakers.size === 0) settleLateTranslations();
+    for (const token of originals) freshSpeakers.add(String(speakerOverride || token.speaker || "0"));
     const partialTokens = new Map();
     const streams = [...tokensByStatus].sort(([status]) => status === "original" ? -1 : 1);
     for (const [status, tokens] of streams) {
@@ -122,20 +144,24 @@ export function createTranscriptMapper({ languageHints, targetLanguage, speakerO
       stable.map(toGroup).forEach(emitCompleted);
     }
     const live = [];
-    for (const [status, finals] of activeFinalTokens) {
+    // originals first, so a translation always finds the original it follows
+    for (const [status, finals] of [...activeFinalTokens].sort(([status]) => status === "original" ? -1 : 1)) {
       const tokens = [...finals, ...(partialTokens.get(status) || [])];
       live.push(...segmentRealtimeTokens(tokens).filter(allowed).map(toGroup));
     }
     emitSnapshot(live);
   };
 
-  // closes the current utterance so later speech starts a new message
+  // closes the current utterance so later speech starts a new message. the last
+  // original of each speaker is kept but marked closed: the translation of the
+  // final sentence often lands after the endpoint and must still join it
   const endpoint = () => {
     for (const buffer of buffers.values()) buffer.flushAll().filter(allowed).map(toGroup).forEach(emitCompleted);
     releasePending();
     activeFinalTokens.clear();
     identities.clear();
-    originalsBySpeaker.clear();
+    for (const identity of originalsBySpeaker.values()) identity.closed = true;
+    freshSpeakers.clear();
     emitSnapshot();
     onEndpoint?.();
   };

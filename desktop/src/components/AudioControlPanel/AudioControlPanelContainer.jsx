@@ -4,7 +4,7 @@ import { setActiveTab } from "../../store/uiSlice";
 import { selectActiveContextJson, selectAudioState, selectContexts, selectPreferencesState } from "../../store/selectors";
 import { AudioControlPanel } from ".";
 
-export function AudioControlPanelContainer({ loopbackError, micError, onRefreshDevices, updateSetting }) {
+export function AudioControlPanelContainer({ loopbackError, micError, camError, onRefreshDevices, updateSetting }) {
   const dispatch = useDispatch();
   const audio = useSelector(selectAudioState);
   const preferences = useSelector(selectPreferencesState);
@@ -54,8 +54,14 @@ export function AudioControlPanelContainer({ loopbackError, micError, onRefreshD
       onChangeMicTtsSonioxVolume={setAndSave("micTtsSonioxVolume")}
       onChangeMicTtsOutputDeviceId={setAndSave("micTtsOutputDeviceId")}
       onChangeMicPassthroughHotkey={setAndSave("micPassthroughHotkey")}
+      onChangeCamDelayEnabled={setAndSave("camDelayEnabled")}
+      onChangeCamDeviceName={setAndSave("camDeviceName")}
+      onChangeCamDelayMs={setAndSave("camDelayMs")}
+      onChangeCamScalePercent={setAndSave("camScalePercent")}
+      onChangeCamFps={setAndSave("camFps")}
       loopbackError={loopbackError}
       micError={micError}
+      camError={camError}
     />
   );
 }

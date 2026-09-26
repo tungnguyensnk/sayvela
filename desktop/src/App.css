@@ -327,6 +327,16 @@ body:has(.window--ghost),
   color: var(--app-muted);
 }
 
+/* seconds from starting to speak until the voice began */
+.tr-lag {
+  letter-spacing: 0;
+  font-variant-numeric: tabular-nums;
+  padding: 1px 7px;
+  border-radius: 999px;
+  color: var(--app-accent);
+  background-color: color-mix(in srgb, var(--app-accent) 18%, transparent);
+}
+
 .tr-lead {
   font-size: 19px;
   line-height: 1.35;
@@ -379,18 +389,6 @@ body:has(.window--ghost),
   text-decoration-color: var(--app-accent);
   text-decoration-thickness: 2px;
   text-underline-offset: 4px;
-}
-
-/* the last sound spoken; stays after playback ends to mark where it stopped */
-.text-voiced-end {
-  color: var(--app-accent);
-  font-weight: 700;
-  text-decoration: underline;
-  text-decoration-color: var(--app-accent);
-  text-decoration-thickness: 3px;
-  text-underline-offset: 4px;
-  background-color: color-mix(in srgb, var(--app-accent) 22%, transparent);
-  border-radius: 3px;
 }
 
 .bubble-text {

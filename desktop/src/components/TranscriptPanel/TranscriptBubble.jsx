@@ -1,19 +1,8 @@
-// splits text by how far the voice has read it. while speaking, everything read
-// so far is underlined; once it stops, only the last sound stays marked so the
-// position it reached is still visible
-function speechParts(text, spokenChars, { done, holdsEnd }) {
+// marks how far the voice has read; once it has finished nothing stays marked
+function speechParts(text, spokenChars) {
   const cut = Math.max(0, Math.min(spokenChars, text.length));
-  if (!done) {
-    return [
-      { text: text.slice(0, cut), voiced: true },
-      { text: text.slice(cut) },
-    ];
-  }
-  if (!holdsEnd) return [{ text }];
-  const lastSound = Math.max(0, cut - 1);
   return [
-    { text: text.slice(0, lastSound) },
-    { text: text.slice(lastSound, cut), end: true },
+    { text: text.slice(0, cut), voiced: true },
     { text: text.slice(cut) },
   ];
 }
@@ -23,9 +12,7 @@ function renderParts(parts, baseClass) {
   return parts
     .filter((part) => part.text)
     .map((part, index) => {
-      const className = [baseClass, part.voiced && "text-voiced", part.end && "text-voiced-end"]
-        .filter(Boolean)
-        .join(" ");
+      const className = [baseClass, part.voiced && "text-voiced"].filter(Boolean).join(" ");
       return className ? (
         <span key={index} className={className}>
           {part.text}
@@ -53,21 +40,12 @@ export function TranscriptBubble({ segments, isFinal, isTranslation, speech }) {
 
         const active = speech && speech.markerId === seg.id;
         const spokenChars = active ? speech.charIndex : 0;
-        const done = Boolean(active && speech.done);
-        // the last sound sits wherever the reading stopped, final text or partial
-        const endInPartial = spokenChars > finalText.length;
 
         return (
           <span key={seg.id || i}>
-            {renderParts(speechParts(finalText, spokenChars, { done, holdsEnd: !endInPartial }), "")}
+            {renderParts(speechParts(finalText, spokenChars), "")}
             {prefixSpace}
-            {renderParts(
-              speechParts(highlightText, spokenChars - finalText.length, {
-                done,
-                holdsEnd: endInPartial,
-              }),
-              "text-partial",
-            )}
+            {renderParts(speechParts(highlightText, spokenChars - finalText.length), "text-partial")}
             {i < segments.length - 1 && <br />}
           </span>
         );

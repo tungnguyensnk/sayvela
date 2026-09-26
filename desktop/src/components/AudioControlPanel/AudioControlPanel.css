@@ -625,6 +625,14 @@
   margin-left: auto;
 }
 
+/* camera picker beside its delay slider */
+.acp-camRow {
+  display: grid;
+  grid-template-columns: 1.2fr 2fr;
+  gap: 12px;
+  align-items: end;
+}
+
 .acp-ttsHotkey {
   width: auto;
   min-width: 96px;

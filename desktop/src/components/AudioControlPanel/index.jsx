@@ -4,6 +4,7 @@ import { getCachedSonioxVoices, hasSonioxApiKey, loadSonioxVoices, SONIOX_BUILTI
 import { ActionButton } from "../astryx/AstryxControls";
 import { SourceSection } from "./SourceSection";
 import { TtsSection } from "./TtsSection";
+import { CameraSection } from "./CameraSection";
 import { AssistSection } from "./AssistSection";
 import { SettingsOutline } from "./SettingsOutline";
 import { Toggle } from "./Toggle";
@@ -61,6 +62,17 @@ export function AudioControlPanel({
   onChangeMicTtsOutputDeviceId,
   micPassthroughHotkey,
   onChangeMicPassthroughHotkey,
+  camDelayEnabled,
+  onChangeCamDelayEnabled,
+  camDeviceName,
+  onChangeCamDeviceName,
+  camDelayMs,
+  onChangeCamDelayMs,
+  camScalePercent,
+  onChangeCamScalePercent,
+  camFps,
+  onChangeCamFps,
+  camError,
 
   loopbackError,
   micError,
@@ -246,6 +258,19 @@ export function AudioControlPanel({
               ttsError={ttsError}
               micPassthroughHotkey={micPassthroughHotkey}
               onChangeMicPassthroughHotkey={onChangeMicPassthroughHotkey}
+            />
+            <CameraSection
+              camDelayEnabled={camDelayEnabled}
+              onChangeCamDelayEnabled={onChangeCamDelayEnabled}
+              camDeviceName={camDeviceName}
+              onChangeCamDeviceName={onChangeCamDeviceName}
+              camDelayMs={camDelayMs}
+              onChangeCamDelayMs={onChangeCamDelayMs}
+              camScalePercent={camScalePercent}
+              onChangeCamScalePercent={onChangeCamScalePercent}
+              camFps={camFps}
+              onChangeCamFps={onChangeCamFps}
+              camError={camError}
             />
           </SourceSection>
         </section>
