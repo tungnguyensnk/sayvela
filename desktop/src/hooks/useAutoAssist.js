@@ -218,14 +218,15 @@ export function useAutoAssist({ running, preferences, groups, context, chat }) {
 
   // the loop only lives while a session is running
   useEffect(() => {
-    if (!running) {
-      dispatch(setStatus("off"));
-      reset();
-      return;
-    }
-    dispatch(setStatus("watching"));
     reset();
+    if (!running) dispatch(setStatus("off"));
   }, [running, dispatch, reset]);
+
+  // with live ai off nothing watches, so the loop rests at off until the hotkey or bolt wakes it
+  const resting = preferences.assistAutoGate ? "watching" : "off";
+  useEffect(() => {
+    if (running && status !== "assisting" && status !== resting) dispatch(setStatus(resting));
+  }, [running, status, resting, dispatch]);
 
   useEffect(() => {
     if (status === "off") return undefined;

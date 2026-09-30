@@ -14,6 +14,7 @@ const MAX_DELAY_MS: u64 = 8_000;
 // shipped with the app; installing copies it to a fixed path and registers it
 const RESOURCE_DLL: &str = "resources/softcam/softcam.dll";
 
+// how far behind live the picture runs
 static DELAY_MS: AtomicU64 = AtomicU64::new(0);
 // the webcam is opened at this fraction of the output size and scaled up, so
 // a lower value looks softer and hides the mouth not matching the voice
@@ -227,6 +228,7 @@ mod imp {
             }
         };
         let mut ready = Some(ready);
+        let mut failures = 0u32;
         while !stop.load(Ordering::SeqCst) {
             let percent = SCALE_PERCENT.load(Ordering::SeqCst);
             let mut camera = match open_camera(&index, &formats, percent, &output) {
@@ -256,11 +258,21 @@ mod imp {
                 let buffer = match camera.frame() {
                     Ok(buffer) => buffer,
                     Err(e) => {
-                        log::warn!("[vcam] capture stopped: {e}");
-                        let _ = camera.stop_stream();
-                        return;
+                        // often transient, such as the device still held by the
+                        // instance that just closed or by another app; reopening
+                        // clears it, and only the first failure is worth noise
+                        failures += 1;
+                        if failures == 1 {
+                            log::warn!("[vcam] capture failed, reopening until it works: {e}");
+                        }
+                        thread::sleep(Duration::from_secs(1));
+                        break;
                     }
                 };
+                if failures > 0 {
+                    log::info!("[vcam] capture back after {failures} failed attempts");
+                    failures = 0;
+                }
                 let now = Instant::now();
                 let mut queue = lock(&frames);
                 queue.push_back(Frame { at: now, buffer });
@@ -310,6 +322,46 @@ mod imp {
         Ok(())
     }
 
+    // while the picture falls further behind live it plays at half speed for
+    // this long, then pauses for the next. each 0.3s cycle moves the picture
+    // on 0.1s and adds 0.2s to the delay, so a 2.5s delay is reached in 3.75s
+    const EASE_PLAY: Duration = Duration::from_millis(200);
+    const EASE_PAUSE: Duration = Duration::from_millis(100);
+
+    // how much of the span `dt`, starting `phase` into a play and pause cycle,
+    // falls on playing
+    fn played(phase: Duration, dt: Duration) -> Duration {
+        let cycle = EASE_PLAY + EASE_PAUSE;
+        let (mut at, end, mut played) = (phase, phase + dt, Duration::ZERO);
+        while at < end {
+            let into = Duration::from_nanos((at.as_nanos() % cycle.as_nanos()) as u64);
+            let step = (cycle - into).min(end - at);
+            if into < EASE_PLAY {
+                played += step.min(EASE_PLAY - into);
+            }
+            at += step;
+        }
+        played
+    }
+
+    // moves the shown capture instant toward `wanted`, the moment exactly the
+    // delay ago, and returns where it is in the play and pause cycle. to fall
+    // further behind, as when your own voice is switched off, it plays and
+    // pauses until the delay is reached, which reads far softer than a freeze.
+    // to catch up, as when your own voice is switched on, it jumps straight there
+    fn follow(shown: Instant, wanted: Instant, dt: Duration, phase: Duration) -> (Instant, Duration) {
+        if shown <= wanted {
+            return (wanted, Duration::ZERO);
+        }
+        let next = shown + played(phase, dt) / 2;
+        if next <= wanted {
+            (wanted, Duration::ZERO)
+        } else {
+            let cycle = EASE_PLAY + EASE_PAUSE;
+            (next, Duration::from_nanos(((phase + dt).as_nanos() % cycle.as_nanos()) as u64))
+        }
+    }
+
     // the frame to show at `target`: the newest one captured at or before it,
     // or the oldest while the buffer has not yet reached that far back. frames
     // before the chosen one are done with and dropped
@@ -354,6 +406,40 @@ mod imp {
         }
 
         #[test]
+        fn counts_only_the_playing_part_of_each_cycle() {
+            let ms = Duration::from_millis;
+            assert_eq!(played(ms(0), ms(300)), ms(200));
+            assert_eq!(played(ms(150), ms(100)), ms(50));
+            assert_eq!(played(ms(250), ms(100)), ms(50));
+            assert_eq!(played(ms(0), ms(900)), ms(600));
+        }
+
+        #[test]
+        fn eases_behind_by_pausing_and_jumps_to_catch_up() {
+            let ms = Duration::from_millis;
+            let b = Instant::now();
+            // simulated at 30 frames a second: plays at half speed, pauses in
+            // between, and lands on the 2.5s delay after about 3.75s
+            let tick = Duration::from_nanos(33_333_333);
+            let (mut shown, mut now, mut phase) = (b + ms(10_000), b + ms(10_000), Duration::ZERO);
+            let mut pauses = 0;
+            while now - shown < ms(2500) {
+                let (next, p) = follow(shown, now - ms(2500), tick, phase);
+                if next == shown {
+                    pauses += 1;
+                }
+                shown = next;
+                phase = p;
+                now += tick;
+            }
+            let took = now - b - ms(10_000);
+            assert!(took >= ms(3650) && took <= ms(3850), "{took:?}");
+            assert!(pauses > 0);
+            // your own voice switched on: straight to live
+            assert_eq!(follow(b + ms(11_500), b + ms(14_050), tick, ms(50)), (b + ms(14_050), Duration::ZERO));
+        }
+
+        #[test]
         fn skips_to_the_newest_frame_when_the_delay_drops() {
             let base = Instant::now();
             let mut queue = frames(base, &[0, 100, 200]);
@@ -376,7 +462,7 @@ mod imp {
     }
 
     // feeds the virtual camera with the frame that is exactly the current delay
-    // old. a growing delay holds the picture still until time catches up, a
+    // old. a growing delay plays and pauses the picture until it gets there, a
     // shrinking one skips ahead; while the buffer first fills, the oldest frame
     // stands in
     fn output(dll: PathBuf, format: CameraFormat, stop: Arc<AtomicBool>, frames: Frames, ready: Sender<Result<(), String>>) {
@@ -398,11 +484,15 @@ mod imp {
         let mut shown: Option<Instant> = None;
         let mut frame: Vec<u8> = Vec::new();
         let mut next_send = Instant::now();
+        // the capture instant on screen and the send moment it was chosen for
+        let mut clock: Option<(Instant, Instant)> = None;
+        let mut phase = Duration::ZERO;
         while !stop.load(Ordering::SeqCst) {
             // nobody is watching, so decoding would only burn cpu
             if !unsafe { (softcam.connected)(camera) } {
                 thread::sleep(Duration::from_millis(50));
                 next_send = Instant::now();
+                clock = None;
                 continue;
             }
             // frames go out at the chosen rate; the camera rate is the ceiling.
@@ -410,7 +500,16 @@ mod imp {
             // before that moment, so decoding does not stretch the cadence
             let interval = Duration::from_secs_f32(1.0 / FPS.load(Ordering::SeqCst).clamp(1, 60) as f32);
             let delay = Duration::from_millis(DELAY_MS.load(Ordering::SeqCst));
-            let target = next_send.checked_sub(delay).unwrap_or(next_send);
+            let wanted = next_send.checked_sub(delay).unwrap_or(next_send);
+            let target = match clock {
+                Some((shown_at, sent_at)) => {
+                    let (next, p) = follow(shown_at, wanted, next_send.saturating_duration_since(sent_at), phase);
+                    phase = p;
+                    next
+                }
+                None => wanted,
+            };
+            clock = Some((target, next_send));
             let picked = due(&mut lock(&frames), target);
             let Some((at, buffer)) = picked else {
                 thread::sleep(Duration::from_millis(10));

@@ -39,7 +39,7 @@ export async function loadSonioxVoices(force = false) {
     const clones = (Array.isArray(voices) ? voices : []).map((voice) => ({
       ...voice,
       group: "clone",
-      ready: voice.model === "tts-rt-v1" && voice.status === "ready",
+      ready: voice.model === "tts-rt-v2" && voice.status === "ready",
     }));
     cachedVoices = [...clones, ...SONIOX_BUILTIN_VOICES];
     return cachedVoices;

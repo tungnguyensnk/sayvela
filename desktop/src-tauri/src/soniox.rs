@@ -42,7 +42,7 @@ fn parse_voices_page(page: VoicesPage) -> (Vec<SonioxVoice>, Option<String>) {
             let model = voice
                 .models
                 .into_iter()
-                .find(|model| model.model == "tts-rt-v1")?;
+                .find(|model| model.model == "tts-rt-v2")?;
             Some(SonioxVoice {
                 id: voice.id,
                 name: voice.name,
@@ -145,7 +145,7 @@ mod tests {
     fn parses_cursor_and_filters_model() {
         let page: VoicesPage = serde_json::from_value(serde_json::json!({
             "voices": [
-                {"id": "a", "name": "A", "models": [{"model": "other", "status": "ready"}, {"model": "tts-rt-v1", "status": "ready"}]},
+                {"id": "a", "name": "A", "models": [{"model": "other", "status": "ready"}, {"model": "tts-rt-v2", "status": "ready"}]},
                 {"id": "b", "name": "B", "models": [{"model": "other", "status": "ready"}]}
             ],
             "next_page_cursor": "next"

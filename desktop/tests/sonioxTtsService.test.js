@@ -15,8 +15,8 @@ describe("soniox tts service", () => {
 
   it("orders clones first and maps readiness", async () => {
     invoke.mockResolvedValue([
-      { id: "ready", name: "Ready", model: "tts-rt-v1", status: "ready" },
-      { id: "pending", name: "Pending", model: "tts-rt-v1", status: "training" },
+      { id: "ready", name: "Ready", model: "tts-rt-v2", status: "ready" },
+      { id: "pending", name: "Pending", model: "tts-rt-v2", status: "training" },
     ]);
     const voices = await loadSonioxVoices();
     expect(voices.slice(0, 2)).toMatchObject([

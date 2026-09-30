@@ -22,7 +22,7 @@ pub fn config_message(
     speed: Option<f32>,
 ) -> Value {
     json!({
-        "api_key": api_key, "stream_id": stream_id, "model": "tts-rt-v1",
+        "api_key": api_key, "stream_id": stream_id, "model": "tts-rt-v2",
         "language": language, "voice": voice, "audio_format": "pcm_s16le",
         "sample_rate": 24000, "speed": clamp_speed(speed),
         "return_timestamps": true
